@@ -24,3 +24,4 @@ AI駆動開発向けテスト戦略のドキュメント体系（`docs/testing/`
 - 期待値は仕様（TRS の AC）を正とする。既存コードの挙動から期待値を逆生成しない（`03-trs-guideline.md`）。
 - TRS の Open Issues は解決後も行を削除しない。
 - `01`・`04` に定めたとおり、AI は方針書・規程・期待値を単独で変更しない。変更は PR で人間の承認を得る。
+- バグ修正の PR は、タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る（還元先・完了条件の欄が出る）。`PR Bug Fix Check`（`scripts/check-bug-fix-pr.sh`）が、欄の有無と完了条件の未チェックを検査する。
