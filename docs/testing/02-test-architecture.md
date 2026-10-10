@@ -419,20 +419,34 @@ plugins {
 
 pitest {
     junit5PluginVersion.set("1.2.3")
-    targetClasses.set(listOf("com.example.order.domain.*", "com.example.payment.domain.*")) // ドメイン層に限定
+    // 既定はドメイン層全体。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
+    targetClasses.set(
+        providers.gradleProperty("pitest.targetClasses")
+            .map { it.split(",") }
+            .orElse(listOf("com.example.order.domain.*", "com.example.payment.domain.*")),
+    )
     // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
     targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
-    // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
-    excludedMethods.set(listOf("getValue", "getAmount", "getError"))
-    mutationThreshold.set(80)                                  // §4.1 の PR 閾値。下回るとビルド失敗
+    // アクセサ以外にメンバを持たない value class / data class だけをクラス単位で除外する（検証ロジックは companion 側）
+    excludedClasses.set(listOf("com.example.order.domain.Quantity", /* ... */ "com.example.order.domain.Validated\$Invalid"))
+    mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80)) // §4.1。夜間は 70
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }
 ```
 
 ```bash
-./gradlew pitest        # 結果: build/reports/pitest/index.html
+./gradlew pitest                                            # 全体。結果: build/reports/pitest/index.html
+./gradlew pitest -Ppitest.targetClasses="$(scripts/pitest-targets.sh origin/main)"   # PR と同じ差分実行（ALL / NONE の扱いは下記）
 ```
+
+**CI での実行**（`kotlin-samples.yml` / `nightly-mutation.yml`）
+
+| 契機 | 対象 | 閾値 |
+|---|---|---|
+| PR | `scripts/pitest-targets.sh` が base との差分から変更クラスを決める。`build.gradle.kts` / `gradle/` / `config/` の変更（依存更新 PR を含む）と、テストのみの変更は `ALL`（全体）、対象外の変更は `NONE`（スキップ） | 80% |
+| main への push | 全体 | 80% |
+| 夜間（毎日 03:00 JST） | 全体。スコアを Step Summary に出力し、レポートを成果物として 90 日保管して推移を追う | 70% |
 
 **実際に踏んだ注意点**
 
@@ -440,7 +454,7 @@ pitest {
 |---|---|
 | `Coverage generation minion exited abnormally` | `targetTests` 未指定だと `targetClasses` と同じパターンが使われ、`main` 側のクラスがテストとして実行される。`*Test` で明示する |
 | `NoSuchMethodError: SpecRef$Reference.<init>` | `kotest-extensions-pitest` 1.2.0 は Kotest 5.5.4 向けで、Kotest 6 と衝突する。**Kotest 6 では拡張なし**（`pitest-junit5-plugin` のみ）で動く |
-| value class のゲッターが `NO_COVERAGE` | コンパイラ生成アクセサは呼ばれないため、`excludedMethods` で除外する（理由をコメントに残す） |
+| value class のゲッターが `NO_COVERAGE` | コンパイラ生成アクセサは呼ばれない。名前ベースの `excludedMethods` は全クラスに効き、将来ロジックを持つゲッターを黙って見逃すため使わず、アクセサ以外にメンバを持たないクラスだけを `excludedClasses` で除外する（`Yen.getAmount` は `plus` を持つクラスのため除外せず、生存ミュータントとして残している） |
 | `plus` が 0 を返すミュータントが生存 | 交換則・結合則は常に 0 を返す実装でも成立する。**和そのものを検証するオラクル Property** を追加して検出した（§2.2） |
 | `0..MAX` の境界のミュータントが生存 | ランダム入力は境界ちょうどの値に当たりにくい。**境界値を Example で明示**して検出した（§2.4） |
 
@@ -451,8 +465,9 @@ pitest {
 | 初回（Quantity・Yen・PaymentState のテストのみ） | 48%（15 / 31） | `Ids.kt` はテスト無し。`NO_COVERAGE` 14 件、生存 2 件 |
 | テスト追加後 | 77%（24 / 31） | 閾値 80% を下回り `pitest` がビルド失敗（ゲートが機能することを確認） |
 | 無意味な分岐の削除・アクセサ除外後 | 100%（18 / 18） | 閾値を満たす |
+| `excludedMethods` を `excludedClasses` に置換（`Ids.kt` のテスト追加後） | 95%（19 / 20） | `Yen.getAmount` のみ生存。閾値を満たす |
 
-> Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedMethods` の追加も同様に人間の承認を要する。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。
+> Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedClasses` の追加・変更も同様に人間の承認を要する（`build.gradle.kts` は CODEOWNERS の対象）。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。閾値 80% は 20 ミュータント規模では 1 件の生存で大きく動くため、対象が増えた時点で再評価する。Kotest / PIT の更新で壊れないかは、Dependabot の PR（`build.gradle.kts` を変更するため `ALL` で `pitest` が走る）で検知する。
 
 ---
 

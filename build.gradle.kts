@@ -39,13 +39,28 @@ dependencies {
 
 pitest {
     junit5PluginVersion.set("1.2.3")
-    targetClasses.set(listOf("com.example.order.domain.*", "com.example.payment.domain.*")) // ドメイン層に限定
+    // 既定はドメイン層全体。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
+    targetClasses.set(
+        providers.gradleProperty("pitest.targetClasses")
+            .map { it.split(",") }
+            .orElse(listOf("com.example.order.domain.*", "com.example.payment.domain.*")),
+    )
     // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
     targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
-    // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない。
-    // これらのミュータントは検証対象の振る舞いを持たない（NO_COVERAGE のノイズ）ため除外する。
-    excludedMethods.set(listOf("getValue", "getAmount", "getError"))
-    mutationThreshold.set(80)
+    // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
+    // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
+    // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
+    // 除外の追加・変更は人間の承認が必要（このファイルは CODEOWNERS 対象）。
+    excludedClasses.set(
+        listOf(
+            "com.example.order.domain.Quantity",
+            "com.example.order.domain.UserId",
+            "com.example.order.domain.OrderId",
+            "com.example.order.domain.Validated\$Invalid",
+        ),
+    )
+    // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02 §4.1
+    mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }

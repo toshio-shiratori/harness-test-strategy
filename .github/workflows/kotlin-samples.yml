@@ -13,10 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # PR の差分ミューテーションで base との差分を取るため
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      # docs/testing/02-test-architecture.md のサンプルコードのコンパイル・テスト・ミューテーションテスト（ローカルも同一コマンド）
-      - run: ./gradlew detekt ktlintCheck test pitest
+      # docs/testing/02-test-architecture.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
+      - run: ./gradlew detekt ktlintCheck test
+      # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体
+      - name: pitest
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            targets="$(scripts/pitest-targets.sh "origin/$BASE_REF")"
+          else
+            targets=ALL
+          fi
+          echo "pitest targets: $targets"
+          if [ "$targets" = "NONE" ]; then
+            echo "ミューテーション対象の変更なし"
+          elif [ "$targets" = "ALL" ]; then
+            ./gradlew pitest
+          else
+            ./gradlew pitest "-Ppitest.targetClasses=$targets"
+          fi
