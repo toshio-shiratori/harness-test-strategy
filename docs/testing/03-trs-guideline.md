@@ -143,8 +143,8 @@ class PaymentTransitionTableTest : FunSpec({
 ### 3.4 トレーサビリティ
 
 - すべてのテストは、対応する AC の ID を**テスト名の先頭に `AC-xx-yy` を置き、続けて空白と説明を書く形で**付ける（例: `AC-01-02 範囲外の整数は拒否される`）。Kotest の文字列名・JUnit のバッククォート名のどちらでも書け、grep で機械的に辿れる。JVM のバッククォート名は `[` `]` `:` `.` を使えないため、括弧やコロンで囲まない（ORD-001 の検証で判明）。複数の AC を検証するテストは `AC-01-04 AC-01-05 …` と空白区切りで並べる。TRS のトレーサビリティ表には `テストクラス::テスト名` を書く。
-- AC に対応するテストが存在しない場合、CI のトレーサビリティチェックで警告する（01 の G5）。**実装済み**: `TraceabilityTest`（Konsist、`./gradlew test` で実行）が、TRS の AC 表から `AC-xx-yy` を抽出し、`src/test` にその ID で始まるテスト名があるかを照合して、無ければ**失敗**させる。Gherkin のタグに `@pending:<OI-ID>` を付けた AC は除外する（Blocking の Open Issue が未解決の AC）。警告ではなく失敗にしたのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。`@pending` の追加は TRS の変更として人間のレビューを受ける。
-- **`AC-xx-yy` は TRS 間で重複させない。** `TraceabilityTest` は全 TRS の AC を、`src/test` 全体のテスト名と照合する。別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見え、検査が弱くなる。`xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`）。新しい TRS は、既存の TRS が使っていない最小の番号から採番する。重複は `TraceabilityTest` が検出して失敗させる。
+- AC に対応するテストが存在しない場合、CI のトレーサビリティチェックで警告する（01 の G5）。**実装済み**: `TraceabilityTest`（Konsist、`./gradlew test` で実行）が、TRS の AC 表から `AC-xx-yy` を抽出し、`src/test` と `src/integrationTest` にその ID で始まるテスト名があるかを照合して、無ければ**失敗**させる。Gherkin のタグに `@pending:<OI-ID>` を付けた AC は除外する（Blocking の Open Issue が未解決の AC）。警告ではなく失敗にしたのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。`@pending` の追加は TRS の変更として人間のレビューを受ける。
+- **`AC-xx-yy` は TRS 間で重複させない。** `TraceabilityTest` は全 TRS の AC を、`src/test` と `src/integrationTest` 全体のテスト名と照合する。別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見え、検査が弱くなる。`xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`、PAY-002 は `03`）。新しい TRS は、既存の TRS が使っていない最小の番号から採番する。重複は `TraceabilityTest` が検出して失敗させる。
 - AC に紐づかないテストは、技術的な不変条件（PBT 等）であることを明記する。
 
 ## 4. Open Issues の履歴化

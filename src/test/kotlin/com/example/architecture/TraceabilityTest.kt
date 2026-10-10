@@ -22,6 +22,12 @@ class TraceabilityTest : StringSpec({
     val testSources = Konsist.scopeFromTest().files.filterNot { it.name == "TraceabilityTest" }.joinToString("\n") { it.text }
     fun hasTest(ac: String) = Regex("""["`](?:AC-\d\d-\d\d )*$ac\b""").containsMatchIn(testSources)
 
+    "統合テスト（src/integrationTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
+        // 層2（Integration）の AC は src/integrationTest のテストに紐づく。ここが検査範囲から外れると、移した AC が「テスト無し」と誤判定される
+        Konsist.scopeFromTest().files.any { "/src/integrationTest/" in it.path } shouldBe true
+        testSources.contains("class OrderControllerHttpTest") shouldBe true // src/integrationTest のテスト本文が照合対象に入っている
+    }
+
     "TRS が1つ以上存在する（ディレクトリの移動で素通りしない）" {
         trsFiles.isNotEmpty() shouldBe true
     }

@@ -27,14 +27,42 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    // 永続化 Adapter（payment.adapter.persistence）: MyBatis + Flyway + MySQL。
+    // mybatis-spring-boot-starter 4.1.0 は Spring Boot 4.1.0 でビルドされた版（Maven Central の pom で確認）。BOM の管理外なのでバージョンを明示する
+    implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.flywaydb:flyway-mysql")
+    runtimeOnly("com.mysql:mysql-connector-j")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test") // @WebMvcTest / RestTestClient
+    // 層1（src/test）は Spring・Docker を使わない純粋なテスト。Spring を起動するテストは integrationTest（下の testing ブロック）に置く
     testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
     testImplementation("io.kotest:kotest-assertions-core:6.2.5")
     testImplementation("io.kotest:kotest-property:6.2.5")
     testImplementation("com.lemonappdev:konsist:0.18.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// 実行境界（02 §3.3）: Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・DB 統合）は src/integrationTest に置き、
+// `./gradlew integrationTest` で実行する。`./gradlew test` は層1だけ（Spring・Docker 不要、全体で数秒以内）。
+testing {
+    suites {
+        register<JvmTestSuite>("integrationTest") {
+            useJUnitJupiter()
+            dependencies {
+                implementation(project())
+                implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
+                implementation("org.springframework.boot:spring-boot-starter-test")
+                implementation("org.springframework.boot:spring-boot-starter-webmvc-test") // @WebMvcTest / RestTestClient
+                implementation("io.kotest:kotest-assertions-core:6.2.5")
+                // DB を含む Integration: Testcontainers で MySQL を起動する。バージョンは Spring Boot の BOM（Testcontainers 2.x）が管理する
+                implementation("org.springframework.boot:spring-boot-starter-jdbc")
+                implementation("org.flywaydb:flyway-core") // テストごとにスキーマを作り直す（clean / migrate）
+                implementation("org.springframework.boot:spring-boot-testcontainers")
+                implementation("org.testcontainers:testcontainers-junit-jupiter")
+                implementation("org.testcontainers:testcontainers-mysql")
+            }
+        }
+    }
 }
 
 pitest {
@@ -77,7 +105,7 @@ detekt {
 // `./gradlew detekt` でも detektMain が走るようにして、コマンドを docs・CI・ローカルで一つにする。
 tasks.named("detekt") { dependsOn("detektMain") }
 // テストソースは `as` を許容する（02 §2.2）ため検査しない
-tasks.matching { it.name == "detektTest" || it.name == "detektTestSourceSet" }.configureEach { enabled = false }
+tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIntegrationTest", "detektIntegrationTestSourceSet") }.configureEach { enabled = false }
 
 tasks.withType<Test> {
     useJUnitPlatform()

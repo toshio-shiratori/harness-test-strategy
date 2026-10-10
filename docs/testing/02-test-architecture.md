@@ -17,10 +17,10 @@
 | JDK | 17 以上（Spring Boot 4 の最低要件） |
 | ビルド | Gradle 9（Kotlin DSL） |
 | JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
-| テスト | JUnit Platform + Kotest（Property / Assertions）、必要箇所のみ `@SpringBootTest` |
+| テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`（§3.2） |
 | モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
 
-> Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/test/.../adapter/web/OrderControllerHttpTest.kt`）。
+> Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/integrationTest/.../adapter/web/OrderControllerHttpTest.kt`）。
 >
 > | 用途 | 内容 |
 > |---|---|
@@ -456,6 +456,8 @@ class YenPropertyTest : StringSpec({
 
 ## 3. 層1 の標準構成と実行順序
 
+### 3.1 実行順序
+
 ```mermaid
 flowchart LR
   A["保存時<br/>型チェック + Lint"] --> B["pre-commit<br/>型 + Lint + 影響範囲の Unit/PBT"]
@@ -466,6 +468,64 @@ flowchart LR
   B --> C1
   C4 --> D["夜間（CI）<br/>PBT 増量・全体ミューテーション<br/>AI探索エージェント"]
 ```
+
+### 3.2 層1と統合テストの実行境界
+
+実 DB を使うテストを足すと、層1の速度要件（全体で数秒以内）を壊すおそれがある。そこで Gradle の実行タスクとソースセットで境界を分ける。
+
+| 項目 | 層1 | 統合テスト（Integration） |
+|---|---|---|
+| ソースセット | `src/test` | `src/integrationTest`（JVM Test Suite） |
+| 実行 | `./gradlew test` | `./gradlew integrationTest` |
+| 置くもの | 型・Unit・PBT・Konsist 検査 | Spring コンテキストを起動するテスト（`@WebMvcTest`・`@SpringBootTest`）と、Testcontainers で実 DB を使うテスト |
+| 必要なもの | JDK のみ（Spring・Docker 不要） | JDK と Docker（Testcontainers） |
+| CI | `kotlin-samples.yml` の `test` ジョブ | 同 `integration` ジョブ |
+
+- 層1のテストは Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`）と `org.testcontainers.*` を使わない。逆に、これらを使うテストは `src/integrationTest` にだけ置く。`ExecutionBoundaryTest`（Konsist）が検査し、違反例（`config/konsist-fixtures/boundary/`）で検出できることも確認している。
+- `TestProtectionTest`（@Disabled 検出）と `TraceabilityTest`（AC 紐づけ）は、両方のソースセットを対象にする。`src/integrationTest` が検査から外れていないことは、それぞれのテストで確認している。
+- AC に紐づく統合テストのテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03 §3.4）。
+- ミューテーション（`pitest`）の対象は `*.domain.*` だけで、統合テストは混ざらない。
+
+### 3.3 DB を含む Integration のサンプル（Testcontainers）
+
+実例は TRS `PAY-002`（決済状態の保存・読み戻し）の `PaymentRepositoryIntegrationTest`。Adapter は `payment.adapter.persistence`（MyBatis のマッパー、`PaymentState` ↔ 行の変換、Flyway のマイグレーション）、ポートは `payment.domain.PaymentRepository` に置く。Spring Boot 4.1.1 で次を実測確認済み。
+
+| 用途 | 内容 |
+|---|---|
+| MyBatis | `org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0`（Spring Boot 4.1.0 でビルドされた版。BOM の管理外なのでバージョンを明示する） |
+| Flyway | `org.springframework.boot:spring-boot-starter-flyway` + `org.flywaydb:flyway-mysql`（バージョンは BOM が管理） |
+| MySQL ドライバ | `com.mysql:mysql-connector-j`（BOM 管理、`runtimeOnly`） |
+| Spring Boot のテスト連携 | `org.springframework.boot:spring-boot-testcontainers`（`org.springframework.boot.testcontainers.service.connection.ServiceConnection`） |
+| Testcontainers（2.x、BOM 管理） | `org.testcontainers:testcontainers-junit-jupiter`、`org.testcontainers:testcontainers-mysql`（`org.testcontainers.mysql.MySQLContainer`） |
+
+```kotlin
+@TestConfiguration(proxyBeanMethods = false)
+class MySqlContainerConfiguration {
+    @Bean
+    @ServiceConnection // DataSource（Flyway・MyBatis が使う）をこのコンテナへ自動接続する
+    fun mysql(): MySQLContainer = MySQLContainer("mysql:8.4")
+}
+
+@SpringBootTest
+@Import(MySqlContainerConfiguration::class)
+class PaymentRepositoryIntegrationTest {
+    @Autowired
+    lateinit var repository: PaymentRepository
+
+    @Test
+    fun `AC-03-02 Authorized を保存して読み戻すと、同じ時刻の Authorized である`() {
+        val id = (PaymentId.of("p-1") as Validated.Valid).value
+        val at = Instant.parse("2026-10-11T00:00:00.123456Z")
+
+        repository.save(id, PaymentState.Authorized(at))
+
+        repository.find(id) shouldBe PaymentState.Authorized(at)
+    }
+}
+```
+
+- DB の制約（CHECK）で守る不変条件は、アプリを経由しない書き込みも拒否できる。迂回した行が読み込み時にも拒否されることは、CHECK を外した DB で別に検証する（PAY-002 AC-03-08 / AC-03-09）。
+- `@WebMvcTest` のスライスは DataSource を起動しないため、Docker は要らない。`@SpringBootTest` は DataSource・Flyway・MyBatis を含むので、コンテナ設定を `@Import` する。
 
 ---
 
@@ -584,7 +644,7 @@ pitest {
 
 E2E は遅く、壊れやすく、原因の切り分けが難しい。**E2E でしか検証できないものだけ**を E2E にする。
 
-下層の Integration（HTTP/JSON の境界、ステータス・エラー形式、JSON ⇔ DTO 変換）の実例は `OrderControllerHttpTest`（`@WebMvcTest` + `RestTestClient`、Web スライスのみ起動）を参照する。これらは E2E にしない。
+下層の Integration（HTTP/JSON の境界、ステータス・エラー形式、JSON ⇔ DTO 変換）の実例は `OrderControllerHttpTest`（`@WebMvcTest` + `RestTestClient`、Web スライスのみ起動。`src/integrationTest`）を参照する。これらは E2E にしない。
 
 ### 5.1 E2E として許可する4領域
 
