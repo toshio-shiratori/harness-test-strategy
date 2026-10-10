@@ -1,0 +1,39 @@
+name: Nightly Mutation
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 毎日 03:00 JST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pitest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      # 全体ミューテーション。閾値は夜間用の 70%（02 §4.1）
+      - run: ./gradlew pitest -Ppitest.threshold=70
+      - name: スコアを記録
+        if: always()
+        run: |
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import re
+          s = open("build/reports/pitest/mutations.xml").read()
+          total = len(re.findall(r"<mutation ", s))
+          killed = len(re.findall(r"status='KILLED'", s))
+          print("## Mutation Score")
+          print(f"- {killed}/{total} killed ({100 * killed // max(total, 1)}%)")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pitest-report-${{ github.run_number }}
+          path: build/reports/pitest
+          retention-days: 90
