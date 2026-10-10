@@ -13,7 +13,7 @@
 | 項目 | 前提 |
 |---|---|
 | Spring Boot | 4.1.x（Spring Framework 7.0.x、Jakarta EE 11） |
-| Kotlin | 2.3 系（Spring Boot 4.1 の基準バージョン） |
+| Kotlin | 2.4 系（Spring Boot 4.1 の BOM は 2.3 系を基準とするが、2.4.20 で動作確認済み。`kotlin-reflect` / `kotlin-stdlib` は Kotlin プラグインにより 2.4.20 に揃うことを依存解決で確認） |
 | JDK | 17 以上（Spring Boot 4 の最低要件） |
 | ビルド | Gradle 9（Kotlin DSL） |
 | JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
@@ -35,8 +35,8 @@
 ```kotlin
 // build.gradle.kts（抜粋。全体は検証用プロジェクトのルートにある build.gradle.kts）
 plugins {
-    kotlin("jvm") version "2.3.21"             // Spring Boot 4.1.1 の BOM が採用する Kotlin と同一
-    kotlin("plugin.spring") version "2.3.21"
+    kotlin("jvm") version "2.4.20"             // BOM（2.3 系）より新しい。動作確認済み
+    kotlin("plugin.spring") version "2.4.20"
     id("org.springframework.boot") version "4.1.1"   // 4.1.x の最新パッチを使う
 }
 
@@ -417,7 +417,7 @@ AI が生成したテストは「通ること」を目的化しやすく、**何
 
 ### 4.4 Gradle での実行例（PIT）
 
-JVM/Kotlin では PIT（Pitest）を用いる。本リポジトリの検証用プロジェクト（`src/`）で実際に動かして確認した構成を示す（Gradle 9.8 / Kotlin 2.3.21 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。
+JVM/Kotlin では PIT（Pitest）を用いる。本リポジトリの検証用プロジェクト（`src/`）で実際に動かして確認した構成を示す（Gradle 9.8 / Kotlin 2.4.20 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。
 
 ```kotlin
 // build.gradle.kts（抜粋）
