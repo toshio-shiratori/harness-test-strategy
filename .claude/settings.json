@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.md) cd \"${CLAUDE_PROJECT_DIR:-.}\" && npm run lint >&2 || exit 2;; esac; }",
+            "timeout": 180,
+            "statusMessage": "npm run lint (markdownlint + mermaid)..."
+          }
+        ]
+      }
+    ]
+  }
+}

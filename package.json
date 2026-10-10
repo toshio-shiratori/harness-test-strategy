@@ -1,0 +1,15 @@
+{
+  "name": "harness-test-strategy",
+  "private": true,
+  "description": "AI駆動開発向けテスト戦略ドキュメント",
+  "scripts": {
+    "lint": "npm run lint:md && npm run lint:mermaid",
+    "lint:md": "markdownlint-cli2",
+    "lint:md:fix": "markdownlint-cli2 --fix",
+    "lint:mermaid": "node scripts/lint-mermaid.mjs"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "12.0.0",
+    "markdownlint-cli2": "0.23.3"
+  }
+}
