@@ -23,6 +23,9 @@ class PropertyTestingConfigTest : StringSpec({
     }
     val seedInMessage = Regex("""(?s).*Repeat this test by using seed (-?\d+).*""")
 
+    // 例: "Arg 0: 500 (shrunk from 988)"。縮小後の値は括弧の前まで
+    val shrunkArg0 = Regex("""Arg 0: (.+?)(?: \(shrunk from .*\))?\s*$""", RegexOption.MULTILINE)
+
     "失敗した Property のメッセージに、再現用のシードが含まれる" {
         val error = shouldThrow<AssertionError> { failing(PropTestConfig()) }
 
@@ -36,6 +39,14 @@ class PropertyTestingConfigTest : StringSpec({
         val replayed = shouldThrow<AssertionError> { failing(PropTestConfig(seed = seed)) }
 
         replayed.message shouldBe first.message
+    }
+
+    "失敗した Property のメッセージから、縮小後の反例（Arg 0）を取り出せる" {
+        val error = shouldThrow<AssertionError> { failing(PropTestConfig()) }
+
+        val match = shrunkArg0.find(error.message.orEmpty())!!
+        // 反例は 500 以上の値のうち最小の 500 まで縮小される。縮小前の値（shrunk from）は含まれない
+        match.groupValues[1] shouldBe "500"
     }
 
     "実行回数は kotest.proptest.default.iteration.count で切り替わる（未指定なら Kotest の既定の 1000）" {
