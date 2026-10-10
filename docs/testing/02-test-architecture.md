@@ -421,8 +421,8 @@ class YenPropertyTest : StringSpec({
 
 1. **ジェネレータはドメイン型に対して一元管理する。** 各型に `arbXxx`（Kotest の `Arb`）を1つ用意し、ファクトリの検証と同じ制約を満たす値を生成する。
 2. 不正値の拒否も Property にする（「範囲外の入力は必ず `Validated.Invalid` を返す」）。
-3. シード値を失敗時に出力し、**再現可能**にする。失敗した反例は回帰用の Example テストとして固定する。
-4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。
+3. シード値を失敗時に出力し、**再現可能**にする。失敗した反例は回帰用の Example テストとして固定する。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
+4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定は 1000 回（`kotest.proptest.default.iteration.count`）。Gradle の `-D` はテスト JVM に渡らないため、`build.gradle.kts` で `-Pproptest.iterations=N` を同名のシステムプロパティに転送している。夜間ジョブ（`.github/workflows/nightly-mutation.yml` の `pbt`）は `./gradlew test -Pproptest.iterations=10000` で実行する（全体テストが約 20 秒で完了することを実測した）。
 5. Property が実装のコピーになっていないこと（実装と同じ計算式で期待値を作らない）。
 
 ### 2.4 PBT と Example テストの使い分け

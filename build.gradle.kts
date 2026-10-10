@@ -83,4 +83,9 @@ tasks.withType<Test> {
     useJUnitPlatform()
     // TraceabilityTest が TRS を読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
     inputs.dir("docs/testing/trs")
+    // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02 §2.3）。未指定なら Kotest の既定（1000）。
+    // Gradle の -D はテスト JVM に渡らないため、ここで転送する。
+    providers.gradleProperty("proptest.iterations").orNull?.let {
+        systemProperty("kotest.proptest.default.iteration.count", it)
+    }
 }

@@ -37,3 +37,16 @@ jobs:
           name: pitest-report-${{ github.run_number }}
           path: build/reports/pitest
           retention-days: 90
+
+  # PBT の実行回数を増やした全体テスト。通常実行（既定 1000 回）では見つからない反例を夜間に探す（02 §2.3 項目4）。
+  # 失敗時は、ログの "Repeat this test by using seed ..." のシードで再現する（02 §2.3 項目3）。
+  pbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew test -Pproptest.iterations=10000
