@@ -78,6 +78,41 @@ AC を網羅的なテストケースへ展開するための設計情報。
 - 型で表現可能な制約（sealed 型で排除される組合せ）は、制約として記載したうえで「型で排除」と付記し、テスト生成の対象外とする（02 §1）。
 - 水準には、PBT で扱う連続・大規模な値域の場合 `PBT` と付記し、ジェネレータの制約として使う。
 
+### 2.3 因子・水準・制約表からデータ駆動テストへの展開
+
+TRS の表を機械的にテストへ展開するときの標準形を、次のとおり定める。展開の解釈を AI や開発者に任せない。
+
+| TRS の要素 | テストコードでの扱い |
+|---|---|
+| 因子制約表（§5.2）の1行 | データ駆動テストの**1ケース**。ケース名の先頭に制約 ID（`C-xx`）を置く |
+| 因子・水準表（§4）の水準 | 制約表の「条件」列に現れる水準を、ケースの入力に使う。連続値（`PBT` と付記した水準）は Property に任せ、ここでは境界値だけを行にする |
+| 禁止組合せ（§5.1）・型で排除する制約 | **ケースを生成しない**（テスト対象外。行を作らない） |
+| 組合せ別の期待結果 | 制約表の値をそのまま期待値にする。**実装の挙動から逆生成しない** |
+| AC | データ駆動テストを包む**コンテナ名の先頭**に AC ID を置く（§3.4）。複数の制約行が同じ AC を検証してよい |
+
+標準は Kotest の `withData` とする。JUnit5 `@ParameterizedTest` は採用しない。このリポジトリのテストは Kotest に統一されており、`@ParameterizedTest` には `junit-jupiter-params` の追加が必要で、実際に動かして検証できない例を書くことになるため。
+
+```kotlin
+class PaymentTransitionTableTest : FunSpec({
+    // 制約表の「条件」列（F1 × F2）。期待結果は制約表の値（C-22 は INVALID_TRANSITION で拒否）
+    context("AC-02-06 終端状態からはどの操作でも遷移できない（C-22）") {
+        withData(
+            nameFn = { "${it.id} ${it.state::class.simpleName} × ${it.operation}" },
+            ts = listOf(PaymentState.Captured(at), PaymentState.Failed(FailureReason.TIMEOUT)).flatMap { state ->
+                listOf(authorize, capture, fail).map { op -> case("C-22", state, op) }
+            },
+        ) { it.apply(it.state) shouldBe rejected }
+    }
+})
+```
+
+全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionTableTest.kt`（TRS PAY-001 の制約表 C-20〜C-22 に対応）。Kotest 6.2.5 での実測で分かった点は次のとおり。
+
+- `withData` は `io.kotest.datatest.withData`。`kotest-runner-junit5` が持ち込む `kotest-framework-engine` に含まれ、追加の依存は要らない。
+- `StringSpec` の `"名前" { }` の中に `withData` を置くと、「Nested withData is not supported inside StringSpec test bodies」で非推奨になる（`allWarningsAsErrors` によりビルドエラー）。AC 名のコンテナの下に置くには `FunSpec` の `context(...)` などを使う。
+- 位置引数だけで呼ぶと `withData` のオーバーロードが曖昧になるため、`nameFn` / `ts` を名前付きで渡す。
+- コンテナ名の先頭の AC ID は `TraceabilityTest` が文字列リテラルとして拾うので、検査側の変更は不要。
+
 ## 3. Single Source of Truth（SSOT）
 
 ### 3.1 期待値の正
