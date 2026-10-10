@@ -1,7 +1,7 @@
 // docs/testing/02-test-architecture.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
 plugins {
-    kotlin("jvm") version "2.3.21" // Spring Boot 4.1.1 の BOM が採用する Kotlin に合わせる
-    kotlin("plugin.spring") version "2.3.21"
+    kotlin("jvm") version "2.4.20" // Spring Boot 4.1.1 の BOM が採用する Kotlin に合わせる
+    kotlin("plugin.spring") version "2.4.20"
     id("org.springframework.boot") version "4.1.1"
     id("info.solidsoft.pitest") version "1.19.0"
     id("dev.detekt") version "2.0.0-alpha.6"
