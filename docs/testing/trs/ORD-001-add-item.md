@@ -4,7 +4,7 @@
 > 仕様の正は人間が承認したものでなければならないが、本機能には独立した仕様書が無い。現時点の AC は
 > [02 §1.2](../02-test-architecture.md) の設計記述（数量は 1〜999、範囲外は HTTP 400）を仕様として採用したもので、
 > 既存コードの挙動からの逆生成ではない。数量の範囲、`sku` の扱い、エラーコードは、人間が 2026-10-10 に OI-001〜006 で決定した。
-> 実装待ちの AC（AC-01-08〜12）は #33 で実装する。
+> AC-01-08〜12 は #33 で実装済み。
 > **ステータスは Draft のまま。AI は Approved にしない。**
 
 ## メタ情報
@@ -68,11 +68,11 @@
 | AC-01-05 | UC-01-A1 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-05 …`、`OrderControllerHttpTest::AC-01-05 …` |
 | AC-01-06 | UC-01-A2 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-06 …` |
 | AC-01-07 | UC-01-A3 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-07 …` |
-| AC-01-08 | UC-01-A4 | 層1 / 層2（Integration） | Must | **pending**（実装待ち。#33） |
-| AC-01-09 | UC-01-A1 | 層2（Integration） | Must | **pending**（実装待ち。#33） |
-| AC-01-10 | UC-01-A2 | 層2（Integration） | Must | **pending**（実装待ち。#33） |
-| AC-01-11 | UC-01-A3 | 層2（Integration） | Must | **pending**（実装待ち。#33） |
-| AC-01-12 | UC-01-A5 | 層2（Integration） | Must | **pending**（実装待ち。#33） |
+| AC-01-08 | UC-01-A4 | 層1 / 層2（Integration） | Must | `SkuTest::AC-01-08 …`、`OrderControllerTest::AC-01-08 …`、`OrderControllerHttpTest::AC-01-08 …` |
+| AC-01-09 | UC-01-A1 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-09 …` |
+| AC-01-10 | UC-01-A2 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-10 …` |
+| AC-01-11 | UC-01-A3 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-11 …`、`OrderControllerHttpTest::AC-01-11 …` |
+| AC-01-12 | UC-01-A5 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-12 …`、`OrderControllerHttpTest::AC-01-12 …` |
 
 **`codes` の規約**（OI-003, OI-005, OI-006）: 400 応答の ProblemDetail は拡張プロパティ `codes`（文字列の配列）を持つ。要素は集合として扱い、順序は仕様にしない。同じ値を重複して含めない。`INVALID_JSON` と `MISSING_FIELD` は解析段階の失敗なので単独（要素が1つ）で返る。`BLANK` と `OUT_OF_RANGE` は検証段階の失敗で、同時に成立すれば両方が入る。以下の Gherkin で「`codes` は X である」は、要素の集合が X に等しいことを指す。
 
@@ -139,10 +139,9 @@ Feature: 注文への商品追加
     When  クライアントが POST /orders/items を呼ぶ
     Then  ステータス 400 が返る
 
-  # AC-01-08〜12 は OI-001・OI-003・OI-005・OI-006 で期待値が確定した。実装とテストは #33 で行うため、それまで @pending:ISSUE-33 とする。
-  # pending は TraceabilityTest の除外用タグ。#33 でテストを追加した時点で外す。
+  # AC-01-08〜12 は OI-001・OI-003・OI-005・OI-006 で期待値が確定し、#33 で実装した。
 
-  @AC-01-08 @layer:1 @layer:2 @integration @pending:ISSUE-33
+  @AC-01-08 @layer:1 @layer:2 @integration
   Scenario Outline: sku が空・空白のみなら 400 で拒否される
     Given リクエスト本文が {"sku":<sku>,"quantity":3} である
     When  クライアントが POST /orders/items を呼ぶ
@@ -156,14 +155,14 @@ Feature: 注文への商品追加
       | " "    |
       | "　"   |
 
-  @AC-01-09 @layer:2 @integration @pending:ISSUE-33
+  @AC-01-09 @layer:2 @integration
   Scenario: 範囲外の数量の 400 には codes に OUT_OF_RANGE が付く
     Given リクエスト本文が {"sku":"SKU-1","quantity":1000} である
     When  クライアントが POST /orders/items を呼ぶ
     Then  ステータス 400 が返る
     And   本文の codes は ["OUT_OF_RANGE"] である
 
-  @AC-01-10 @layer:2 @integration @pending:ISSUE-33
+  @AC-01-10 @layer:2 @integration
   Scenario Outline: 壊れた JSON・型不一致の 400 には codes に INVALID_JSON が付く
     Given リクエスト本文が <body> である
     When  クライアントが POST /orders/items を呼ぶ
@@ -177,7 +176,7 @@ Feature: 注文への商品追加
       | {"sku":"SKU-1","quantity":"3"}      |
       | {"sku":"SKU-1","quantity":1.5}      |
 
-  @AC-01-11 @layer:2 @integration @pending:ISSUE-33
+  @AC-01-11 @layer:1 @layer:2 @integration
   Scenario Outline: 必須フィールドの欠落・null の 400 には codes に MISSING_FIELD が付く
     Given リクエスト本文が <body> である
     When  クライアントが POST /orders/items を呼ぶ
@@ -192,7 +191,7 @@ Feature: 注文への商品追加
       | {"sku":null,"quantity":3}       |
       | {"sku":"SKU-1","quantity":null} |
 
-  @AC-01-12 @layer:2 @integration @pending:ISSUE-33
+  @AC-01-12 @layer:1 @layer:2 @integration
   Scenario: sku が空白かつ数量が範囲外なら codes に両方が付く
     Given リクエスト本文が {"sku":" ","quantity":1000} である
     When  クライアントが POST /orders/items を呼ぶ
@@ -269,11 +268,11 @@ Feature: 注文への商品追加
 | AC-01-05 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-06 | — | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-07 | — | `OrderControllerHttpTest` | — | 実装済 |
-| AC-01-08 | （#33 で追加） | （#33 で追加） | — | pending（実装待ち。#33） |
-| AC-01-09 | — | （#33 で追加） | — | pending（実装待ち。#33） |
-| AC-01-10 | — | （#33 で追加） | — | pending（実装待ち。#33） |
-| AC-01-11 | — | （#33 で追加） | — | pending（実装待ち。#33） |
-| AC-01-12 | — | （#33 で追加） | — | pending（実装待ち。#33） |
+| AC-01-08 | `SkuTest`、`OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-09 | — | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-10 | — | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-11 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-12 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
 
 ### 8. 不具合還元履歴
 
@@ -288,6 +287,7 @@ Feature: 注文への商品追加
 | 2026-10-10 | 0.1 | AI | 初版作成（様式の検証を兼ねる。Draft） | 未承認 |
 | 2026-10-10 | 0.2 | AI | OI-001〜004 を人間の決定に基づき Resolved にした。AC-01-08 を確定し、AC-01-09〜11 を追加した。実装待ちの AC は `@pending:ISSUE-33`。OI-005 を起票した（#18） | 未承認 |
 | 2026-10-10 | 0.3 | AI | OI-005 を人間の決定に基づき Resolved にし、OI-006 を追加した。400 応答を `code` から `codes`（配列）に変更し、AC-01-08〜11 の期待値を書き換えた。AC-01-12（同時違反）と UC-01-A5 を追加した | 未承認 |
+| 2026-10-10 | 0.4 | AI | #33 の実装に合わせ、AC-01-08〜12 の `@pending` を外し、紐づくテストとトレーサビリティを記入した。AC-01-11・12 は層1（`OrderControllerTest`）でも検証する。`quantity` / `sku` の欠落・null はコントローラーで判定する（DTO のフィールドを nullable にした） | 未承認 |
 
 ---
 
@@ -300,4 +300,4 @@ Feature: 注文への商品追加
 - [x] 因子制約に、禁止組合せと組合せ別の期待結果がある
 - [x] Blocking の Open Issue が未解決のまま実装に進んでいない（OI-001 は Resolved）
 - [x] Open Issues の履歴（解決済みを含む）が残っている（OI-001〜006 は Resolved で行を残している。OI-003 の変更は OI-006 に記録）
-- [x] 全 AC にテストが紐づいている（AC-01-08〜12 は実装待ちの pending として明示。#33）
+- [x] 全 AC にテストが紐づいている（AC-01-08〜12 は #33 で実装済み）

@@ -5,11 +5,12 @@ import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.http.ResponseEntity
 
 /** Spring コンテナなしで、境界の変換（DTO → ドメイン型 → HTTP ステータス）を層1で検証する。 */
 class OrderControllerTest {
     private val received = mutableListOf<Pair<String, Int>>()
-    private val controller = OrderController { sku, quantity -> received += sku to quantity.value }
+    private val controller = OrderController { sku, quantity -> received += sku.value to quantity.value }
 
     @Test
     fun `AC-01-04 範囲内の数量は 204 で、ユースケースにドメイン型として渡る`() {
@@ -25,6 +26,40 @@ class OrderControllerTest {
 
         response.statusCode shouldBe HttpStatus.BAD_REQUEST
         (response.body as ProblemDetail).status shouldBe 400
+        received shouldBe emptyList()
+    }
+
+    private fun codesOf(response: ResponseEntity<*>) =
+        ((response.body as ProblemDetail).properties?.get(CODES_PROPERTY) as List<*>).toSet()
+
+    @Test
+    fun `AC-01-08 sku が空白なら 400 で codes は BLANK のみ、ユースケースは呼ばれない`() {
+        listOf("", " ", "\u3000").forEach { sku ->
+            val response = controller.add(AddItemRequest(sku, 3))
+
+            response.statusCode shouldBe HttpStatus.BAD_REQUEST
+            codesOf(response) shouldBe setOf("BLANK")
+        }
+        received shouldBe emptyList()
+    }
+
+    @Test
+    fun `AC-01-12 sku が空白かつ数量が範囲外なら codes に両方が付く`() {
+        val response = controller.add(AddItemRequest(" ", Quantity.MAX + 1))
+
+        response.statusCode shouldBe HttpStatus.BAD_REQUEST
+        codesOf(response) shouldBe setOf("BLANK", "OUT_OF_RANGE")
+        received shouldBe emptyList()
+    }
+
+    @Test
+    fun `AC-01-11 sku か quantity が null なら 400 で codes は MISSING_FIELD のみ`() {
+        listOf(AddItemRequest(null, 3), AddItemRequest("SKU-1", null), AddItemRequest(null, null)).forEach { request ->
+            val response = controller.add(request)
+
+            response.statusCode shouldBe HttpStatus.BAD_REQUEST
+            codesOf(response) shouldBe setOf("MISSING_FIELD")
+        }
         received shouldBe emptyList()
     }
 }
