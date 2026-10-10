@@ -1,0 +1,32 @@
+# 02-test-architecture.md §1.1 / §6 のガードレール。有効化するルールは docs と一致させること。
+potential-bugs:
+  UnsafeCallOnNullableType: # `!!` の禁止
+    active: true
+  UnsafeCast: # 根拠のない `as` の禁止
+    active: true
+  LateinitUsage: # lateinit の乱用禁止
+    active: true
+
+performance:
+  SpreadOperator: # runApplication<T>(*args) は Spring Boot の定型で、起動時に一度だけ呼ばれる
+    active: false
+
+style:
+  # Ids.kt の cancelOrder は「引数の型で取り違えを防ぐ」ことを示す、実処理なしのサンプル。
+  # @Suppress は禁止（ForbiddenAnnotation）なので、このファイルに限りここで除外する。
+  UnusedParameter:
+    excludes: ['**/order/domain/Ids.kt']
+  ForbiddenAnnotation: # `@Suppress` 等で警告を黙らせることを禁止
+    active: true
+    annotations:
+      - value: kotlin.Suppress
+        reason: 警告は黙らせず原因を直す
+      - value: java.lang.SuppressWarnings
+        reason: 警告は黙らせず原因を直す
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - value: kotlin.io.println
+        reason: ログは SLF4J を使う
+      - value: kotlin.io.print
+        reason: ログは SLF4J を使う

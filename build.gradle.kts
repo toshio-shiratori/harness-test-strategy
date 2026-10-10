@@ -4,6 +4,8 @@ plugins {
     kotlin("plugin.spring") version "2.3.21"
     id("org.springframework.boot") version "4.1.1"
     id("info.solidsoft.pitest") version "1.19.0"
+    id("dev.detekt") version "2.0.0-alpha.6"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 group = "com.example"
@@ -45,6 +47,19 @@ pitest {
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }
+
+detekt {
+    config.setFrom("config/detekt/detekt.yml")
+    buildUponDefaultConfig = true
+    // 02 §2.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
+    source.setFrom("src/main/kotlin")
+}
+
+// UnsafeCast / UnsafeCallOnNullableType / ForbiddenAnnotation は型解決が必要なため detektMain で実行する。
+// `./gradlew detekt` でも detektMain が走るようにして、コマンドを docs・CI・ローカルで一つにする。
+tasks.named("detekt") { dependsOn("detektMain") }
+// テストソースは `as` を許容する（02 §2.2）ため検査しない
+tasks.matching { it.name == "detektTest" || it.name == "detektTestSourceSet" }.configureEach { enabled = false }
 
 tasks.withType<Test> {
     useJUnitPlatform()

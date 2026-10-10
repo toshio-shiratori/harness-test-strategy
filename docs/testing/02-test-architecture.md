@@ -492,7 +492,7 @@ AI エージェント（コーディング支援ツール）が従うべき機�
 | 領域 | 設定 |
 |---|---|
 | コンパイラ | `allWarningsAsErrors = true`。Kotlin の null 安全を維持し、Java 連携部は JSpecify の null 注解（Spring Boot 4 の標準）に従う |
-| 静的解析 | detekt（`UnsafeCallOnNullableType`〔`!!`〕、`UnsafeCast`、`ForbiddenAnnotation`〔`@Suppress` 等〕、`ForbiddenMethodCall`）と ktlint |
+| 静的解析 | detekt（`UnsafeCallOnNullableType`〔`!!`〕、`UnsafeCast`〔常に失敗するキャストのみ検出〕、`LateinitUsage`、`ForbiddenAnnotation`〔`@Suppress` 等〕、`ForbiddenMethodCall`〔`println` 等〕）と ktlint。設定は `config/detekt/detekt.yml` と `.editorconfig`。型解決が必要なルールがあるため `detektMain` で実行し、検査対象は本番ソースのみ（テストの `as` 例外は §2.2）。コマンドは `./gradlew detekt ktlintCheck`（ローカルも CI も同一）。根拠のない `as` 全般は detekt の標準ルールでは検出できないため、レビュー（§1.4）で補う |
 | アーキテクチャ検査 | Konsist または ArchUnit で、ドメイン層にプリミティブ型のプロパティ・引数が露出していないこと、ドメイン層が Spring に依存しないこと、`when` に `else` がないことを検査する |
 | テスト保護 | テストの無効化（JUnit の `@Disabled`、Kotest の `xdescribe` / `!` 接頭辞・`enabled = false`）、アサーション削除、スナップショット一括更新を CI で検出して失敗させる |
 | 変更制限 | `docs/testing/trs/` と期待値ファイルの変更は人間レビュー必須（CODEOWNERS） |
