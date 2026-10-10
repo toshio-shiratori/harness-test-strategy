@@ -4,7 +4,9 @@ import com.example.order.domain.Validated
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 /**
  * TRS PAY-001 §5.2「組合せ別の期待結果」の各行を、データ駆動テストの1ケースにする（03 §3.5）。
@@ -13,13 +15,14 @@ import java.time.Instant
  */
 class PaymentTransitionTableTest : FunSpec({
     val at = Instant.EPOCH
+    val clock = Clock.fixed(at, ZoneOffset.UTC)
     val rejected = Validated.Invalid(TransitionError.INVALID_TRANSITION)
 
     // 制約表の「条件」列（F1 × F2）。操作は水準 F2-L1〜L3 に対応する。
     data class Case(val id: String, val state: PaymentState, val operation: String, val apply: (PaymentState) -> Validated<PaymentState, TransitionError>)
 
-    val authorize = "authorize" to { s: PaymentState -> s.authorize(at) }
-    val capture = "capture" to { s: PaymentState -> s.capture(at) }
+    val authorize = "authorize" to { s: PaymentState -> s.authorize(clock) }
+    val capture = "capture" to { s: PaymentState -> s.capture(clock) }
     val fail = "fail" to { s: PaymentState -> s.fail(FailureReason.TIMEOUT) }
     fun case(id: String, state: PaymentState, op: Pair<String, (PaymentState) -> Validated<PaymentState, TransitionError>>) =
         Case(id, state, op.first, op.second)

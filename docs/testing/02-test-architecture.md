@@ -259,10 +259,10 @@ fun label(state: PaymentState): String =
 ```kotlin
 enum class TransitionError { INVALID_TRANSITION }
 
-/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。 */
-fun PaymentState.capture(at: Instant): Validated<PaymentState, TransitionError> =
+/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。時刻は注入された Clock から取る。 */
+fun PaymentState.capture(clock: Clock): Validated<PaymentState, TransitionError> =
     when (this) {
-        is PaymentState.Authorized -> Validated.Valid(PaymentState.Captured(at))
+        is PaymentState.Authorized -> Validated.Valid(PaymentState.Captured(clock.instant()))
         PaymentState.Pending, is PaymentState.Captured, is PaymentState.Failed ->
             Validated.Invalid(TransitionError.INVALID_TRANSITION)
     }
