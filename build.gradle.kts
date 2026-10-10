@@ -56,6 +56,7 @@ pitest {
             "com.example.order.domain.Quantity",
             "com.example.order.domain.UserId",
             "com.example.order.domain.OrderId",
+            "com.example.order.domain.Sku",
             "com.example.order.domain.Validated\$Invalid",
         ),
     )
