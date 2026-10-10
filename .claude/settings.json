@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.md) cd \"${CLAUDE_PROJECT_DIR:-.}\" && npm run lint >&2 || exit 2;; esac; }",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.md) cd \"${CLAUDE_PROJECT_DIR:-.}\" && npm run lint:md >&2 || exit 2; if grep -q '^```mermaid' \"$f\"; then npm run lint:mermaid >&2 || exit 2; fi;; esac; }",
             "timeout": 180,
-            "statusMessage": "npm run lint (markdownlint + mermaid)..."
+            "statusMessage": "markdownlint（Mermaid ブロックがあれば mermaid も）..."
           }
         ]
       }

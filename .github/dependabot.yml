@@ -1,0 +1,26 @@
+# 依存の更新を週次で PR にする。PR では lint / test（detekt・ktlint・Konsist 含む）/ pitest が走る。
+# build.gradle.kts や gradle/ を変更する PR は、pitest が全体実行になる（scripts/pitest-targets.sh）。
+#
+# npm audit の方針（2026-10-10 時点）: 指摘は devDependencies のみ（mermaid-cli → mermaid → katex、markdownlint-cli2 → smol-toml、braces）。
+# 本番依存は 0 件で、lint 対象はこのリポジトリ自身の Markdown だけ（信頼できない入力を処理しない）ため許容する。
+# `npm audit fix --force` は mermaid-cli / markdownlint-cli2 のメジャーダウングレードになるため行わない。Dependabot の更新で解消されるのを待つ。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-dev:
+        patterns: ["*"]
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
