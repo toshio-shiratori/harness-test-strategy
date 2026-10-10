@@ -1,6 +1,7 @@
 package com.example.order.adapter.web
 
 import com.example.order.domain.Quantity
+import com.example.order.domain.Sku
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,8 +36,8 @@ class OrderControllerHttpTest {
 
     class RecordingAddItemUseCase : AddItemUseCase {
         val received = mutableListOf<Pair<String, Int>>()
-        override fun execute(sku: String, quantity: Quantity) {
-            received += sku to quantity.value
+        override fun execute(sku: Sku, quantity: Quantity) {
+            received += sku.value to quantity.value
         }
     }
 
@@ -90,5 +91,73 @@ class OrderControllerHttpTest {
             .body("""{"sku":"SKU-1"}""")
             .exchange()
             .expectStatus().isBadRequest
+    }
+
+    private fun post(body: String) = client.post().uri("/orders/items")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(body)
+        .exchange()
+
+    /** `codes` は集合として扱う（順序は仕様にしない。TRS ORD-001 OI-006）。 */
+    private fun RestTestClient.ResponseSpec.expectCodes(vararg expected: String) {
+        expectStatus().isBadRequest
+        expectBody()
+            .jsonPath("$.codes").value<List<String>> { it.sorted() shouldBe expected.toList().sorted() }
+    }
+
+    @Test
+    fun `AC-01-08 sku が空・空白のみなら 400 で BLANK になり、ユースケースは呼ばれない`() {
+        listOf("", " ", "\u3000").forEach { sku ->
+            recorder.received.clear()
+
+            post("""{"sku":"$sku","quantity":3}""").expectCodes("BLANK")
+
+            recorder.received shouldBe emptyList()
+        }
+    }
+
+    @Test
+    fun `AC-01-09 範囲外の数量の 400 には codes に OUT_OF_RANGE が付く`() {
+        post("""{"sku":"SKU-1","quantity":1000}""").expectCodes("OUT_OF_RANGE")
+    }
+
+    @Test
+    fun `AC-01-10 壊れた JSON と型不一致の 400 には codes に INVALID_JSON が付く`() {
+        listOf(
+            """{"sku":"SKU-1","quantity":""",
+            """{"sku":"SKU-1","quantity":"3"}""",
+            """{"sku":"SKU-1","quantity":1.5}""",
+        ).forEach { body ->
+            recorder.received.clear()
+
+            post(body).expectCodes("INVALID_JSON")
+
+            recorder.received shouldBe emptyList()
+        }
+    }
+
+    @Test
+    fun `AC-01-11 必須フィールドの欠落・null の 400 には codes に MISSING_FIELD が付く`() {
+        listOf(
+            """{"sku":"SKU-1"}""",
+            """{"quantity":3}""",
+            """{"sku":null,"quantity":3}""",
+            """{"sku":"SKU-1","quantity":null}""",
+        ).forEach { body ->
+            recorder.received.clear()
+
+            post(body).expectCodes("MISSING_FIELD")
+
+            recorder.received shouldBe emptyList()
+        }
+    }
+
+    @Test
+    fun `AC-01-12 sku が空白かつ数量が範囲外なら codes に BLANK と OUT_OF_RANGE の両方が付く`() {
+        recorder.received.clear()
+
+        post("""{"sku":" ","quantity":1000}""").expectCodes("BLANK", "OUT_OF_RANGE")
+
+        recorder.received shouldBe emptyList()
     }
 }

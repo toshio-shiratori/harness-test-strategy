@@ -1,6 +1,7 @@
 package com.example.order.adapter.web
 
 import com.example.order.domain.Quantity
+import com.example.order.domain.Sku
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service
 class LoggingAddItemUseCase : AddItemUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun execute(sku: String, quantity: Quantity) {
-        log.info("add item sku={} quantity={}", sku, quantity.value)
+    override fun execute(sku: Sku, quantity: Quantity) {
+        log.info("add item sku={} quantity={}", sku.value, quantity.value)
     }
 }

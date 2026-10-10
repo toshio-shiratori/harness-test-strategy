@@ -148,6 +148,7 @@ value class Quantity private constructor(val value: Int) {
 package com.example.order.adapter.web
 
 import com.example.order.domain.Quantity
+import com.example.order.domain.Sku
 import com.example.order.domain.Validated
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -157,35 +158,64 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-/** 外部入力の形そのもの。ドメインの意味は持たず、アダプタ層から外へ出さない。 */
-data class AddItemRequest(val sku: String, val quantity: Int)
+/**
+ * 外部入力の形そのもの。ドメインの意味は持たず、アダプタ層から外へ出さない。
+ * 欠落・null は Jackson に任せず、null として受けてコントローラーで MISSING_FIELD にする。
+ */
+data class AddItemRequest(val sku: String?, val quantity: Int?)
 
 @RestController
 @RequestMapping("/orders")
 class OrderController(private val addItem: AddItemUseCase) {
 
     @PostMapping("/items")
-    fun add(@RequestBody request: AddItemRequest): ResponseEntity<*> =
-        when (val quantity = Quantity.of(request.quantity)) {
-            is Validated.Valid -> {
-                addItem.execute(request.sku, quantity.value)
-                ResponseEntity.noContent().build<Unit>()
-            }
-            is Validated.Invalid -> ResponseEntity.badRequest().body(
-                ProblemDetail.forStatusAndDetail(
-                    HttpStatus.BAD_REQUEST,
-                    "quantity は ${Quantity.MIN}〜${Quantity.MAX} の範囲で指定してください (${quantity.error})",
-                ),
-            )
+    fun add(@RequestBody request: AddItemRequest): ResponseEntity<*> {
+        if (request.sku == null || request.quantity == null) {
+            val missing = problem(listOf(ErrorCode.MISSING_FIELD), "必須フィールドが指定されていません")
+            return ResponseEntity.badRequest().body(missing)
         }
+        val sku = Sku.of(request.sku)
+        val quantity = Quantity.of(request.quantity)
+        // 検証段階の失敗は、同時に成立していれば全て返す
+        return if (sku is Validated.Valid && quantity is Validated.Valid) {
+            addItem.execute(sku.value, quantity.value)
+            ResponseEntity.noContent().build<Unit>()
+        } else {
+            val codes = listOfNotNull(
+                ErrorCode.BLANK.takeIf { sku is Validated.Invalid },
+                ErrorCode.OUT_OF_RANGE.takeIf { quantity is Validated.Invalid },
+            )
+            val detail = "sku は空にできず、quantity は ${Quantity.MIN}〜${Quantity.MAX} の範囲で指定してください"
+            ResponseEntity.badRequest().body(problem(codes, detail))
+        }
+    }
 }
 
+enum class ErrorCode { OUT_OF_RANGE, BLANK, INVALID_JSON, MISSING_FIELD }
+
+const val CODES_PROPERTY = "codes"
+
+internal fun problem(codes: List<ErrorCode>, detail: String): ProblemDetail =
+    ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail).also {
+        it.setProperty(CODES_PROPERTY, codes.map(ErrorCode::name))
+    }
+
 fun interface AddItemUseCase {
-    fun execute(sku: String, quantity: Quantity)
+    fun execute(sku: Sku, quantity: Quantity)
 }
 ```
 
-> 上記の `when` は式として使っており、`Validated` が sealed なので `else` は不要かつ書いてはならない（§1.3）。
+コントローラーに到達する前に Spring が落とす 400（壊れた JSON・型不一致）は `@RestControllerAdvice` で同じ `codes` 形式にそろえる。
+
+```kotlin
+@RestControllerAdvice
+class ApiExceptionHandler {
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun onUnreadable(): ProblemDetail = problem(listOf(ErrorCode.INVALID_JSON), "リクエスト本文を読み取れません")
+}
+```
+
+> 400 応答は `detail` の文言ではなく、機械可読な `codes`（集合として扱い、順序は仕様にしない）だけを契約とする（TRS ORD-001 OI-003, OI-006）。`"3"` や `1.5` を `Int` に黙って変換しないよう、`application.properties` で `spring.jackson.mapper.allow-coercion-of-scalars=false` と `spring.jackson.deserialization.accept-float-as-int=false` を指定している（指定しないと 204 になることを `OrderControllerHttpTest` で実測した）。分岐は `if` の式で書き、`Validated` の判定は smart cast に任せている。
 
 **ルール**
 
