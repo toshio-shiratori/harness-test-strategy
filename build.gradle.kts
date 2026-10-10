@@ -80,4 +80,6 @@ tasks.matching { it.name == "detektTest" || it.name == "detektTestSourceSet" }.c
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // TraceabilityTest が TRS を読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
+    inputs.dir("docs/testing/trs")
 }
