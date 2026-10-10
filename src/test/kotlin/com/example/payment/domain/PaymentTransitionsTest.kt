@@ -3,23 +3,23 @@ package com.example.payment.domain
 import com.example.order.domain.Validated
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.enum
 import io.kotest.property.arbitrary.list
-import io.kotest.property.arbitrary.long
-import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
-/** 期待値は TRS PAY-001 の AC を正とする（実装から逆生成しない）。時刻の値は検証しない（OI-001）。 */
+/** 期待値は TRS PAY-001 の AC を正とする（実装から逆生成しない）。時刻は注入した Clock の現在時刻（OI-001）。 */
 class PaymentTransitionsTest : StringSpec({
     val at = Instant.EPOCH
+    val clock = Clock.fixed(at, ZoneOffset.UTC)
     val rejected = Validated.Invalid(TransitionError.INVALID_TRANSITION)
 
-    "AC-02-01 Pending は authorize で Authorized になる" {
-        PaymentState.Pending.authorize(at).valid().shouldBeInstanceOf<PaymentState.Authorized>()
+    "AC-02-01 Pending は authorize で Authorized になり、時刻は Clock の現在時刻になる" {
+        PaymentState.Pending.authorize(clock).valid() shouldBe PaymentState.Authorized(at)
     }
 
     "AC-02-02 Pending は fail で Failed になり、理由が保たれる" {
@@ -28,8 +28,10 @@ class PaymentTransitionsTest : StringSpec({
         }
     }
 
-    "AC-02-03 Authorized は capture で Captured になる" {
-        PaymentState.Authorized(at).capture(at).valid().shouldBeInstanceOf<PaymentState.Captured>()
+    "AC-02-03 Authorized は capture で Captured になり、時刻は Clock の現在時刻になる" {
+        val later = Clock.fixed(at.plusSeconds(60), ZoneOffset.UTC)
+
+        PaymentState.Authorized(at).capture(later).valid() shouldBe PaymentState.Captured(at.plusSeconds(60))
     }
 
     "AC-02-04 Authorized は fail で Failed になり、理由が保たれる" {
@@ -39,29 +41,25 @@ class PaymentTransitionsTest : StringSpec({
     }
 
     "AC-02-05 許可されていない遷移は INVALID_TRANSITION で拒否される" {
-        PaymentState.Pending.capture(at) shouldBe rejected
-        PaymentState.Authorized(at).authorize(at) shouldBe rejected
+        PaymentState.Pending.capture(clock) shouldBe rejected
+        PaymentState.Authorized(at).authorize(clock) shouldBe rejected
     }
 
     "AC-02-06 終端状態からはどの操作でも遷移できない" {
         listOf(PaymentState.Captured(at), PaymentState.Failed(FailureReason.TIMEOUT)).forEach { terminal ->
-            terminal.authorize(at) shouldBe rejected
-            terminal.capture(at) shouldBe rejected
+            terminal.authorize(clock) shouldBe rejected
+            terminal.capture(clock) shouldBe rejected
             terminal.fail(FailureReason.CARD_DECLINED) shouldBe rejected
         }
     }
 
     // --- 操作列 PBT（04 §2.2「状態遷移の抜け」の還元先） ---
 
-    // 操作の種類・時刻・失敗理由を独立に生成し、種類に応じて Op を組み立てる
-    val ops: Arb<Op> = Arb.bind(
-        Arb.enum<OpKind>(),
-        Arb.long(0L..1_000_000L).map { Instant.ofEpochSecond(it) },
-        Arb.enum<FailureReason>(),
-    ) { kind, time, reason ->
+    // 操作の種類と失敗理由を独立に生成し、種類に応じて Op を組み立てる
+    val ops: Arb<Op> = Arb.bind(Arb.enum<OpKind>(), Arb.enum<FailureReason>()) { kind, reason ->
         when (kind) {
-            OpKind.AUTHORIZE -> Op.Authorize(time)
-            OpKind.CAPTURE -> Op.Capture(time)
+            OpKind.AUTHORIZE -> Op.Authorize
+            OpKind.CAPTURE -> Op.Capture
             OpKind.FAIL -> Op.Fail(reason)
         }
     }
@@ -71,7 +69,7 @@ class PaymentTransitionsTest : StringSpec({
         checkAll(opSequences) { sequence ->
             var state: PaymentState = PaymentState.Pending
             sequence.forEach { op ->
-                val result = state.apply(op)
+                val result = state.apply(op, clock)
                 val expected = allowed[kindOf(state) to op.kind]
                 if (expected == null) {
                     result shouldBe rejected
@@ -86,10 +84,10 @@ class PaymentTransitionsTest : StringSpec({
     "AC-02-08 終端状態に達した後は、以降どんな操作列でも状態が変わらない" {
         checkAll(opSequences, opSequences) { before, after ->
             var state: PaymentState = PaymentState.Pending
-            before.forEach { op -> (state.apply(op) as? Validated.Valid)?.let { state = it.value } }
+            before.forEach { op -> (state.apply(op, clock) as? Validated.Valid)?.let { state = it.value } }
             if (kindOf(state) in terminalKinds) {
                 val terminal = state
-                after.forEach { op -> terminal.apply(op) shouldBe rejected }
+                after.forEach { op -> terminal.apply(op, clock) shouldBe rejected }
             }
         }
     }
@@ -101,11 +99,11 @@ private enum class OpKind { AUTHORIZE, CAPTURE, FAIL }
 private sealed interface Op {
     val kind: OpKind
 
-    data class Authorize(val at: Instant) : Op {
+    data object Authorize : Op {
         override val kind = OpKind.AUTHORIZE
     }
 
-    data class Capture(val at: Instant) : Op {
+    data object Capture : Op {
         override val kind = OpKind.CAPTURE
     }
 
@@ -132,10 +130,10 @@ private fun kindOf(state: PaymentState): StateKind =
         is PaymentState.Failed -> StateKind.FAILED
     }
 
-private fun PaymentState.apply(op: Op): Validated<PaymentState, TransitionError> =
+private fun PaymentState.apply(op: Op, clock: Clock): Validated<PaymentState, TransitionError> =
     when (op) {
-        is Op.Authorize -> authorize(op.at)
-        is Op.Capture -> capture(op.at)
+        Op.Authorize -> authorize(clock)
+        Op.Capture -> capture(clock)
         is Op.Fail -> fail(op.reason)
     }
 

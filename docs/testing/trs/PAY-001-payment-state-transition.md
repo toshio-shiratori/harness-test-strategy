@@ -1,7 +1,7 @@
 # TRS-PAY-001: 決済状態の遷移
 
 > `PaymentState` の遷移ルールを定める TRS。実装とテストは #28 で行った。
-> 遷移ルールは、人間（@toshio-shiratori）が 2026-10-10 に OI-002〜004 で決定した。既存コードの挙動からの逆生成ではない
+> 遷移ルールは、人間（@toshio-shiratori）が OI-001〜004 で決定した。既存コードの挙動からの逆生成ではない
 > （既存の `PaymentState` は状態の定義と `label` だけで、遷移関数は無い）。
 > AC / UC の番号は、`TraceabilityTest` が全 TRS のテストを横断して照合するため、TRS 間で重複しないように採番する（ORD-001 が `01`、本 TRS が `02`）。
 > **ステータスは Draft のまま。AI は Approved にしない。**
@@ -13,7 +13,7 @@
 | TRS ID | `PAY-001` |
 | 機能名 | 決済状態の遷移（与信・確定・失敗） |
 | ステータス | Draft |
-| 仕様の正（SSOT） | 独立した仕様書・デザインは無い。遷移ルールは本 TRS の OI-002〜004 で人間が確定した（`PaymentState` は [02 §1.3](../02-test-architecture.md) のサンプル） |
+| 仕様の正（SSOT） | 独立した仕様書・デザインは無い。遷移ルールは本 TRS の OI-001〜004 で人間が確定した（`PaymentState` は [02 §1.3](../02-test-architecture.md) のサンプル） |
 | 関連 TRS | なし |
 | 作成日 / 最終更新日 | 2026-10-10 / 2026-10-11 |
 | 仕様承認者 | 未承認（人間の承認待ち） |
@@ -89,6 +89,7 @@ Feature: 決済状態の遷移
     Given 決済が Pending である
     When  authorize を要求する
     Then  決済は Authorized になる
+    And   authorizedAt は注入された Clock の現在時刻である
 
   @AC-02-02 @layer:1
   Scenario Outline: Pending は fail で Failed になり、理由が保たれる
@@ -106,6 +107,7 @@ Feature: 決済状態の遷移
     Given 決済が Authorized である
     When  capture を要求する
     Then  決済は Captured になる
+    And   capturedAt は注入された Clock の現在時刻である
 
   @AC-02-04 @layer:1
   Scenario Outline: Authorized は fail で Failed になり、理由が保たれる
@@ -201,7 +203,7 @@ Feature: 決済状態の遷移
 
 | ID | 起票日 | 起票者 | 区分 | 関連 | 内容（疑問・論点） | 状態 | 決定内容 | 決定者 | 決定日 | 根拠 | 反映先 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| OI-001 | 2026-10-10 | AI | Non-blocking | UC-02 | `Authorized` / `Captured` が持つ時刻（`authorizedAt` / `capturedAt`）に何を入れるか。呼び出し元が渡す想定だが、取得元（呼び出し元か `Clock` か）は未決。AC は時刻の値を検証しない | Open | | | | | |
+| OI-001 | 2026-10-10 | AI | Non-blocking | UC-02, AC-02-01, AC-02-03 | `Authorized` / `Captured` が持つ時刻（`authorizedAt` / `capturedAt`）に何を入れるか。取得元は呼び出し元か `Clock` か | Resolved | `Clock` を注入し、遷移時にその現在時刻（`clock.instant()`）を入れる。呼び出し元が時刻を渡す方式は採らない | toshio-shiratori | 2026-10-11 | 時刻の取得を一箇所（`Clock`）に集約し、テストでは `Clock.fixed` で時刻を固定できるため | AC-02-01, AC-02-03（時刻の期待値を追加）、`authorize` / `capture` のシグネチャ |
 | OI-002 | 2026-10-10 | AI | Non-blocking | C-21 | すでにその状態にあるときの同じ操作（例: `Authorized` への再度の `authorize`）は拒否か、冪等な成功か | Resolved | 拒否する。許可する遷移以外は、同じ状態への再実行を含めてすべて拒否する。外部からのリトライの冪等性は呼び出し元の責務とする | toshio-shiratori | 2026-10-10 | ルールを「遷移表にある遷移だけ」に保ち、不変条件を単純にするため | C-21, AC-02-05, UC-02-A1 |
 | OI-003 | 2026-10-10 | AI | Blocking | UC-02, C-10〜C-13, C-20, C-22 | 許可する遷移の範囲。`Pending→Captured`（与信を飛ばした確定）や、`Authorized→Failed`（確定の失敗）は許可するか | Resolved | 許可するのは `Pending→Authorized`、`Pending→Failed`、`Authorized→Captured`、`Authorized→Failed` の4つ。`Pending→Captured` は不可。`Captured` と `Failed` は終端 | toshio-shiratori | 2026-10-10 | 与信を経ない確定を許さず、与信後の失敗（タイムアウト等）は表現できるようにするため | 状態遷移図, AC-02-01〜08, C-10〜C-13, C-20, C-22 |
 | OI-004 | 2026-10-10 | AI | Non-blocking | UC-02-A1, UC-02-A2 | 拒否するとき、何を契約として返すか（理由の粒度） | Resolved | 理由は `INVALID_TRANSITION` の1つだけ。元の状態は変えない。終端状態からの遷移も同じコード。`from` / `to` は返さない | toshio-shiratori | 2026-10-10 | 契約を小さく保つため。状態名を契約にすると、状態の追加のたびに仕様変更（人間承認）になる | AC-02-05, AC-02-06, UC-02-A1, UC-02-A2 |
@@ -235,6 +237,7 @@ Feature: 決済状態の遷移
 |---|---|---|---|---|
 | 2026-10-10 | 0.1 | AI | 初版作成。人間の決定（遷移ルール）に基づき OI-002〜004 を Resolved にした。OI-001（時刻の取得元）は Open（#37） | 未承認 |
 | 2026-10-11 | 0.2 | AI | #28 の実装に合わせ、AC-02-01〜08 の `@pending` を外し、紐づくテストとトレーサビリティを記入した | 未承認 |
+| 2026-10-11 | 0.3 | AI | OI-001 を人間の決定に基づき Resolved にした（時刻は注入された `Clock` から取る）。AC-02-01・03 に時刻の期待値を追加した。実装を `Clock` 注入に変更した | 未承認 |
 
 ---
 
