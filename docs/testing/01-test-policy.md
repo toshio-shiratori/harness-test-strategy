@@ -138,7 +138,7 @@ flowchart TB
 | ゲート | 必須チェック（ジョブ） | 実装状況 |
 |---|---|---|
 | G0 | `lint`（`lint.yml`） | 実装済み |
-| G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は未導入） |
+| G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
 | G3 | `test`（`./gradlew pitest`） | 一部実装。ドメイン層全体を実行しており、差分実行は未対応 |
 | G4 | — | 未実装（Integration・E2E） |
