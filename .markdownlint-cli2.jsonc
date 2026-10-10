@@ -1,0 +1,33 @@
+{
+  // 対象: リポジトリ内の全 Markdown（依存物・Obsidian 設定は除外）
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules/**", ".obsidian/**"],
+  // 診断を 1 件でも出したら終了コード 1（品質ゲート）
+  "config": {
+    "default": true,
+
+    // 日本語の長文・表を含むため行長は制限しない
+    "MD013": false,
+
+    // 同名の見出しは、同じ親の下で重複する場合のみ禁止
+    "MD024": { "siblings_only": true },
+
+    // 「⚠️」等の記号で終わる見出しを許容しない一方、全角句読点は許容
+    "MD026": { "punctuation": ".,;:!。、；：！" },
+
+    // 番号付きリストは 1. 2. 3. の連番
+    "MD029": { "style": "ordered" },
+
+    // 表の罫線位置の整列は日本語（全角幅）と相性が悪く、可読性に寄与しないため無効
+    "MD060": false,
+
+    // 本文中の HTML は原則禁止（Mermaid は fenced code block 内なので対象外）
+    "MD033": true,
+
+    // コードブロックには必ず言語を指定する（mermaid / kotlin / gherkin / bash / text 等）
+    "MD040": true,
+
+    // 「**ルール**」のような太字の段落ラベルは意図的に使用するため許可
+    "MD036": false
+  }
+}
