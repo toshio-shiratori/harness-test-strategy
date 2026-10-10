@@ -9,6 +9,7 @@ import java.io.File
 /**
  * 03 §3.4 / 01 の G5: TRS の AC に紐づくテストが無ければ失敗させる。
  * テスト名は先頭に `AC-xx-yy` を置く（複数なら空白区切り）。
+ * AC ID は TRS 間で重複させない（別の TRS のテストで満たされたように見えるのを防ぐ。03 §3.4）。
  * Blocking の Open Issue により期待値が未確定の AC は、Gherkin のタグに `@pending:<OI-ID>` を付けて除外する。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
@@ -23,6 +24,15 @@ class TraceabilityTest : StringSpec({
 
     "TRS が1つ以上存在する（ディレクトリの移動で素通りしない）" {
         trsFiles.isNotEmpty() shouldBe true
+    }
+
+    "AC ID が複数の TRS で重複していない（別機能のテストで AC が満たされたように見えるのを防ぐ）" {
+        val duplicated = trsFiles
+            .flatMap { trs -> acRow.findAll(trs.readText()).map { it.groupValues[1] to trs.name }.toSet() }
+            .groupBy({ it.first }, { it.second })
+            .filterValues { it.size > 1 }
+            .map { (ac, files) -> "$ac: ${files.joinToString()}" }
+        duplicated.shouldBeEmpty()
     }
 
     "pending でない全ての AC に、先頭に AC ID を持つテストが紐づいている" {
