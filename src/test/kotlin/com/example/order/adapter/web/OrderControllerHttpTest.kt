@@ -41,7 +41,7 @@ class OrderControllerHttpTest {
     }
 
     @Test
-    fun `正しい JSON は 204 で、ユースケースにドメイン型として渡る`() {
+    fun `AC-01-04 正しい JSON は 204 で、ユースケースにドメイン型として渡る`() {
         recorder.received.clear()
 
         client.post().uri("/orders/items")
@@ -54,7 +54,7 @@ class OrderControllerHttpTest {
     }
 
     @Test
-    fun `範囲外の数量は 400 の ProblemDetail JSON を返し、ユースケースは呼ばれない`() {
+    fun `AC-01-05 範囲外の数量は 400 の ProblemDetail JSON を返し、ユースケースは呼ばれない`() {
         recorder.received.clear()
 
         client.post().uri("/orders/items")
@@ -71,7 +71,7 @@ class OrderControllerHttpTest {
     }
 
     @Test
-    fun `不正な JSON は 400 になり、ユースケースは呼ばれない`() {
+    fun `AC-01-06 不正な JSON は 400 になり、ユースケースは呼ばれない`() {
         recorder.received.clear()
 
         client.post().uri("/orders/items")
@@ -84,7 +84,7 @@ class OrderControllerHttpTest {
     }
 
     @Test
-    fun `quantity が欠けた JSON は 400 になる（Kotlin の non-null を JSON 境界でも守る）`() {
+    fun `AC-01-07 quantity が欠けた JSON は 400 になる（Kotlin の non-null を JSON 境界でも守る）`() {
         client.post().uri("/orders/items")
             .contentType(MediaType.APPLICATION_JSON)
             .body("""{"sku":"SKU-1"}""")

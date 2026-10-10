@@ -12,7 +12,7 @@ class OrderControllerTest {
     private val controller = OrderController { sku, quantity -> received += sku to quantity.value }
 
     @Test
-    fun `範囲内の数量は 204 で、ユースケースにドメイン型として渡る`() {
+    fun `AC-01-04 範囲内の数量は 204 で、ユースケースにドメイン型として渡る`() {
         val response = controller.add(AddItemRequest("SKU-1", 3))
 
         response.statusCode shouldBe HttpStatus.NO_CONTENT
@@ -20,7 +20,7 @@ class OrderControllerTest {
     }
 
     @Test
-    fun `範囲外の数量は 400 の ProblemDetail で、ユースケースは呼ばれない`() {
+    fun `AC-01-05 範囲外の数量は 400 の ProblemDetail で、ユースケースは呼ばれない`() {
         val response = controller.add(AddItemRequest("SKU-1", Quantity.MAX + 1))
 
         response.statusCode shouldBe HttpStatus.BAD_REQUEST
