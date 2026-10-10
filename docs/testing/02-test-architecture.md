@@ -422,6 +422,25 @@ class YenPropertyTest : StringSpec({
 1. **ジェネレータはドメイン型に対して一元管理する。** 各型に `arbXxx`（Kotest の `Arb`）を1つ用意し、ファクトリの検証と同じ制約を満たす値を生成する。
 2. 不正値の拒否も Property にする（「範囲外の入力は必ず `Validated.Invalid` を返す」）。
 3. シード値を失敗時に出力し、**再現可能**にする。失敗した反例は回帰用の Example テストとして固定する。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
+
+   **PBT が失敗したときの AI の手順**（恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるため）。
+
+   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、次の形式で出力することを実測した（`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property）。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。
+
+      ```text
+      Property failed after 1 attempts
+
+          Arg 0: 500 (shrunk from 988)
+
+      Repeat this test by using seed -2729266846478331732
+
+      Caused by IllegalStateException: boom
+      ```
+
+   2. `PropTestConfig(seed = <値>)` で同じ失敗が再現することを確認する（一時的な確認。コミットしない）。
+   3. 縮小後の反例を Example テストとして固定する（恒久）。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
+   4. 反例が仕様上の正しい入力だったのか、Property またはジェネレータの前提が誤っていたのかを判断し、必要なら Property・ジェネレータ側を直す。
+
 4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定は 1000 回（`kotest.proptest.default.iteration.count`）。Gradle の `-D` はテスト JVM に渡らないため、`build.gradle.kts` で `-Pproptest.iterations=N` を同名のシステムプロパティに転送している。夜間ジョブ（`.github/workflows/nightly-mutation.yml` の `pbt`）は `./gradlew test -Pproptest.iterations=10000` で実行する（全体テストが約 20 秒で完了することを実測した）。
 5. Property が実装のコピーになっていないこと（実装と同じ計算式で期待値を作らない）。
 
