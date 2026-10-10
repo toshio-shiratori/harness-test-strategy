@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # PR の差分ミューテーションで base との差分を取るため
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
