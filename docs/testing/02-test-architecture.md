@@ -494,6 +494,6 @@ AI エージェント（コーディング支援ツール）が従うべき機�
 | コンパイラ | `allWarningsAsErrors = true`。Kotlin の null 安全を維持し、Java 連携部は JSpecify の null 注解（Spring Boot 4 の標準）に従う |
 | 静的解析 | detekt（`UnsafeCallOnNullableType`〔`!!`〕、`UnsafeCast`〔常に失敗するキャストのみ検出〕、`LateinitUsage`、`ForbiddenAnnotation`〔`@Suppress` 等〕、`ForbiddenMethodCall`〔`println` 等〕）と ktlint。設定は `config/detekt/detekt.yml` と `.editorconfig`。型解決が必要なルールがあるため `detektMain` で実行し、検査対象は本番ソースのみ（テストの `as` 例外は §2.2）。コマンドは `./gradlew detekt ktlintCheck`（ローカルも CI も同一）。根拠のない `as` 全般は detekt の標準ルールでは検出できないため、レビュー（§1.4）で補う |
 | アーキテクチャ検査 | Konsist（`src/test/.../architecture/DomainArchitectureTest.kt`、`./gradlew test` で実行）。ドメイン層（`..domain..`）でプリミティブ型のプロパティ・引数が露出していないこと、Spring に依存しないこと、`when` に `else` がないこと（本番コード全体）を検査する。例外は2つで、いずれもテスト内にコメントで理由を残している: value class が内部に保持する値と `const` 定数、外部入力を一度だけパースする境界の `of` ファクトリ。Kotlin 固有の検査が多いため ArchUnit ではなく Konsist を採用した |
-| テスト保護 | テストの無効化（JUnit の `@Disabled`、Kotest の `xdescribe` / `!` 接頭辞・`enabled = false`）、アサーション削除、スナップショット一括更新を CI で検出して失敗させる |
+| テスト保護 | テストの無効化（JUnit の `@Disabled`、Kotest の `xdescribe` / `!` 接頭辞・`enabled = false`）を `TestProtectionTest`（Konsist、`./gradlew test`）で検出して失敗させる。意図的な無効化の手順は 04 §3.4.1。アサーション削除・スナップショット一括更新は機械検出せずレビューで確認する（スナップショットテストは現状未使用） |
 | 変更制限 | `docs/testing/trs/` と期待値ファイルの変更は人間レビュー必須（CODEOWNERS） |
 | エージェント指示 | リポジトリの `CLAUDE.md` 等に、本標準と 04 のヒーリング規程への参照を記載する |
