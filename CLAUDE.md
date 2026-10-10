@@ -14,7 +14,7 @@ AI駆動開発向けテスト戦略のドキュメント体系（`docs/testing/`
 - `npm ci && npm run lint` が唯一のチェック（ローカルも CI `.github/workflows/lint.yml` も同一）。変更後は必ず通すこと。
   - `lint:md`: markdownlint-cli2（設定 `.markdownlint-cli2.jsonc`）。`npm run lint:md:fix` で自動修正。
   - `lint:mermaid`: 全 ` ```mermaid ` ブロックを mermaid-cli で実際にレンダリングして構文検査（Chrome を起動するので遅い）。
-- `./gradlew test`: `src/` はドキュメント内の Kotlin サンプルの検証用プロジェクト（CI `kotlin-samples.yml`）。`02-test-architecture.md` のコード例を変えたら `src/` も同時に更新して通すこと。`gradle` ではなく必ず `./gradlew` を使う。
+- `./gradlew test pitest`（テスト + ミューテーション閾値 80%）: `src/` はドキュメント内の Kotlin サンプルの検証用プロジェクト（CI `kotlin-samples.yml`）。`02-test-architecture.md` のコード例を変えたら `src/` も同時に更新して通すこと。`gradle` ではなく必ず `./gradlew` を使う。
 - コードブロックには必ず言語を指定する（MD040）。表の罫線整列（MD060）と行長（MD013）は無効化済み。
 
 ## 書き方の規約

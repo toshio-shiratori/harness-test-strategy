@@ -303,6 +303,17 @@ class YenPropertyTest : StringSpec({
         checkAll(arbYen, arbYen, arbYen) { a, b, c -> ((a + b) + c) shouldBe (a + (b + c)) }
     }
 
+    // 分類: オラクル（常に 0 を返す実装でも交換則・結合則は成り立つため、和そのものを検証する）
+    "金額の加算は金額の和になる" {
+        checkAll(arbYen, arbYen) { a, b -> (a + b).amount shouldBe (a.amount + b.amount) }
+    }
+
+    // 分類: 境界（ランダム入力では境界ちょうどの値に当たりにくいため、明示的に固定する）
+    "境界値 0 と MAX は受理、-1 と MAX+1 は拒否" {
+        listOf(0L, Yen.MAX).forEach { (Yen.of(it) as Validated.Valid).value.amount shouldBe it }
+        listOf(-1L, Yen.MAX + 1).forEach { Yen.of(it) shouldBe Validated.Invalid(YenError.OUT_OF_RANGE) }
+    }
+
     // 分類: 不変量（範囲外は必ず拒否される）
     "範囲外の金額は必ず Invalid になる" {
         checkAll(Arb.long().map { if (it in 0..Yen.MAX) -1L else it }) { n ->
@@ -388,22 +399,22 @@ AI が生成したテストは「通ること」を目的化しやすく、**何
 
 ### 4.4 Gradle での実行例（PIT）
 
-JVM/Kotlin では PIT（Pitest）を用いる。Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。
+JVM/Kotlin では PIT（Pitest）を用いる。本リポジトリの検証用プロジェクト（`src/`）で実際に動かして確認した構成を示す（Gradle 9.8 / Kotlin 2.3.21 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。
 
 ```kotlin
 // build.gradle.kts（抜粋）
 plugins {
-    id("info.solidsoft.pitest") version "<pitest-gradle-plugin-version>"
-}
-
-dependencies {
-    testImplementation("io.kotest.extensions:kotest-extensions-pitest:<version>") // Kotest を PIT から実行するため
+    id("info.solidsoft.pitest") version "1.19.0"
 }
 
 pitest {
-    junit5PluginVersion.set("<pitest-junit5-plugin-version>")
-    targetClasses.set(listOf("com.example.order.domain.*"))   // ドメイン層に限定
-    mutationThreshold.set(80)                                  // §4.1 の PR 閾値
+    junit5PluginVersion.set("1.2.3")
+    targetClasses.set(listOf("com.example.order.domain.*", "com.example.payment.domain.*")) // ドメイン層に限定
+    // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
+    targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
+    // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
+    excludedMethods.set(listOf("getValue", "getAmount", "getError"))
+    mutationThreshold.set(80)                                  // §4.1 の PR 閾値。下回るとビルド失敗
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }
@@ -413,7 +424,25 @@ pitest {
 ./gradlew pitest        # 結果: build/reports/pitest/index.html
 ```
 
-> PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。バージョンは使用中の Kotlin / JUnit Platform と互換のものを選ぶこと。
+**実際に踏んだ注意点**
+
+| 事象 | 原因と対処 |
+|---|---|
+| `Coverage generation minion exited abnormally` | `targetTests` 未指定だと `targetClasses` と同じパターンが使われ、`main` 側のクラスがテストとして実行される。`*Test` で明示する |
+| `NoSuchMethodError: SpecRef$Reference.<init>` | `kotest-extensions-pitest` 1.2.0 は Kotest 5.5.4 向けで、Kotest 6 と衝突する。**Kotest 6 では拡張なし**（`pitest-junit5-plugin` のみ）で動く |
+| value class のゲッターが `NO_COVERAGE` | コンパイラ生成アクセサは呼ばれないため、`excludedMethods` で除外する（理由をコメントに残す） |
+| `plus` が 0 を返すミュータントが生存 | 交換則・結合則は常に 0 を返す実装でも成立する。**和そのものを検証するオラクル Property** を追加して検出した（§2.2） |
+| `0..MAX` の境界のミュータントが生存 | ランダム入力は境界ちょうどの値に当たりにくい。**境界値を Example で明示**して検出した（§2.4） |
+
+**実測結果（ドメイン層）**
+
+| 段階 | 検出率（Killed / Generated） | 備考 |
+|---|---|---|
+| 初回（Quantity・Yen・PaymentState のテストのみ） | 48%（15 / 31） | `Ids.kt` はテスト無し。`NO_COVERAGE` 14 件、生存 2 件 |
+| テスト追加後 | 77%（24 / 31） | 閾値 80% を下回り `pitest` がビルド失敗（ゲートが機能することを確認） |
+| 無意味な分岐の削除・アクセサ除外後 | 100%（18 / 18） | 閾値を満たす |
+
+> Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedMethods` の追加も同様に人間の承認を要する。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。
 
 ---
 
