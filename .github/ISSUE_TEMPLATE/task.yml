@@ -1,0 +1,29 @@
+name: 機能・改善・タスク
+description: バグ以外の Issue（ドキュメント・サンプル・CI・TRS の更新など）。1 Issue 1 PR で完了できる単位にする
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+      description: なぜ必要か。関連するドキュメントの箇所（例 04 §2.6）や Issue があれば書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: todo
+    attributes:
+      label: やること
+      description: チェックボックスで列挙してください。
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 注意
+      description: 方針・規程・期待値（TRS）に触れる変更は人間の承認が必要です。
