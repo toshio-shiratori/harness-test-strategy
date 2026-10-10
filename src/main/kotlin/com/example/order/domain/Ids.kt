@@ -20,6 +20,6 @@ value class OrderId private constructor(val value: String) {
 enum class IdError { BLANK }
 
 fun cancelOrder(orderId: OrderId, by: UserId) {
-    check(orderId.value.isNotEmpty() && by.value.isNotEmpty()) // 実処理は省略
+    // 実処理は省略（引数の型で取り違えを防ぐ例）
 }
 // cancelOrder(userId, orderId)  // ← コンパイルエラー（引数の取り違えを排除）

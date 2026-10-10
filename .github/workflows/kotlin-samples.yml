@@ -25,5 +25,5 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      # docs/testing/02-test-architecture.md のサンプルコードのコンパイルとテスト（ローカルも同一コマンド）
-      - run: ./gradlew test
+      # docs/testing/02-test-architecture.md のサンプルコードのコンパイル・テスト・ミューテーションテスト（ローカルも同一コマンド）
+      - run: ./gradlew test pitest
