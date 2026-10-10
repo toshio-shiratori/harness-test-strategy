@@ -1,0 +1,10 @@
+root = true
+
+[*.{kt,kts}]
+# 02 のサンプルコードの書き方に近い intellij_idea スタイルを採用する
+ktlint_code_style = intellij_idea
+# Kotest の `class XTest : FunSpec({ ... })` 形式（02 のサンプルと同じ）を許容する
+ktlint_standard_class-signature = disabled
+# 式本体を次行に置く書き方・波括弧なしの if-else（02 のサンプルと同じ）を許容する
+ktlint_standard_function-signature = disabled
+ktlint_standard_multiline-if-else = disabled
