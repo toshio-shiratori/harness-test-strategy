@@ -17,7 +17,7 @@ AI(コーディングエージェント)を使った開発に、テスト戦略�
 | 3 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を期待値の正(SSOT)にする方法 |
 | 4 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | - | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
-| - | [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) | TRS の実例 |
+| - | [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) / [PAY-002](docs/testing/trs/PAY-002-payment-persistence.md) | TRS の実例 |
 
 ## 中心となる考え方
 
@@ -45,6 +45,7 @@ npm ci && npm run lint
 
 # サンプルコード(静的解析、テスト、ミューテーションテスト)
 ./gradlew detekt ktlintCheck test
+./gradlew integrationTest   # Docker が必要（Testcontainers）
 ./gradlew pitest
 ```
 

@@ -141,7 +141,7 @@ flowchart TB
 | G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
 | G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml` |
-| G4 | `test`（`./gradlew test`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`）は実行、E2E は未実装 |
+| G4 | `integration`（`kotlin-samples.yml`、`./gradlew integrationTest`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は実行、E2E は未実装。層1の `test` とは別ジョブ（02 §3.2） |
 | G5 | `test`（`TraceabilityTest`） | 一部実装。AC に紐づくテストの有無は検査、Blocking な Open Issue の未解決の検査は未実装（`@pending` の明示で代替） |
 
 人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。
