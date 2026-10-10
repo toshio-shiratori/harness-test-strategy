@@ -32,6 +32,7 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
     testImplementation("io.kotest:kotest-assertions-core:6.2.5")
     testImplementation("io.kotest:kotest-property:6.2.5")
+    testImplementation("com.lemonappdev:konsist:0.18.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
