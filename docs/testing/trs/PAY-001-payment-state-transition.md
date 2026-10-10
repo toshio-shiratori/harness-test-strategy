@@ -1,6 +1,6 @@
 # TRS-PAY-001: 決済状態の遷移
 
-> `PaymentState` の遷移ルールを定める TRS。実装とテストは #28 で行い、それまで AC は `@pending:ISSUE-28` とする。
+> `PaymentState` の遷移ルールを定める TRS。実装とテストは #28 で行った。
 > 遷移ルールは、人間（@toshio-shiratori）が 2026-10-10 に OI-002〜004 で決定した。既存コードの挙動からの逆生成ではない
 > （既存の `PaymentState` は状態の定義と `label` だけで、遷移関数は無い）。
 > AC / UC の番号は、`TraceabilityTest` が全 TRS のテストを横断して照合するため、TRS 間で重複しないように採番する（ORD-001 が `01`、本 TRS が `02`）。
@@ -15,7 +15,7 @@
 | ステータス | Draft |
 | 仕様の正（SSOT） | 独立した仕様書・デザインは無い。遷移ルールは本 TRS の OI-002〜004 で人間が確定した（`PaymentState` は [02 §1.3](../02-test-architecture.md) のサンプル） |
 | 関連 TRS | なし |
-| 作成日 / 最終更新日 | 2026-10-10 / 2026-10-10 |
+| 作成日 / 最終更新日 | 2026-10-10 / 2026-10-11 |
 | 仕様承認者 | 未承認（人間の承認待ち） |
 
 ---
@@ -70,28 +70,27 @@ stateDiagram-v2
 
 | AC ID | 関連 UC | 検証層 | 優先度 | 紐づくテスト |
 |---|---|---|---|---|
-| AC-02-01 | UC-02 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-02 | UC-02 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-03 | UC-02 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-04 | UC-02 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-05 | UC-02-A1 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-06 | UC-02-A2 | 層1 | Must | **pending**（実装待ち。#28） |
-| AC-02-07 | UC-02-A1, UC-02-A2 | 層1（PBT） | Must | **pending**（実装待ち。#28） |
-| AC-02-08 | UC-02-A2 | 層1（PBT） | Must | **pending**（実装待ち。#28） |
+| AC-02-01 | UC-02 | 層1 | Must | `PaymentTransitionsTest::AC-02-01 …` |
+| AC-02-02 | UC-02 | 層1 | Must | `PaymentTransitionsTest::AC-02-02 …` |
+| AC-02-03 | UC-02 | 層1 | Must | `PaymentTransitionsTest::AC-02-03 …` |
+| AC-02-04 | UC-02 | 層1 | Must | `PaymentTransitionsTest::AC-02-04 …` |
+| AC-02-05 | UC-02-A1 | 層1 | Must | `PaymentTransitionsTest::AC-02-05 …` |
+| AC-02-06 | UC-02-A2 | 層1 | Must | `PaymentTransitionsTest::AC-02-06 …` |
+| AC-02-07 | UC-02-A1, UC-02-A2 | 層1（PBT） | Must | `PaymentTransitionsTest::AC-02-07 …` |
+| AC-02-08 | UC-02-A2 | 層1（PBT） | Must | `PaymentTransitionsTest::AC-02-08 …` |
 
 ```gherkin
 Feature: 決済状態の遷移
 
-  # AC-02-01〜08 は OI-002〜004 で期待値が確定した。実装とテストは #28 で行うため、それまで @pending:ISSUE-28 とする。
-  # pending は TraceabilityTest の除外用タグ。#28 でテストを追加した時点で外す。
+  # AC-02-01〜08 は OI-002〜004 で期待値が確定し、#28 で実装した。
 
-  @AC-02-01 @layer:1 @pending:ISSUE-28
+  @AC-02-01 @layer:1
   Scenario: Pending は authorize で Authorized になる
     Given 決済が Pending である
     When  authorize を要求する
     Then  決済は Authorized になる
 
-  @AC-02-02 @layer:1 @pending:ISSUE-28
+  @AC-02-02 @layer:1
   Scenario Outline: Pending は fail で Failed になり、理由が保たれる
     Given 決済が Pending である
     When  理由 "<reason>" で fail を要求する
@@ -102,13 +101,13 @@ Feature: 決済状態の遷移
       | CARD_DECLINED |
       | TIMEOUT       |
 
-  @AC-02-03 @layer:1 @pending:ISSUE-28
+  @AC-02-03 @layer:1
   Scenario: Authorized は capture で Captured になる
     Given 決済が Authorized である
     When  capture を要求する
     Then  決済は Captured になる
 
-  @AC-02-04 @layer:1 @pending:ISSUE-28
+  @AC-02-04 @layer:1
   Scenario Outline: Authorized は fail で Failed になり、理由が保たれる
     Given 決済が Authorized である
     When  理由 "<reason>" で fail を要求する
@@ -119,7 +118,7 @@ Feature: 決済状態の遷移
       | CARD_DECLINED |
       | TIMEOUT       |
 
-  @AC-02-05 @layer:1 @pending:ISSUE-28
+  @AC-02-05 @layer:1
   Scenario Outline: 許可されていない遷移は INVALID_TRANSITION で拒否される
     Given 決済が <state> である
     When  <operation> を要求する
@@ -131,7 +130,7 @@ Feature: 決済状態の遷移
       | Pending    | capture   |
       | Authorized | authorize |
 
-  @AC-02-06 @layer:1 @pending:ISSUE-28
+  @AC-02-06 @layer:1
   Scenario Outline: 終端状態からはどの操作でも遷移できない
     Given 決済が <state> である
     When  <operation> を要求する
@@ -147,14 +146,14 @@ Feature: 決済状態の遷移
       | Failed   | capture   |
       | Failed   | fail      |
 
-  @AC-02-07 @layer:1 @pending:ISSUE-28
+  @AC-02-07 @layer:1
   Scenario: 任意の操作列で、許可された遷移だけが状態を変える
     Given 初期状態が Pending である
     When  任意の長さの操作列を順に要求する
     Then  各操作は、遷移表で許可されていれば新しい状態になり、許可されていなければ INVALID_TRANSITION で拒否される
     And   拒否された操作の前後で状態は変わらない
 
-  @AC-02-08 @layer:1 @pending:ISSUE-28
+  @AC-02-08 @layer:1
   Scenario: 終端状態に達した後は、以降どんな操作列でも状態が変わらない
     Given 任意の操作列の途中で決済が Captured または Failed になった
     When  以降の任意の操作列を順に要求する
@@ -215,14 +214,14 @@ Feature: 決済状態の遷移
 
 | AC ID | 層1（型/Unit/PBT） | 層2（Integration/E2E） | 層3（探索） | 状態 |
 |---|---|---|---|---|
-| AC-02-01 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-02 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-03 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-04 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-05 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-06 | （#28 で追加） | — | — | pending（実装待ち。#28） |
-| AC-02-07 | （#28 で追加。PBT） | — | — | pending（実装待ち。#28） |
-| AC-02-08 | （#28 で追加。PBT） | — | — | pending（実装待ち。#28） |
+| AC-02-01 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-02 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-03 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-04 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-05 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-06 | `PaymentTransitionsTest` | — | — | 実装済 |
+| AC-02-07 | `PaymentTransitionsTest`（PBT） | — | — | 実装済 |
+| AC-02-08 | `PaymentTransitionsTest`（PBT） | — | — | 実装済 |
 
 ### 8. 不具合還元履歴
 
@@ -235,6 +234,7 @@ Feature: 決済状態の遷移
 | 日付 | 版 | 変更者 | 変更内容 | 承認者 |
 |---|---|---|---|---|
 | 2026-10-10 | 0.1 | AI | 初版作成。人間の決定（遷移ルール）に基づき OI-002〜004 を Resolved にした。OI-001（時刻の取得元）は Open（#37） | 未承認 |
+| 2026-10-11 | 0.2 | AI | #28 の実装に合わせ、AC-02-01〜08 の `@pending` を外し、紐づくテストとトレーサビリティを記入した | 未承認 |
 
 ---
 
@@ -247,4 +247,4 @@ Feature: 決済状態の遷移
 - [x] 因子制約に、禁止組合せと組合せ別の期待結果がある
 - [x] Blocking の Open Issue が未解決のまま実装に進んでいない（OI-003 は Resolved）
 - [x] Open Issues の履歴（解決済みを含む）が残っている
-- [x] 全 AC にテストが紐づいている（AC-02-01〜08 は実装待ちの pending として明示。#28）
+- [x] 全 AC にテストが紐づいている（AC-02-01〜08 は #28 で実装済み）

@@ -11,6 +11,9 @@ sealed interface PaymentState {
 
 enum class FailureReason { CARD_DECLINED, TIMEOUT }
 
+/** 遷移の拒否理由は1つだけ（TRS PAY-001 OI-004）。状態名は契約にしない。 */
+enum class TransitionError { INVALID_TRANSITION, }
+
 // when を「式」として使い、else を置かない。
 // PaymentState に状態を追加すると、この関数を含む全ての when がコンパイルエラーになる。
 fun label(state: PaymentState): String =

@@ -254,6 +254,21 @@ fun label(state: PaymentState): String =
     }
 ```
 
+遷移も同じ作りで書く。許可する遷移（TRS PAY-001）以外は、同じ状態への再実行を含めて全て `INVALID_TRANSITION` で拒否し、失敗は例外ではなく `Validated` で返す。
+
+```kotlin
+enum class TransitionError { INVALID_TRANSITION }
+
+/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。 */
+fun PaymentState.capture(at: Instant): Validated<PaymentState, TransitionError> =
+    when (this) {
+        is PaymentState.Authorized -> Validated.Valid(PaymentState.Captured(at))
+        PaymentState.Pending, is PaymentState.Captured, is PaymentState.Failed ->
+            Validated.Invalid(TransitionError.INVALID_TRANSITION)
+    }
+// authorize / fail も同様（src/main/kotlin/com/example/payment/domain/PaymentTransitions.kt）
+```
+
 **ルール**
 
 - `status: String` と `Boolean` の組合せで状態を表現しない（`isPaid && isCancelled` のような**矛盾状態を表現可能にしない**）。
@@ -364,6 +379,43 @@ class YenPropertyTest : StringSpec({
 ```
 
 > `(Yen.of(it) as Validated.Valid).value` は **テストコード内のジェネレータに限り**許可する `as` の例外である（本番コードでは §1.1 のとおり禁止）。この例外は detekt の対象をテストソースから除外して実現する。
+
+#### 操作列の PBT（状態遷移）
+
+状態遷移の抜け（04 §2.2）は、**操作列を生成して遷移表と照合する Property** で検出する。期待値は TRS の遷移表（独立したオラクル）から作り、実装と同じ分岐で作らない。
+
+```kotlin
+// 分類: 不変量（許可された遷移だけが状態を変え、拒否された操作は状態を変えない）
+"AC-02-07 任意の操作列で、許可された遷移だけが状態を変え、拒否された操作は状態を変えない" {
+    checkAll(opSequences) { sequence ->
+        var state: PaymentState = PaymentState.Pending
+        sequence.forEach { op ->
+            val result = state.apply(op)
+            val expected = allowed[kindOf(state) to op.kind] // TRS の遷移表。表に無い組合せは拒否される
+            if (expected == null) {
+                result shouldBe rejected
+            } else {
+                kindOf(result.valid()) shouldBe expected
+                state = result.valid()
+            }
+        }
+    }
+}
+
+// 分類: 不変量（終端状態からは、以降どんな操作列でも遷移できない）
+"AC-02-08 終端状態に達した後は、以降どんな操作列でも状態が変わらない" {
+    checkAll(opSequences, opSequences) { before, after ->
+        var state: PaymentState = PaymentState.Pending
+        before.forEach { op -> (state.apply(op) as? Validated.Valid)?.let { state = it.value } }
+        if (kindOf(state) in terminalKinds) {
+            val terminal = state
+            after.forEach { op -> terminal.apply(op) shouldBe rejected }
+        }
+    }
+}
+```
+
+操作列のジェネレータは `Arb.bind` で操作の種類・時刻・失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
 
 ### 2.3 PBT 実装ルール
 
