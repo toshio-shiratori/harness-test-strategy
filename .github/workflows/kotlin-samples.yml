@@ -2,13 +2,6 @@ name: Kotlin Samples
 
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "build.gradle.kts"
-      - "settings.gradle.kts"
-      - "gradle/**"
-      - "gradlew"
-      - ".github/workflows/kotlin-samples.yml"
   push:
     branches: [main]
 

@@ -131,6 +131,21 @@ flowchart TB
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
 | G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue がない | PR |
 
+### 5.1 ゲートと必須チェックの対応
+
+`main` は GitHub のルールセット（Protect main）で、PR 必須・force push と削除の禁止・下記の必須チェックを強制する。必須チェックは **`paths:` フィルタを付けず PR で常に実行する**（フィルタがあると、対象外の変更で未実行のまま「待機中」となりマージできなくなるため）。
+
+| ゲート | 必須チェック（ジョブ） | 実装状況 |
+|---|---|---|
+| G0 | `lint`（`lint.yml`） | 実装済み |
+| G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`） | 一部実装。detekt・ktlint は未導入 |
+| G2 | `test`（`./gradlew test`） | 実装済み |
+| G3 | `test`（`./gradlew pitest`） | 一部実装。ドメイン層全体を実行しており、差分実行は未対応 |
+| G4 | — | 未実装（Integration・E2E） |
+| G5 | — | 未実装 |
+
+人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。
+
 ## 6. 用語
 
 | 用語 | 定義 |
