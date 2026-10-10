@@ -1,0 +1,2 @@
+# 白紙の Issue を許可しない。バグは bug_report、機能・改善・タスクは task から起票する。
+blank_issues_enabled: false

@@ -1,0 +1,75 @@
+# 項目の定義は docs/testing/04-regression-governance.md §2.4・§2.6 が正。ここは参照で、項目を変えるときは 04 も更新する。
+# 発見時に分かる項目だけを必須にする。根本原因・還元先・追加テスト・ミューテーション確認は調査と修正の後に分かるため任意とし、
+# 還元先の強制はバグ修正用の PR テンプレート（.github/PULL_REQUEST_TEMPLATE/bug_fix.md）の DoD で行う。
+name: バグ報告
+description: E2E・探索テスト・本番で見つかった不具合（04 §2 不具合還元プロトコル）
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        不具合は「E2E を足して終わり」にせず、最速の層（型 → Unit → PBT → Integration）へ還元します。
+        項目の定義は [04 §2.6](https://github.com/toshio-shiratori/harness-test-strategy/blob/main/docs/testing/04-regression-governance.md) に従います。
+  - type: dropdown
+    id: discovery-layer
+    attributes:
+      label: 発見層
+      options:
+        - 層3 探索
+        - 層2 E2E
+        - 本番
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: 最小の再現手順と入力を書いてください。
+    validations:
+      required: true
+  - type: input
+    id: related-trs
+    attributes:
+      label: 関連 TRS
+      description: "例: ORD-001 AC-01-08 / OI-005。該当する TRS が無ければ「なし（TRS に該当なし）」と書いてください。"
+    validations:
+      required: true
+  - type: dropdown
+    id: root-cause
+    attributes:
+      label: 根本原因の分類（分かる場合）
+      description: 04 §2.2。調査後に更新してください。
+      options:
+        - 型で防げた不正状態
+        - ロジック／境界の誤り
+        - 入力空間の想定漏れ
+        - 状態遷移の抜け
+        - 契約・配線の不整合
+        - 実ブラウザ固有
+        - 仕様の欠落・曖昧
+  - type: dropdown
+    id: reflux-target
+    attributes:
+      label: 還元先（決まっている場合）
+      description: 04 §2.4。上から順に検討し、E2E は他のどれでも不可の場合のみ選びます。選定理由は下の欄に書いてください。
+      options:
+        - 型
+        - Unit
+        - PBT
+        - Integration
+        - E2E
+  - type: dropdown
+    id: e2e-area
+    attributes:
+      label: E2E を選ぶ場合の領域
+      description: 還元先が E2E のときは必須です（02 §5.1 の4領域のどれかに該当する場合に限る）。それ以外は空のままにしてください。
+      options:
+        - 表示
+        - 通信
+        - 主要ハッピーパス
+        - 実ブラウザ操作
+  - type: textarea
+    id: reflux-reason
+    attributes:
+      label: 還元先の選定理由・追加したテスト・ミューテーション確認
+      description: 修正後に更新してください。
