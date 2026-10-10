@@ -24,6 +24,10 @@ class TestProtectionTest : StringSpec({
         tests.isNotEmpty() shouldBe true
     }
 
+    "統合テスト（src/integrationTest）も検査対象に含まれる（source set の分離で検査から外れない）" {
+        tests.any { "/src/integrationTest/" in it.path } shouldBe true
+    }
+
     "無効化アノテーション（@Disabled / @Ignore 等）がない" {
         // 関数・クラス・ファイルのどこに付いても検出できるよう、ソーステキストで検査する
         tests.assertFalse { file ->
