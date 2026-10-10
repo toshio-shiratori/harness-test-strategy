@@ -1,0 +1,21 @@
+name: PR Bug Fix Check
+
+# バグ修正の PR(タイトルが fix: で始まる)が、バグ修正用の PR テンプレートの欄を持ち、完了条件(04 §2.5)を満たしているかを検査する。
+# テンプレートの指定漏れ(gh pr create --template bug_fix.md の付け忘れ)と、チェックボックスを外したままのマージを検知する。
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # タイトルと本文は信頼できない入力なので、式展開ではなく環境変数で渡す
+      - run: scripts/check-bug-fix-pr.sh
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
