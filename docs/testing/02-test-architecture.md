@@ -20,7 +20,17 @@
 | テスト | JUnit Platform + Kotest（Property / Assertions）、必要箇所のみ `@SpringBootTest` |
 | モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
 
-> Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。テストスライス（`@WebMvcTest` 等）や `MockMvc` / `RestTestClient` 関連のアノテーションのパッケージ名・テスト用スターター名は、使用する 4.1.x の公式リファレンスで確認して指定すること。本書のコード例は、ドメイン層を Spring 非依存の純粋な Kotlin とすることで、フレームワークの変更に影響されない構成にしている。
+> Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/test/.../adapter/web/OrderControllerHttpTest.kt`）。
+>
+> | 用途 | 内容 |
+> |---|---|
+> | テスト用スターター | `org.springframework.boot:spring-boot-starter-webmvc-test` |
+> | `@WebMvcTest` | `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest` |
+> | `@AutoConfigureRestTestClient` | `org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient` |
+> | `RestTestClient` | `org.springframework.test.web.servlet.client.RestTestClient`（Spring Framework 7） |
+> | `@AutoConfigureMockMvc` | `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc`（存在のみ確認。本リポジトリでは未使用） |
+>
+> 本書のコード例は、ドメイン層を Spring 非依存の純粋な Kotlin とすることで、フレームワークの変更に影響されない構成にしている。
 
 ```kotlin
 // build.gradle.kts（抜粋。全体は検証用プロジェクトのルートにある build.gradle.kts）
@@ -183,7 +193,7 @@ fun interface AddItemUseCase {
 - 検証は生成時の1箇所に集約し、利用側で再検証しない（二重管理の防止）。
 - 不変（immutable）を基本とし、状態変更は新しい値の生成で表現する（`val` のみ、`var` を避ける）。
 - 失敗は例外ではなく `Validated`（または `Result` 相当）で返し、呼び出し側に処理を強制する。Spring の `@Valid` / Bean Validation による検証は DTO の形式チェックに留め、**ドメインの不変条件はドメイン型のファクトリを正**とする。
-- Jackson 3 で value class を DTO に直接デシリアライズする構成は避け、DTO はプリミティブで受けて境界で変換する（シリアライザ依存を排除するため）。
+- value class を DTO に直接デシリアライズする構成は避け、DTO はプリミティブで受けて境界で変換する。**実測**（Spring Boot 4.1.1、Jackson 3 + jackson-module-kotlin）では、`private constructor` の `Quantity` を DTO のプロパティにすると `{"quantity":5000}` が `Quantity.of` の検証を素通りして生成された（`ValueClassDtoTest`）。不変条件が破られるため、DTO にドメイン型を直接使ってはならない。
 
 ### 1.3 sealed 型と網羅的 `when`（網羅性チェック）
 
@@ -449,6 +459,8 @@ pitest {
 ## 5. E2E 最小化原則
 
 E2E は遅く、壊れやすく、原因の切り分けが難しい。**E2E でしか検証できないものだけ**を E2E にする。
+
+下層の Integration（HTTP/JSON の境界、ステータス・エラー形式、JSON ⇔ DTO 変換）の実例は `OrderControllerHttpTest`（`@WebMvcTest` + `RestTestClient`、Web スライスのみ起動）を参照する。これらは E2E にしない。
 
 ### 5.1 E2E として許可する4領域
 
