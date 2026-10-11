@@ -5,7 +5,7 @@
 | 文書ID | TEST-03 |
 | 目的 | TRS（Test Requirement Specification）の構造・記述ルール・運用を定め、AIが生成するテストの「期待値の正」を人間の合意した仕様に固定する |
 | テンプレート | [trs/_template.md](./trs/_template.md) |
-| 関連 | [01 基本方針書](./01-test-policy.md)（W字モデル） |
+| 関連 | [01 基本方針書](./01-test-policy.md)（W字モデル） / [05 導入手順書](./05-adoption-guide.md)（既存プロジェクトへの導入。レガシーへの適用は 05 §6 の補足。特性化テストは本書 §3.3） |
 
 ---
 
