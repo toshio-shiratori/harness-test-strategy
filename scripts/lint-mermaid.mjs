@@ -12,6 +12,8 @@ function* walk(dir) {
   for (const name of readdirSync(dir)) {
     if (IGNORED.has(name)) continue;
     const path = join(dir, name);
+    // worktree 内の複製は対象外。追跡ファイルは各チェックアウトで検査される
+    if (relative(root, path) === join(".claude", "worktrees")) continue;
     if (statSync(path).isDirectory()) yield* walk(path);
     else if (name.endsWith(".md")) yield path;
   }
