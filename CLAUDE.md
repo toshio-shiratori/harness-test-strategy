@@ -46,3 +46,20 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 - `src/test/kotlin/com/example/architecture/`(Konsist による検査・テスト保護)
 - `build.gradle.kts` の pitest 閾値・`excludedClasses`、`config/detekt/detekt.yml`、`.markdownlint-cli2.jsonc`、`.github/`
 - テストの無効化(`@Disabled`、`xdescribe` 等)。意図的な無効化の手順は `04` §3.4.1
+
+## サブエージェントチーム(リーダー向けの運用)
+
+変更種別ごとの役割は `.claude/agents/` に定義してある(`doc-author` / `kotlin-sample-engineer` / `spec-reviewer` / `gate-guard`)。Issue / PR の運用は `issue-triage` / `issue-autopilot` / `grill-me` のスキルで足りるため、エージェント化していない。`.claude/agents/` には README を置かない(エージェント定義として読み込まれる恐れがあるため)。運用はこの節に書く。
+
+| 役割 | 担当 | 権限 |
+|---|---|---|
+| `doc-author` | 方針書(01〜05)・README・TRS の執筆 | 書き込み可 |
+| `kotlin-sample-engineer` | `src/` と `02` のコード例の同期 | 書き込み可 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`02` と `src/` の同期、非公開情報の混入 | 読み取り専用 |
+| `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「PASS」か「人間の承認が必要」 | 読み取り専用 |
+
+1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。
+2. 作成側が品質ゲートを通した後、`spec-reviewer` と `gate-guard` を並列に起動する。指摘があれば作成側に戻して直し、再度ゲートとレビューを通す。
+3. 保護対象(下記「変更してはいけないもの」)に触れる作業の後は、`gate-guard` を必ず起動する。`tools` は書き込めるパスの制限ではなく、PreToolUse フックも足さない方針のため、検出は `gate-guard` の独立レビューと、PR の段階の CODEOWNERS 承認で行う。
+4. `gate-guard` が「人間の承認が必要」を返したら、リーダーは PR 本文に該当ファイルと理由を書き、単独でマージしない。
+5. 定義の反映は即時とは限らない。`subagent_type` が解決しないときはセッションを再起動する。
