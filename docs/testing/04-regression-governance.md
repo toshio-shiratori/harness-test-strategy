@@ -4,7 +4,7 @@
 |---|---|
 | 文書ID | TEST-04 |
 | 目的 | 不具合の再発防止（下層化）、AIによるテスト自動修復の安全な適用範囲、重いE2Eの破棄手順を定める |
-| 関連 | [01 基本方針書](./01-test-policy.md) / [02 アーキテクチャ標準](./02-test-architecture.md) / [03 TRSガイドライン](./03-trs-guideline.md) |
+| 関連 | [01 基本方針書](./01-test-policy.md) / [02 アーキテクチャ標準](./02-test-architecture.md) / [03 TRSガイドライン](./03-trs-guideline.md) / [05 導入手順書](./05-adoption-guide.md) |
 
 ---
 

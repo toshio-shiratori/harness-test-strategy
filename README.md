@@ -16,6 +16,7 @@ AI(コーディングエージェント)を使った開発に、テスト戦略�
 | 2 | [02 AIガードレール＆テストアーキテクチャ標準](docs/testing/02-test-architecture.md) | 型で誤りを書けなくする設計、PBT、ミューテーションテスト、E2E 最小化、AI 向けガードレール設定 |
 | 3 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を期待値の正(SSOT)にする方法 |
 | 4 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
+| 5 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | - | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
 | - | [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) / [PAY-002](docs/testing/trs/PAY-002-payment-persistence.md) | TRS の実例 |
 
@@ -55,10 +56,14 @@ CI は `.github/workflows/` で、同じコマンドを実行します。
 
 導入用のツールやパッケージはありません。文書を読み、自分のプロジェクトに合わせて取り入れます。
 
+新規のプロジェクトは、次の順に進めます。
+
 1. 01 と 02 を読み、層構造と型ガードレールの方針をチームで合意する。
 2. TRS テンプレートを複製し、最初の機能の TRS を書く。実例の ORD-001 が参考になる。
 3. `src/` の Konsist テスト(`architecture/` 配下)、`build.gradle.kts` の PIT・detekt 設定、`CLAUDE.md` を、自分のプロジェクトにコピーして調整する。
 4. 不具合の運用は 04 とバグ報告テンプレート(`.github/ISSUE_TEMPLATE/bug_report.yml`)を使う。
+
+すでにテスト・静的解析・CI があるプロジェクトは、上の手順 2 より前に [05 導入手順書](docs/testing/05-adoption-guide.md) で既存の仕組みと重複しないかを診断し、05 の順に進めます。手順 3 のコピーは、診断で「新規導入」または「補完」と判断した項目の、足りない部分に限ります。現状値をベースラインに固定して悪化のみを禁止し、既存の仕組みに接続しながら段階的に取り入れます。`CLAUDE.md` は、既存のエージェント指示を置き換えず、必要な参照(本標準と 04 のヒーリング規程への参照など。02 §6)を追記します。
 
 コード例は Kotlin + Spring Boot 前提ですが、原則そのものは言語非依存です。
 

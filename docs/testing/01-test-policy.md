@@ -5,7 +5,7 @@
 | 文書ID | TEST-01 |
 | 目的 | AIと人間が共創して最高品質を維持するためのテストハーネスの基本方針を定める |
 | 適用範囲 | AIが設計・実装・テストのいずれかに関与する全ての開発活動 |
-| 関連文書 | [02 アーキテクチャ標準](./02-test-architecture.md) / [03 TRSガイドライン](./03-trs-guideline.md) / [04 リグレッション運用規程](./04-regression-governance.md) |
+| 関連文書 | [02 アーキテクチャ標準](./02-test-architecture.md) / [03 TRSガイドライン](./03-trs-guideline.md) / [04 リグレッション運用規程](./04-regression-governance.md) / [05 導入手順書](./05-adoption-guide.md)（既存プロジェクトへの導入） |
 
 ---
 
