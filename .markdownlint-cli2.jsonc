@@ -1,7 +1,8 @@
 {
   // 対象: リポジトリ内の全 Markdown（依存物・Obsidian 設定は除外）
   "globs": ["**/*.md"],
-  "ignores": ["node_modules/**", ".obsidian/**"],
+  // worktree 内の複製(.claude/worktrees)と、そこに入った node_modules は対象外。追跡ファイルは各チェックアウトで検査される
+  "ignores": ["**/node_modules/**", ".obsidian/**", ".claude/worktrees/**"],
   // 診断を 1 件でも出したら終了コード 1（品質ゲート）
   "config": {
     "default": true,
