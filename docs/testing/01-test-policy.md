@@ -131,6 +131,8 @@ flowchart TB
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
 | G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue がない | PR |
 
+G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先では、[05 の適合度診断](./05-adoption-guide.md#3-手順と完了条件)で対象範囲を決める。対象から外す場合は、[05 §4](./05-adoption-guide.md#4-導入モード) の「適用外」の手順（理由と代替の担保の記録）による。
+
 ### 5.1 ゲートと必須チェックの対応
 
 `main` は GitHub のルールセット（Protect main）で、PR 必須・force push と削除の禁止・下記の必須チェックを強制する。必須チェックは **`paths:` フィルタを付けず PR で常に実行する**（フィルタがあると、対象外の変更で未実行のまま「待機中」となりマージできなくなるため）。
@@ -140,7 +142,7 @@ flowchart TB
 | G0 | `lint`（`lint.yml`） | 実装済み |
 | G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
-| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml` |
+| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02 §4.1](./02-test-architecture.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
 | G4 | `integration`（`kotlin-samples.yml`、`./gradlew integrationTest`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は実行、E2E は未実装。層1の `test` とは別ジョブ（02 §3.2） |
 | G5 | `test`（`TraceabilityTest`） | 一部実装。AC に紐づくテストの有無は検査、Blocking な Open Issue の未解決の検査は未実装（`@pending` の明示で代替） |
 
