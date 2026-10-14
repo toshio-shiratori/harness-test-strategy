@@ -19,6 +19,12 @@ import java.io.File
  *   範囲として読めない `〜` が残る場合は違反とする。関連列に AC が無い行は、指す先を決められないので違反とする。
  * - 該当 AC の Gherkin のタグ行に、その行の OI-ID と同じ `@pending:<OI-ID>` が無ければ違反。
  * - Open Issues 表に行が 1 つも無い TRS は、読み取りの空振りと区別できないので違反とする。
+ * - `@pending:<ID>` に書けるのは「その TRS の Open Issues 表にある、未解決（`Open` / `In Discussion`）の `Blocking` な OI-ID」だけ
+ *   （03 §3.4 の「Blocking が未解決の AC に限る」と一致させ、除外の抜け道を作らない）。次は違反とする。
+ *   `OI-<数字>` の形でない値（`ISSUE-n` を含む。実装待ちは Issue / PR で管理する）、表に無い OI-ID、
+ *   未解決の Blocking でない OI-ID（`Resolved` / `Superseded` / `Won't Fix` / `Non-blocking`）。
+ *   対象は、行内で `@AC-xx-yy` より後ろにある `@pending:` である（AC を除外する判定と同じ範囲。行頭が `@` の行に限らない）。
+ *   `@AC-xx-yy` を伴わない説明文や履歴行の `@pending:` は、AC を除外しないので対象外。
  */
 internal object UnresolvedBlockingCheck {
     private val unresolvedStates = setOf("Open", "In Discussion")
@@ -27,6 +33,10 @@ internal object UnresolvedBlockingCheck {
     private val acRange = Regex("""AC-(\d\d)-(\d\d)(?:[〜～~](?:AC-\1-)?(\d\d))?""")
     private val rangeMark = Regex("""[〜～~]""")
     private val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
+    private val acTagTail = Regex("""@AC-\d\d-\d\d\b[^\n]*""")
+    private val pendingTag = Regex("""@pending:([^\s`|]*)""")
+    private val oiId = Regex("""^OI-\d+$""")
+    private val issueRef = Regex("""^ISSUE-\d+$""")
 
     class Row(val id: String, val kind: String, val state: String, val related: String) {
         val blocking get() = kind == "Blocking"
@@ -78,6 +88,26 @@ internal object UnresolvedBlockingCheck {
         return acs to problem
     }
 
+    /**
+     * 行内で `@AC-xx-yy` より後ろにある `@pending:<ID>` のうち、未解決の Blocking な OI-ID でないもの。
+     * 「AC を紐づけ検査から除外する」判定（[TraceabilityTest] の `pendingTag`、[violations] の `@$ac ... @pending:`）と
+     * 同じ範囲を見る。行頭が `@` の行に限ると、表や引用の中の `@AC-xx-yy @pending:ISSUE-n` が検査をすり抜けて除外だけ効いてしまう
+     */
+    private fun pendingViolations(text: String, rows: List<Row>): List<String> {
+        val byId = rows.associateBy { it.id }
+        return acTagTail.findAll(text).flatMap { tail -> pendingTag.findAll(tail.value).map { it.groupValues[1] } }.toList().distinct().mapNotNull { id ->
+            val oi = byId[id]
+            when {
+                issueRef.matches(id) -> "@pending:$id は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）"
+                !oiId.matches(id) -> "@pending:$id は OI-ID の形（OI-<数字>）でない"
+                oi == null -> "@pending:$id の $id が Open Issues 表に無い"
+                !oi.blocking || !oi.unresolved ->
+                    "@pending:$id の $id は未解決の Blocking ではない（区分 ${oi.kind}、状態 ${oi.state}。@pending は外す）"
+                else -> null
+            }
+        }
+    }
+
     /** 違反の説明。空なら合格 */
     fun violations(text: String): List<String> {
         val (rows, errors) = parse(text)
@@ -105,7 +135,7 @@ internal object UnresolvedBlockingCheck {
                 }
             }
         }
-        return errors + emptyTable + classification + found
+        return errors + emptyTable + classification + found + pendingViolations(text, rows)
     }
 }
 
@@ -115,12 +145,13 @@ internal object UnresolvedBlockingCheck {
  * AC ID は TRS 間で重複させない（別の TRS のテストで満たされたように見えるのを防ぐ。03 §3.4）。
  * Blocking の Open Issue により期待値が未確定の AC は、Gherkin のタグに `@pending:<OI-ID>` を付けて除外する。
  * 未解決の Blocking な Open Issue が指す AC に `@pending:<OI-ID>` が無ければ失敗させる（[UnresolvedBlockingCheck]）。
+ * 逆に `@pending:<ID>` が、表に無い OI-ID・未解決の Blocking でない OI-ID・`ISSUE-n` を指していても失敗させる（同上）。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
 class TraceabilityTest : StringSpec({
     val trsFiles = File("docs/testing/trs").listFiles { f -> f.extension == "md" && !f.name.startsWith("_") }.orEmpty()
     val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
-    val pendingTag = Regex("""@(AC-\d\d-\d\d)\b[^\n]*@pending:""")
+    val pendingTag = Regex("""@(AC-\d\d-\d\d)\b[^\n]*@pending:""") // UnresolvedBlockingCheck の @pending の検査と同じ範囲
 
     // テスト名（Kotest の文字列名・JUnit のバッククォート名）の先頭に置かれた AC ID
     val testSources = Konsist.scopeFromTest().files.filterNot { it.name == "TraceabilityTest" }.joinToString("\n") { it.text }
@@ -191,9 +222,32 @@ class TraceabilityTest : StringSpec({
             .shouldContainExactly("OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い")
     }
 
-    "反例: @pending の OI-ID が別の Open Issue のものだと違反になる" {
-        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-002"))
-            .shouldContainExactly("OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い")
+    "反例: @pending の OI-ID が表に無い別の ID だと、指す AC に自分の @pending が無いことと合わせて違反になる" {
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-002")).shouldContainExactly(
+            "OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い",
+            "@pending:OI-002 の OI-002 が Open Issues 表に無い",
+        )
+    }
+
+    "反例: @pending が実在する別の未解決の Blocking（OI-002）だけを指していると、OI-001 の AC に OI-001 の @pending が無いので違反になる" {
+        UnresolvedBlockingCheck.violations(
+            sampleTrsRows(
+                listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
+                "@AC-09-01 @layer:1 @pending:OI-002",
+                "@AC-09-02 @layer:1 @pending:OI-002",
+            ),
+        ).shouldContainExactly("OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い")
+    }
+
+    "現状の仕様（未検査）: @pending の OI-ID が、その AC を関連列に持たない実在の未解決の Blocking でも合格する" {
+        // ID の妥当性（形・実在・未解決の Blocking）までを検査する。@pending を付けた AC が、その OI の関連列にあるかは検査しない（別 Issue で扱う）
+        UnresolvedBlockingCheck.violations(
+            sampleTrsRows(
+                listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
+                "@AC-09-01 @layer:1 @pending:OI-001 @pending:OI-002",
+                "@AC-09-02 @layer:1 @pending:OI-002",
+            ),
+        ).shouldBeEmpty()
     }
 
     "反例: 範囲指定（AC-09-01〜02）の一部にだけ @pending があっても違反になる" {
@@ -248,6 +302,62 @@ class TraceabilityTest : StringSpec({
             .shouldContainExactly("OI-001: 関連列の範囲が逆順: AC-09-02〜01")
     }
 
+    "反例: @pending に ISSUE-n を書くと違反になる（実装待ちは Issue / PR で管理する）" {
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:ISSUE-33"))
+            .shouldContainExactly("@pending:ISSUE-33 は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）")
+    }
+
+    "反例: @pending の OI-ID が Open Issues 表に無いと違反になる" {
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:OI-099"))
+            .shouldContainExactly("@pending:OI-099 の OI-099 が Open Issues 表に無い")
+    }
+
+    "反例: @pending の OI-ID が未解決の Blocking でない（Resolved・Superseded・Won't Fix・Non-blocking）と違反になる" {
+        listOf(
+            "Blocking" to "Resolved",
+            "Blocking" to "Superseded（OI-002）",
+            "Blocking" to "Won't Fix（理由）",
+            "Non-blocking" to "Open",
+            "Non-blocking" to "In Discussion",
+        ).forEach { (kind, state) ->
+            UnresolvedBlockingCheck.violations(sampleTrs(kind, "AC-09-01", state, "@AC-09-01 @layer:1 @pending:OI-001"))
+                .shouldContainExactly("@pending:OI-001 の OI-001 は未解決の Blocking ではない（区分 $kind、状態 $state。@pending は外す）")
+        }
+    }
+
+    "反例: @pending の値が OI-<数字> の形でないと違反になる（空・前方一致・接尾辞・小文字）" {
+        listOf("", "OI-", "OI-001x", "OI-001-x", "oi-001", "ISSUE-", "<OI-ID>").forEach { id ->
+            UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:$id"))
+                .shouldContainExactly("@pending:$id は OI-ID の形（OI-<数字>）でない")
+        }
+    }
+
+    "反例: 1 つのタグ行に複数の @pending があれば、それぞれを検査する" {
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001 @pending:ISSUE-33 @pending:OI-099"))
+            .shouldContainExactly(
+                "@pending:ISSUE-33 は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）",
+                "@pending:OI-099 の OI-099 が Open Issues 表に無い",
+            )
+    }
+
+    "反例: 行頭が @ でない行（表・引用）でも、@AC-xx-yy の後ろの @pending は検査する（除外だけ効いて検査をすり抜けない）" {
+        listOf("| 備考 | @AC-09-02 @pending:ISSUE-33 |", "> 例: @AC-09-02 @pending:ISSUE-33", "  - `@AC-09-02 @pending:ISSUE-33`").forEach { line ->
+            val text = sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001") + "\n$line\n"
+            UnresolvedBlockingCheck.violations(text)
+                .shouldContainExactly("@pending:ISSUE-33 は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）")
+        }
+    }
+
+    "正例: @AC-xx-yy を伴わない説明文や履歴行に書いた @pending:<ID> は @pending の検査の対象外" {
+        val text = sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001") +
+            "\n> 説明: `@pending:<OI-ID>` を付ける。\n| 2026-10-10 | 0.2 | AI | 実装待ちの AC は `@pending:ISSUE-33` | 未承認 |\n"
+        UnresolvedBlockingCheck.violations(text).shouldBeEmpty()
+    }
+
+    "正例: In Discussion の Blocking を指す @pending は合格する" {
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-01", "In Discussion", "@AC-09-01 @layer:1 @pending:OI-001")).shouldBeEmpty()
+    }
+
     "正例: 範囲は AC-09-01〜02、AC-09-01〜AC-09-02、全角の ～ のどれでも同じに展開される" {
         listOf("AC-09-01〜02", "AC-09-01〜AC-09-02", "AC-09-01～02", "AC-09-01~AC-09-02").forEach { related ->
             UnresolvedBlockingCheck.violations(
@@ -272,7 +382,11 @@ class TraceabilityTest : StringSpec({
 })
 
 /** 検査の入力用の最小の TRS。AC 表（`tags` の先頭の AC ID）、Gherkin のタグ行、Open Issues 表（OI-001 の1行）を持つ */
-private fun sampleTrs(kind: String, related: String, state: String, vararg tags: String): String = buildString {
+private fun sampleTrs(kind: String, related: String, state: String, vararg tags: String): String =
+    sampleTrsRows(listOf("| OI-001 | $kind | $related | $state |"), *tags)
+
+/** [sampleTrs] の Open Issues 表の行（`| ID | 区分 | 関連 | 状態 |` の順）を複数指定できる版 */
+private fun sampleTrsRows(oiRows: List<String>, vararg tags: String): String = buildString {
     appendLine("| AC | 内容 |")
     appendLine("|---|---|")
     tags.forEach { appendLine("| ${it.substringBefore(' ').removePrefix("@")} | 説明 |") }
@@ -281,5 +395,5 @@ private fun sampleTrs(kind: String, related: String, state: String, vararg tags:
     appendLine()
     appendLine("| ID | 区分 | 関連 | 状態 |")
     appendLine("|---|---|---|---|")
-    appendLine("| OI-001 | $kind | $related | $state |")
+    oiRows.forEach { appendLine(it) }
 }
