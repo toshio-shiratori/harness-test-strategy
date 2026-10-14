@@ -5,7 +5,9 @@ import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldMatch
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.property.Arb
+import io.kotest.property.EdgeConfig
 import io.kotest.property.PropTestConfig
 import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
@@ -42,11 +44,26 @@ class PropertyTestingConfigTest : StringSpec({
     }
 
     "失敗した Property のメッセージから、縮小後の反例（Arg 0）を取り出せる" {
-        val error = shouldThrow<AssertionError> { failing(PropTestConfig()) }
+        // エッジケース（範囲の端の 1000 など）は縮小されない（Kotest 6.2.5）。既定の確率（2%）で混ざると、
+        // 縮小されない 1000 が反例になり、まれに失敗する。縮小の検証にはエッジケースを無効にする
+        val config = PropTestConfig(edgeConfig = EdgeConfig(edgecasesGenerationProbability = 0.0))
+
+        val error = shouldThrow<AssertionError> { failing(config) }
 
         val match = shrunkArg0.find(error.message.orEmpty())!!
         // 反例は 500 以上の値のうち最小の 500 まで縮小される。縮小前の値（shrunk from）は含まれない
         match.groupValues[1] shouldBe "500"
+    }
+
+    "エッジケースの反例は縮小されず、「shrunk from」が付かないまま Arg 0 に出力される" {
+        // エッジケースだけを生成する（0, 1, 1000）。0 と 1 は Property を満たすので、落ちる反例は 1000 に決まる
+        val config = PropTestConfig(edgeConfig = EdgeConfig(edgecasesGenerationProbability = 1.0))
+
+        val error = shouldThrow<AssertionError> { failing(config) }
+
+        val message = error.message.orEmpty()
+        shrunkArg0.find(message)!!.groupValues[1] shouldBe "1000"
+        message shouldNotContain "shrunk from"
     }
 
     "実行回数は kotest.proptest.default.iteration.count で切り替わる（未指定なら Kotest の既定の 1000）" {

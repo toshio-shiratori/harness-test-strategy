@@ -434,7 +434,7 @@ class YenPropertyTest : StringSpec({
 
    **PBT が失敗したときの AI の手順**（恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるため）。
 
-   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、次の形式で出力することを実測した（`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property）。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。
+   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、次の形式で出力することを実測した（`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property）。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。エッジケース（`Arb.int(0..1000)` なら 0・1・1000 など、範囲の端や特別な値。既定で約 2% の確率で混ざる）で落ちた場合は縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
 
       ```text
       Property failed after 1 attempts
