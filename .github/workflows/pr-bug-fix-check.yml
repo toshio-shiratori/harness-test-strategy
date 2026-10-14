@@ -13,7 +13,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # タイトルと本文は信頼できない入力なので、式展開ではなく環境変数で渡す
       - run: scripts/check-bug-fix-pr.sh
         env:
