@@ -7,7 +7,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
 /**
- * 02 §6 / §1.4 のアーキテクチャ検査。違反は本番コードを書き換えた時点でこのテストが失敗する。
+ * 02b §6 / 02a §1.4 のアーキテクチャ検査。違反は本番コードを書き換えた時点でこのテストが失敗する。
  * 対象はドメイン層（`..domain..` パッケージ）の本番コード。
  */
 class DomainArchitectureTest : StringSpec({

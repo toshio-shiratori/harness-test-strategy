@@ -1,4 +1,4 @@
-# 02-test-architecture.md §1.1 / §6 のガードレール。有効化するルールは docs と一致させること。
+# 02a §1.1 / 02b §6 のガードレール。有効化するルールは docs と一致させること。
 potential-bugs:
   UnsafeCallOnNullableType: # `!!` の禁止
     active: true

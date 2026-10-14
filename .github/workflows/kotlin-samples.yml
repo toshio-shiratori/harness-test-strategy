@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
-      # docs/testing/02-test-architecture.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
+      # docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
       - run: ./gradlew detekt ktlintCheck test
       # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体
       - name: pitest

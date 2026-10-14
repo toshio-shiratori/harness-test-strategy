@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
 /**
- * 01 §4 / 04 §3.4 / 02 §6 のテスト保護。テストの無効化（スキップ）を検出して失敗させる。
+ * 01 §4 / 04 §3.4 / 02b §6 のテスト保護。テストの無効化（スキップ）を検出して失敗させる。
  * 意図的に無効化する場合は 04 §3.4.1 の手順（理由・期限・人間の承認）を踏み、
  * 承認された箇所を [allowed] に追加する（このファイルは CODEOWNERS の対象）。
  */

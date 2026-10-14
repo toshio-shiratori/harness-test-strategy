@@ -11,7 +11,7 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
 
 /**
- * 02 §2.3 の項目3・4（失敗時のシード出力、夜間の実行回数増量）が、設定と Kotest の挙動で成り立っていることの検証。
+ * 02a §2.3 の項目3・4（失敗時のシード出力、夜間の実行回数増量）が、設定と Kotest の挙動で成り立っていることの検証。
  * 特定の AC に紐づかない技術的な不変条件のテスト（03 §3.4）。Kotest の更新で挙動や設定名が変わったときに落ちる。
  */
 // PropTestConfig は ExperimentalKotest。実験的 API なので、使う範囲を本クラスに限る

@@ -8,7 +8,7 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 
 /**
- * 02 §3.2 の実行境界。`./gradlew test`（層1）は Spring・Docker 不要に保ち、
+ * 02b §3.2 の実行境界。`./gradlew test`（層1）は Spring・Docker 不要に保ち、
  * Spring コンテキストを起動するテストと Testcontainers は `src/integrationTest` にだけ置く。
  * このファイルは CODEOWNERS の対象。境界を緩める変更（禁止パッケージの削除等）は人間が承認する。
  */
