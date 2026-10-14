@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>注文追加</title>
+</head>
+<body>
+  <h1>注文追加</h1>
+  <!-- サンプル用の最小 UI。ブラウザ側の検証は付けず(novalidate)、検証は API(OrderController)に任せて応答をそのまま表示する。 -->
+  <form id="order-form" data-testid="order-form" novalidate>
+    <p>
+      <label for="sku">SKU</label>
+      <input id="sku" name="sku" type="text" data-testid="sku-input" autocomplete="off">
+    </p>
+    <p>
+      <label for="quantity">数量</label>
+      <input id="quantity" name="quantity" type="text" inputmode="numeric" data-testid="quantity-input" autocomplete="off">
+    </p>
+    <button id="submit" type="submit" data-testid="submit-button">追加</button>
+  </form>
+
+  <!-- data-state: idle / sending / success / error。メッセージ文言ではなくこの値と codes で状態を判定できる。 -->
+  <section id="result" data-testid="result" data-state="idle" aria-live="polite">
+    <p id="result-message" data-testid="result-message"></p>
+    <p id="result-status" data-testid="result-status"></p>
+    <ul id="result-codes" data-testid="result-codes"></ul>
+  </section>
+
+  <script>
+    const form = document.getElementById("order-form");
+    const result = document.getElementById("result");
+    const message = document.getElementById("result-message");
+    const status = document.getElementById("result-status");
+    const codes = document.getElementById("result-codes");
+
+    function show(state, text, httpStatus, errorCodes) {
+      result.dataset.state = state;
+      message.textContent = text;
+      status.textContent = httpStatus === undefined ? "" : String(httpStatus);
+      codes.replaceChildren(...(errorCodes || []).map((code) => {
+        const item = document.createElement("li");
+        item.textContent = code;
+        return item;
+      }));
+    }
+
+    // 数量: 空欄は null で送る(API 側が MISSING_FIELD を返す)。整数の表記(-?\d+)だけを数値にし、
+    // それ以外("1.0" "1e1" "0x10" "+3" "Infinity" など)は黙って数値化せず文字列のまま送って、API 側の INVALID_JSON を確認できるようにする。
+    // SKU: 空欄は空文字のまま送る(API 側が BLANK を返す)。
+    function parseQuantity(text) {
+      const trimmed = text.trim();
+      if (trimmed === "") return null;
+      return /^-?\d+$/.test(trimmed) ? Number(trimmed) : trimmed;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      show("sending", "送信中", undefined, []);
+      const body = JSON.stringify({
+        sku: form.elements.sku.value,
+        quantity: parseQuantity(form.elements.quantity.value),
+      });
+      try {
+        const response = await fetch("/orders/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        if (response.ok) {
+          show("success", "注文に追加しました", response.status, []);
+          return;
+        }
+        const problem = await response.json().catch(() => ({}));
+        show("error", problem.detail || "追加に失敗しました", response.status, problem.codes);
+      } catch (e) {
+        show("error", "通信に失敗しました", undefined, []);
+      }
+    });
+  </script>
+</body>
+</html>
