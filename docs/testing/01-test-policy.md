@@ -129,7 +129,7 @@ flowchart TB
 | G2 層1テスト | Unit・PBT 全件成功 | pre-commit／PR |
 | G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02b §4） | PR |
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
-| G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている | PR |
+| G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書けるのは未解決の Blocking な OI-ID だけ） | PR |
 
 G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先では、[05 の適合度診断](./05-adoption-guide.md#3-手順と完了条件)で対象範囲を決める。対象から外す場合は、[05 §4](./05-adoption-guide.md#4-導入モード) の「適用外」の手順（理由と代替の担保の記録）による。
 
@@ -144,7 +144,7 @@ G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先�
 | G2 | `test`（`./gradlew test`） | 実装済み |
 | G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
 | G4 | `integration`（`kotlin-samples.yml`、`./gradlew integrationTest`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は必須チェックとして実行する。E2E（Playwright の Chromium、`src/e2eTest`）は `e2e` ジョブ（`kotlin-samples.yml`、`./gradlew e2eTest`）で PR に対して実行されるが、ルールセット（Protect main）の必須チェックには未登録（現状は `lint` / `test` / `check` / `integration` のみ）なので、G4 の E2E 部分はまだマージを止めない。必須チェックへの登録は #94 で追う。層1の `test` とは別ジョブ（02b §3.2） |
-| G5 | `test`（`TraceabilityTest`） | 実装済み。AC に紐づくテストの有無と、未解決の Blocking な Open Issue（TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion`）が指す AC に `@pending:<OI-ID>` があるかを検査する（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
+| G5 | `test`（`TraceabilityTest`） | 実装済み。AC に紐づくテストの有無と、未解決の Blocking な Open Issue（TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion`）が指す AC に `@pending:<OI-ID>` があるかと、`@pending` が未解決の Blocking な OI-ID だけを指している（`ISSUE-n`・表に無い ID・Resolved 等の OI-ID は不可）かを検査する（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
 
 人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。
 
