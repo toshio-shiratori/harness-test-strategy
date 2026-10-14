@@ -28,6 +28,10 @@ class TestProtectionTest : StringSpec({
         tests.any { "/src/integrationTest/" in it.path } shouldBe true
     }
 
+    "E2E（src/e2eTest）も検査対象に含まれる（source set の分離で検査から外れない）" {
+        tests.any { "/src/e2eTest/" in it.path } shouldBe true
+    }
+
     "無効化アノテーション（@Disabled / @Ignore 等）がない" {
         // 関数・クラス・ファイルのどこに付いても検出できるよう、ソーステキストで検査する
         tests.assertFalse { file ->
