@@ -4,6 +4,9 @@
 # npm audit の方針（2026-10-10 時点）: 指摘は devDependencies のみ（mermaid-cli → mermaid → katex、markdownlint-cli2 → smol-toml、braces）。
 # 本番依存は 0 件で、lint 対象はこのリポジトリ自身の Markdown だけ（信頼できない入力を処理しない）ため許容する。
 # `npm audit fix --force` は mermaid-cli / markdownlint-cli2 のメジャーダウングレードになるため行わない。Dependabot の更新で解消されるのを待つ。
+#
+# GitHub Actions の `uses:` はコミット SHA で固定し、行末のコメントにタグを残している（例: `actions/checkout@<sha> # v7`）。
+# タグの付け替えによるサプライチェーンリスクを避けるためである。Dependabot（github-actions）が SHA とコメントのタグを一緒に更新する。手で上げる場合も両方を揃える。
 version: 2
 updates:
   - package-ecosystem: npm
