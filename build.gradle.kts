@@ -62,7 +62,44 @@ testing {
                 implementation("org.testcontainers:testcontainers-mysql")
             }
         }
+        // E2E（実ブラウザ）: 起動した Spring（RANDOM_PORT）と Testcontainers の MySQL に、Playwright のブラウザでつなぐ。
+        // `test` / `integrationTest` / `check` には含めない。`./gradlew e2eTest` で明示的に実行する。
+        register<JvmTestSuite>("e2eTest") {
+            useJUnitJupiter()
+            dependencies {
+                implementation(project())
+                implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
+                implementation("org.springframework.boot:spring-boot-starter-test")
+                implementation("io.kotest:kotest-assertions-core:6.2.5")
+                implementation("org.springframework.boot:spring-boot-testcontainers")
+                implementation("org.testcontainers:testcontainers-junit-jupiter")
+                implementation("org.testcontainers:testcontainers-mysql")
+                // Playwright for Java。Spring Boot の BOM の管理外なのでバージョンを明示する（Maven Central の最新リリース）
+                implementation("com.microsoft.playwright:playwright:1.63.0")
+            }
+        }
     }
+}
+
+// ブラウザ（Chromium）の取得。Playwright の CLI を e2eTest の実行時クラスパスで呼ぶ（取得先は Playwright の既定のキャッシュ）
+tasks.register<JavaExec>("playwrightInstall") {
+    group = "verification"
+    description = "E2E 用の Chromium を取得する（Playwright CLI の install chromium）"
+    classpath = sourceSets["e2eTest"].runtimeClasspath
+    mainClass.set("com.microsoft.playwright.CLI")
+    args("install", "chromium")
+}
+
+// ExecutionBoundaryTest / TestProtectionTest / TraceabilityTest が src/e2eTest を読むため、変更時に層1が再実行されるよう入力に宣言する
+tasks.named<Test>("test") {
+    inputs.dir("src/e2eTest")
+}
+
+tasks.named<Test>("e2eTest") {
+    // 実行前に Chromium を取得する（取得済みなら何もしない）
+    dependsOn("playwrightInstall")
+    // Playwright.create() は既定で Chromium・Firefox・WebKit の全てを取得しようとする。使うのは Chromium だけなので止める
+    environment("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")
 }
 
 pitest {

@@ -49,10 +49,26 @@ npm ci && npm run lint
 # サンプルコード(静的解析、テスト、ミューテーションテスト)
 ./gradlew detekt ktlintCheck test
 ./gradlew integrationTest   # Docker が必要（Testcontainers）
+./gradlew e2eTest           # Docker とブラウザ（Chromium）が必要。下の「E2E のセットアップ」を参照
 ./gradlew pitest
 ```
 
-CI は `.github/workflows/` で、同じコマンドを実行します。
+CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` の CI ジョブはまだありません)。
+
+### E2E のセットアップ
+
+E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎ、Playwright for Java(Chromium、ヘッドレス)で `static/index.html` の注文追加フォームを操作します。`test`・`integrationTest`・`check` には含まれず、`./gradlew e2eTest` で明示的に実行します。
+
+- Docker を起動しておきます(MySQL 8.4 のコンテナを使います)。
+- ブラウザは `./gradlew e2eTest` が実行前に `playwrightInstall`(Playwright CLI の `install chromium`)を呼んで取得します。取得済みならダウンロードは省かれます(CLI は毎回起動します)。単独でも実行できます。
+
+  ```bash
+  ./gradlew playwrightInstall
+  ```
+
+- 取得先は Playwright の既定のキャッシュです(macOS は `~/Library/Caches/ms-playwright`、Linux は `~/.cache/ms-playwright`)。`PLAYWRIGHT_BROWSERS_PATH` で変えられます。初回は Chromium と Chrome Headless Shell をダウンロードします。展開後のディスク使用量は約 560 MiB です(macOS arm64 で Playwright 1.63.0 の取得物を `du -sh` で測った値。環境で変わります)。
+- Playwright は `Playwright.create()` で Chromium・Firefox・WebKit をすべて取得しようとするため、`e2eTest` には `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` を渡して Chromium だけにしています。
+- Linux の CI などで OS の依存ライブラリが足りないときは、Playwright の `install-deps` を使います(Playwright for Java の公式ドキュメントを参照)。
 
 ## 自分のプロジェクトで使うには
 
