@@ -16,7 +16,7 @@
 | ステータス | Approved |
 | 仕様の正（SSOT） | [02a §1.2 コンストラクタ防御](../02a-types-and-pbt.md)（独立した仕様書・デザインは無い。数量の範囲は OI-002 で人間が確定済み） |
 | 関連 TRS | なし |
-| 作成日 / 最終更新日 | 2026-10-10 / 2026-10-10 |
+| 作成日 / 最終更新日 | 2026-10-10 / 2026-10-15 |
 | 仕様承認者 | toshio-shiratori(2026-10-11 承認) |
 
 ---
@@ -64,15 +64,15 @@
 | AC-01-01 | UC-01 | 層1 | Must | `QuantityTest::AC-01-01 範囲内の整数は受理され、値が保たれる`（PBT） |
 | AC-01-02 | UC-01-A1 | 層1 | Must | `QuantityTest::AC-01-02 範囲外の整数は OUT_OF_RANGE で拒否される`（PBT） |
 | AC-01-03 | UC-01, UC-01-A1 | 層1 | Must | `QuantityTest::AC-01-03 境界値 1 と 999 は受理、0 と 1000 は拒否` |
-| AC-01-04 | UC-01 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-04 …`、`OrderControllerHttpTest::AC-01-04 …` |
+| AC-01-04 | UC-01 | 層1 / 層2（Integration、E2E） | Must | `OrderControllerTest::AC-01-04 …`、`OrderControllerHttpTest::AC-01-04 …`、`OrderFormE2eTest::AC-01-04 …` |
 | AC-01-05 | UC-01-A1 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-05 …`、`OrderControllerHttpTest::AC-01-05 …` |
 | AC-01-06 | UC-01-A2 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-06 …` |
 | AC-01-07 | UC-01-A3 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-07 …` |
 | AC-01-08 | UC-01-A4 | 層1 / 層2（Integration） | Must | `SkuTest::AC-01-08 …`、`OrderControllerTest::AC-01-08 …`、`OrderControllerHttpTest::AC-01-08 …` |
-| AC-01-09 | UC-01-A1 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-09 …` |
+| AC-01-09 | UC-01-A1 | 層2（Integration、E2E） | Must | `OrderControllerHttpTest::AC-01-09 …`、`OrderFormE2eTest::AC-01-09 …` |
 | AC-01-10 | UC-01-A2 | 層2（Integration） | Must | `OrderControllerHttpTest::AC-01-10 …` |
 | AC-01-11 | UC-01-A3 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-11 …`、`OrderControllerHttpTest::AC-01-11 …` |
-| AC-01-12 | UC-01-A5 | 層1 / 層2（Integration） | Must | `OrderControllerTest::AC-01-12 …`、`OrderControllerHttpTest::AC-01-12 …` |
+| AC-01-12 | UC-01-A5 | 層1 / 層2（Integration、E2E） | Must | `OrderControllerTest::AC-01-12 …`、`OrderControllerHttpTest::AC-01-12 …`、`OrderFormE2eTest::AC-01-12 …` |
 
 **`codes` の規約**（OI-003, OI-005, OI-006）: 400 応答の ProblemDetail は拡張プロパティ `codes`（文字列の配列）を持つ。要素は集合として扱い、順序は仕様にしない。同じ値を重複して含めない。`INVALID_JSON` と `MISSING_FIELD` は解析段階の失敗なので単独（要素が1つ）で返る。`BLANK` と `OUT_OF_RANGE` は検証段階の失敗で、同時に成立すれば両方が入る。以下の Gherkin で「`codes` は X である」は、要素の集合が X に等しいことを指す。
 
@@ -111,7 +111,7 @@ Feature: 注文への商品追加
     When  数量 0 と 1000 を検証する
     Then  どちらも拒否される
 
-  @AC-01-04 @layer:1 @layer:2 @integration
+  @AC-01-04 @layer:1 @layer:2 @integration @e2e:happy-path
   Scenario: 有効な数量で商品を追加できる
     Given リクエスト本文が {"sku":"SKU-1","quantity":3} である
     When  クライアントが POST /orders/items を呼ぶ
@@ -155,7 +155,7 @@ Feature: 注文への商品追加
       | " "    |
       | "　"   |
 
-  @AC-01-09 @layer:2 @integration
+  @AC-01-09 @layer:2 @integration @e2e:communication
   Scenario: 範囲外の数量の 400 には codes に OUT_OF_RANGE が付く
     Given リクエスト本文が {"sku":"SKU-1","quantity":1000} である
     When  クライアントが POST /orders/items を呼ぶ
@@ -191,7 +191,7 @@ Feature: 注文への商品追加
       | {"sku":null,"quantity":3}       |
       | {"sku":"SKU-1","quantity":null} |
 
-  @AC-01-12 @layer:1 @layer:2 @integration
+  @AC-01-12 @layer:1 @layer:2 @integration @e2e:display
   Scenario: sku が空白かつ数量が範囲外なら codes に両方が付く
     Given リクエスト本文が {"sku":" ","quantity":1000} である
     When  クライアントが POST /orders/items を呼ぶ
@@ -252,6 +252,7 @@ Feature: 注文への商品追加
 | OI-004 | 2026-10-10 | AI | Non-blocking | UC-01 | 認証、注文の存在確認、同一 SKU の重複追加時の合算は本機能の範囲か。現状の追加処理はログ出力のみ | Resolved | 本 TRS の範囲は入力検証（数量と `sku` の形式）のみ。認証、注文の存在確認、SKU の実在確認、同一 SKU の重複合算は範囲外とし、必要になった時点で別 TRS を起こす | toshio-shiratori | 2026-10-10 | 追加処理がログ出力のみで、検証する対象が無い | UC-01 の事前条件 |
 | OI-005 | 2026-10-10 | AI | Non-blocking | AC-01-08〜11, C-15 | 次が未決。(a) `quantity` が文字列・小数など型不一致のとき、`code` は `INVALID_JSON` か別か。(b) `sku` の「空白」判定は `isBlank` 相当（全角空白を含む Unicode 空白）でよいか。(c) 空 `sku` と範囲外の `quantity` が同時のとき、`BLANK` と `OUT_OF_RANGE` のどちらを返すか | Resolved | (a) 型不一致は `INVALID_JSON` に含める。(b) 「空白」は `isBlank` 相当（全角空白を含む Unicode 空白）とする。(c) 同時に成立する場合は優先を付けず、`codes` に両方を返す（応答形式の変更は OI-006） | toshio-shiratori | 2026-10-10 | (a) Spring は型不一致を壊れた JSON と同じ経路で落とすため、振り分けが1本で済む。(b) 標準 API だけで実装でき、全角空白が混じる入力に合う。(c) 一度に全ての違反を直せる | UC-01-A4, UC-01-A5, F2-L2, F2-L4, C-15, AC-01-10, AC-01-12（実装は #33） |
 | OI-006 | 2026-10-10 | AI | Non-blocking | OI-003, AC-01-05〜12 | OI-005 (c) で両方を返すことになったため、OI-003 の「拡張プロパティ `code`（単一）」では表せない。応答形式をどうするか | Resolved | `code` を廃止し、`codes`（文字列の配列）に統一する。要素が1つでも配列で返す。要素は集合として扱い、順序は仕様にしない。重複は入れない。`INVALID_JSON` と `MISSING_FIELD` は解析段階の失敗なので単独で返し、他の code と混ぜない。値の集合（`OUT_OF_RANGE` / `BLANK` / `INVALID_JSON` / `MISSING_FIELD`）と、欠けたフィールド名を返さない方針は OI-003 のまま | toshio-shiratori | 2026-10-10 | クライアントの分岐を配列1本にするため。`code` と `codes` の併存は二重管理になるので採らない。OI-003 の行は削除せず、本行で変更を記録する | 「`codes` の規約」、UC-01-A4, AC-01-08〜12, C-11〜C-15（実装は #33） |
+| OI-007 | 2026-10-15 | AI | Non-blocking | AC-01-04, AC-01-09, AC-01-12 | E2E（`OrderFormE2eTest`）が見る画面の期待値に、TRS 上の出所が無い。具体的には、結果欄の状態（`data-state` の `idle` / `sending` / `success` / `error`）、`codes` を 1 件ずつ `<li>` に表示すること、ステータスの表示（204・400）である。AC が定めているのは HTTP ステータスと `codes` の値までで、画面にどう出すかは AC に無い。暫定の正は、`static/index.html` の画面の設計（#76）で、AC の期待値ではなく実装側の設計である。画面の AC を足すかどうか（足すなら期待値）は人間が決める。決まるまで画面の AC は足さない | Open | — | — | — | — | — |
 
 ---
 
@@ -264,15 +265,15 @@ Feature: 注文への商品追加
 | AC-01-01 | `QuantityTest` | — | — | 実装済 |
 | AC-01-02 | `QuantityTest` | — | — | 実装済 |
 | AC-01-03 | `QuantityTest` | — | — | 実装済 |
-| AC-01-04 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-04 | `OrderControllerTest` | `OrderControllerHttpTest`、`OrderFormE2eTest` | — | 実装済 |
 | AC-01-05 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-06 | — | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-07 | — | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-08 | `SkuTest`、`OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
-| AC-01-09 | — | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-09 | — | `OrderControllerHttpTest`、`OrderFormE2eTest` | — | 実装済 |
 | AC-01-10 | — | `OrderControllerHttpTest` | — | 実装済 |
 | AC-01-11 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
-| AC-01-12 | `OrderControllerTest` | `OrderControllerHttpTest` | — | 実装済 |
+| AC-01-12 | `OrderControllerTest` | `OrderControllerHttpTest`、`OrderFormE2eTest` | — | 実装済 |
 
 ### 8. 不具合還元履歴
 
@@ -290,6 +291,7 @@ Feature: 注文への商品追加
 | 2026-10-10 | 0.4 | AI | #33 の実装に合わせ、AC-01-08〜12 の `@pending` を外し、紐づくテストとトレーサビリティを記入した。AC-01-11・12 は層1（`OrderControllerTest`）でも検証する。`quantity` / `sku` の欠落・null はコントローラーで判定する（DTO のフィールドを nullable にした） | 未承認 |
 | 2026-10-11 | 1.0 | AI | 仕様承認者の承認を受け、ステータスを Draft から Approved にした(承認者の明示的な指示による。AI の判断ではない) | toshio-shiratori |
 | 2026-10-11 | 1.1 | AI | OI-003 を `Superseded`（置換先 OI-006）にした。OI-006 による応答形式の変更を、状態にも反映した。内容は変わらない | toshio-shiratori（指示による） |
+| 2026-10-15 | 1.2 | AI | E2E の実装（`OrderFormE2eTest`）を反映した。AC-01-04・09・12 の検証層に E2E を足し、`@e2e:<領域>` タグ（`happy-path` / `communication` / `display`）、紐づくテスト、トレーサビリティを更新した。AC 本文（期待値）は変えていない。画面の期待値に出所が無いため OI-007 を起票した（Non-blocking、画面の AC は足さない） | 未承認 |
 
 ---
 
@@ -301,5 +303,5 @@ Feature: 注文への商品追加
 - [x] 因子の無効水準と、型で排除できる制約が明記されている
 - [x] 因子制約に、禁止組合せと組合せ別の期待結果がある
 - [x] Blocking の Open Issue が未解決のまま実装に進んでいない（OI-001 は Resolved）
-- [x] Open Issues の履歴（解決済みを含む）が残っている（OI-001〜006 は Resolved で行を残している。OI-003 の変更は OI-006 に記録）
+- [x] Open Issues の履歴（解決済みを含む）が残っている（OI-001〜006 は行を残している。OI-001・002・004〜006 は Resolved、OI-003 は Superseded（OI-006）で、OI-003 の変更は OI-006 に記録。OI-007 は Open で起票）
 - [x] 全 AC にテストが紐づいている（AC-01-08〜12 は #33 で実装済み）

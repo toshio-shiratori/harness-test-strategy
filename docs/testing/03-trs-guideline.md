@@ -48,7 +48,7 @@ flowchart TB
 3. 曖昧語（「適切に」「速やかに」「正しく」）を禁止し、具体値・条件で記述する。
 4. 例外・異常系は独立した AC とする。
 5. 具体値を伴う AC は `Scenario Outline` + `Examples` を使ってよい。
-6. 各 AC に**検証層**（層1/層2/層3）の想定を付記する（01 の使い分け基準に従う）。層2 は `@integration` / `@e2e` で区別する（例: `@layer:2 @integration`）。同じ AC を複数の層で検証してよい（`@layer:1 @layer:2`）。
+6. 各 AC に**検証層**（層1/層2/層3）の想定を付記する（01 の使い分け基準に従う）。層2 は `@integration` / `@e2e` で区別する（例: `@layer:2 @integration`）。E2E は `@e2e` の代わりに `@e2e:<領域>` を付け、02c §5.1 の許可領域を示す（`display`（表示）/ `communication`（通信）/ `happy-path`（主要ハッピーパス）/ `browser-operation`（実ブラウザ操作））。同じ AC を複数の層で検証してよい（`@layer:1 @layer:2`）。
 7. 期待値が未決で Blocking の Open Issue に依存する AC は、`@pending:<OI-ID>` を付け、シナリオ本文に期待値を書かない。
 
 ```gherkin
@@ -143,14 +143,14 @@ class PaymentTransitionTableTest : FunSpec({
 ### 3.4 トレーサビリティ
 
 - すべてのテストは、対応する AC の ID を**テスト名の先頭に `AC-xx-yy` を置き、続けて空白と説明を書く形で**付ける（例: `AC-01-02 範囲外の整数は拒否される`）。Kotest の文字列名・JUnit のバッククォート名のどちらでも書け、grep で機械的に辿れる。JVM のバッククォート名は `[` `]` `:` `.` を使えないため、括弧やコロンで囲まない（ORD-001 の検証で判明）。複数の AC を検証するテストは `AC-01-04 AC-01-05 …` と空白区切りで並べる。TRS のトレーサビリティ表には `テストクラス::テスト名` を書く。
-- AC に対応するテストが存在しない場合、CI のトレーサビリティチェックで警告する（01 の G5）。**実装済み**: `TraceabilityTest`（Konsist、`./gradlew test` で実行）が、TRS の AC 表から `AC-xx-yy` を抽出し、`src/test` と `src/integrationTest` にその ID で始まるテスト名があるかを照合して、無ければ**失敗**させる。Gherkin のタグに `@pending:<OI-ID>` を付けた AC は除外する（Blocking の Open Issue が未解決の AC）。警告ではなく失敗にしたのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。`@pending` の追加は TRS の変更として人間のレビューを受ける。
+- AC に対応するテストが存在しない場合、CI のトレーサビリティチェックで警告する（01 の G5）。**実装済み**: `TraceabilityTest`（Konsist、`./gradlew test` で実行）が、TRS の AC 表から `AC-xx-yy` を抽出し、`src/test`・`src/integrationTest`・`src/e2eTest` にその ID で始まるテスト名があるかを照合して、無ければ**失敗**させる。Gherkin のタグに `@pending:<OI-ID>` を付けた AC は除外する（Blocking の Open Issue が未解決の AC）。警告ではなく失敗にしたのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。`@pending` の追加は TRS の変更として人間のレビューを受ける。
 - **未解決の Blocking な Open Issue の検査（01 の G5）。** 同じ `TraceabilityTest` が、TRS の「6. Open Issues」表を読み、区分が `Blocking` で状態が `Open` または `In Discussion` の行を未解決として扱う。その行の関連列にある AC のタグ行に、その行の OI-ID と同じ `@pending:<OI-ID>` が無ければ**失敗**させる。Resolved・Superseded・Won't Fix の行と Non-blocking の行は対象外。検査が前提とする書式は次のとおり。
   - 区分は `Blocking` / `Non-blocking`、状態は §4.2 の5値（`Superseded` と `Won't Fix` は `（置換先・理由）` の接尾辞可）。どちらにも分類できない値（`open`、`**Blocking**` など）は失敗とする。
   - Open Issues 表には1行以上が必要。見出し（`ID` / `区分` / `関連` / `状態`）が読めない、行が1つも無い、列数が合わない TRS も失敗とする（読み取りの空振りで素通りさせない）。列の名前を変えるときは検査も同時に直す。
   - 関連列に書ける AC の範囲表記は `AC-xx-yy〜zz` と `AC-xx-yy〜AC-xx-zz`（`〜` は `～` `~` も可）だけで、同じ `xx` の昇順に限る。範囲として読めない `〜` が残ると失敗とする。
   - 関連列に AC が無い行（因子・水準や UC だけを指す行）は、指す AC を決められないので失敗とする。未解決の Blocking を起票するときは、関連列に AC を書き、その AC に `@pending:<OI-ID>` を付ける。
   - AC を新しく足すかどうか自体が Blocking な論点のときは、仮の AC を `@pending:<OI-ID>` 付きで先に置き（期待値は書かない）、関連列でその AC を指す。
-- **`AC-xx-yy` は TRS 間で重複させない。** `TraceabilityTest` は全 TRS の AC を、`src/test` と `src/integrationTest` 全体のテスト名と照合する。別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見え、検査が弱くなる。`xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`、PAY-002 は `03`）。新しい TRS は、既存の TRS が使っていない最小の番号から採番する。重複は `TraceabilityTest` が検出して失敗させる。
+- **`AC-xx-yy` は TRS 間で重複させない。** `TraceabilityTest` は全 TRS の AC を、`src/test`・`src/integrationTest`・`src/e2eTest` 全体のテスト名と照合する。別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見え、検査が弱くなる。`xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`、PAY-002 は `03`）。新しい TRS は、既存の TRS が使っていない最小の番号から採番する。重複は `TraceabilityTest` が検出して失敗させる。
 - AC に紐づかないテストは、技術的な不変条件（PBT 等）であることを明記する。
 
 ## 4. Open Issues の履歴化

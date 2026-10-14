@@ -15,11 +15,11 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 | 変更 | 実行するもの | CI |
 |---|---|---|
 | `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
-| `src/`・`build.gradle.kts`・`02a`・`02b` のコード例・`docs/testing/trs/` | `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の全体実行は 70%) | `kotlin-samples.yml` / `nightly-mutation.yml` |
+| `src/`・`build.gradle.kts`・`02a`・`02b` のコード例・`docs/testing/trs/` | `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の全体実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。README の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
 - `gradle` ではなく必ず `./gradlew` を使う。`02a`・`02b` のコード例を変えたら `src/` も同時に更新して通す。
-- `docs/testing/trs/` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring を起動するテストは `src/integrationTest` に置く(`ExecutionBoundaryTest` が検査)。`TraceabilityTest` が、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
+- `docs/testing/trs/` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring・Testcontainers を使うテストは `src/integrationTest` と、実ブラウザで操作する `src/e2eTest` にだけ置き、ブラウザ操作(Playwright)は `src/e2eTest` のみ(`ExecutionBoundaryTest` が検査)。`TraceabilityTest` が(`src/test`・`src/integrationTest`・`src/e2eTest` を照合し)、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
 - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は禁止(MD033)。表の罫線整列(MD060)と行長(MD013)は無効化済み。
 
 ## 書き方の規約

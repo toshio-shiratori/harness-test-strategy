@@ -26,7 +26,7 @@
 | JDK | 17 以上（Spring Boot 4 の最低要件） |
 | ビルド | Gradle 9（Kotlin DSL） |
 | JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
-| テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`（[02b §3.2](./02b-execution-and-mutation.md#32-層1と統合テストの実行境界)） |
+| テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`、実ブラウザで操作する E2E は `src/e2eTest`（[02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界)） |
 | モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
 
 > Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/integrationTest/.../adapter/web/OrderControllerHttpTest.kt`）。

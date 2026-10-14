@@ -38,7 +38,8 @@ import java.nio.file.Path
  * Flyway が必要なために立てており、フォームから DB までの往復を検証するものではない。
  *
  * 想定実行時間の固定費: Spring と MySQL コンテナの起動、ブラウザの起動はクラスで 1 回かかる(ウォームで約 8 秒。MySQL イメージ取得済みの
- * 手元の実測で、各テストは 0.1〜0.6 秒)。CI での実測と 10 分予算との対比は、CI ジョブの追加時に取る。
+ * 手元の実測で、各テストは 0.1〜0.6 秒)。CI の初回実行(ブラウザキャッシュなし)では
+ * `e2e` ジョブ全体で 2 分 1 秒(10 分予算の約 20%)。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(E2eMySqlContainerConfiguration::class)
