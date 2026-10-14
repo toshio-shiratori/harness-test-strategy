@@ -5,7 +5,7 @@
 | 文書ID | TEST-01 |
 | 目的 | AIと人間が共創して最高品質を維持するためのテストハーネスの基本方針を定める |
 | 適用範囲 | AIが設計・実装・テストのいずれかに関与する全ての開発活動 |
-| 関連文書 | [02 アーキテクチャ標準](./02-test-architecture.md) / [03 TRSガイドライン](./03-trs-guideline.md) / [04 リグレッション運用規程](./04-regression-governance.md) / [05 導入手順書](./05-adoption-guide.md)（既存プロジェクトへの導入） |
+| 関連文書 | [02a 型設計とPBT](./02a-types-and-pbt.md) / [02b 層1の実行境界とミューテーション](./02b-execution-and-mutation.md) / [02c E2E 最小化原則](./02c-e2e.md) / [03 TRSガイドライン](./03-trs-guideline.md) / [04 リグレッション運用規程](./04-regression-governance.md) / [05 導入手順書](./05-adoption-guide.md)（既存プロジェクトへの導入） |
 
 ---
 
@@ -81,7 +81,7 @@ flowchart TB
 |---|---|
 | 構成 | Integration テスト（DB・外部I/F・API 契約）、ハッピーパスに厳選した E2E |
 | 実行 | CI で全 PR に対し自動実行 |
-| 方針 | 層1で検証できないもの（配線、通信、実ブラウザ依存）に限定する。E2E の許可領域は 02 §5 に従う |
+| 方針 | 層1で検証できないもの（配線、通信、実ブラウザ依存）に限定する。E2E の許可領域は 02c §5 に従う |
 
 ### 層3: 探索・発見層
 
@@ -127,7 +127,7 @@ flowchart TB
 | G0 Markdown 検査 | `markdownlint-cli2` の指摘が 0 件、かつ全 Mermaid 図が `mermaid-cli` でレンダリング可能（本ドキュメント群を含む全 `.md`）。ローカルも CI も同一コマンド: `npm ci && npm run lint` | PR／main（CI: `.github/workflows/lint.yml`） |
 | G1 静的検査 | 型チェック・Lint がエラー 0 | 保存時／pre-commit |
 | G2 層1テスト | Unit・PBT 全件成功 | pre-commit／PR |
-| G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02 §4） | PR |
+| G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02b §4） | PR |
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
 | G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている | PR |
 
@@ -142,8 +142,8 @@ G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先�
 | G0 | `lint`（`lint.yml`） | 実装済み |
 | G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
-| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02 §4.1](./02-test-architecture.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
-| G4 | `integration`（`kotlin-samples.yml`、`./gradlew integrationTest`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は実行、E2E は未実装。層1の `test` とは別ジョブ（02 §3.2） |
+| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
+| G4 | `integration`（`kotlin-samples.yml`、`./gradlew integrationTest`） | 一部実装。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は実行、E2E は未実装。層1の `test` とは別ジョブ（02b §3.2） |
 | G5 | `test`（`TraceabilityTest`） | 実装済み。AC に紐づくテストの有無と、未解決の Blocking な Open Issue（TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion`）が指す AC に `@pending:<OI-ID>` があるかを検査する（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
 
 人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。

@@ -2,7 +2,7 @@ package com.example.payment.domain
 
 import com.example.order.domain.Validated
 
-/** 決済の ID。異なる意味の String と取り違えられなくする（02 §1.1）。 */
+/** 決済の ID。異なる意味の String と取り違えられなくする（02a §1.1）。 */
 @JvmInline
 value class PaymentId private constructor(val value: String) {
     companion object {

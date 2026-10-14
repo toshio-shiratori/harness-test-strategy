@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
-/** 検証用: value class をそのまま受ける DTO。本番では使わない（02 §1.2）。 */
+/** 検証用: value class をそのまま受ける DTO。本番では使わない（02a §1.2）。 */
 data class ValueClassRequest(val quantity: Quantity)
 
 @RestController
@@ -22,9 +22,9 @@ class ValueClassProbeController {
 }
 
 /**
- * 02 §1.2 の根拠となる実測。Jackson 3 + jackson-module-kotlin は value class を private コンストラクタ経由で
+ * 02a §1.2 の根拠となる実測。Jackson 3 + jackson-module-kotlin は value class を private コンストラクタ経由で
  * 直接生成するため、`Quantity.of` の検証（1〜999）を素通りして不変条件を破れる。
- * このテストが失敗するようになった（検証が効くようになった）場合は、02 §1.2 のルールを見直すこと。
+ * このテストが失敗するようになった（検証が効くようになった）場合は、02a §1.2 のルールを見直すこと。
  */
 @WebMvcTest(ValueClassProbeController::class)
 @AutoConfigureRestTestClient

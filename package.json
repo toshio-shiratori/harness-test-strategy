@@ -3,9 +3,10 @@
   "private": true,
   "description": "AI駆動開発向けテスト戦略ドキュメント",
   "scripts": {
-    "lint": "npm run lint:md && npm run lint:mermaid",
+    "lint": "npm run lint:md && npm run lint:refs && npm run lint:mermaid",
     "lint:md": "markdownlint-cli2",
     "lint:md:fix": "markdownlint-cli2 --fix",
+    "lint:refs": "node scripts/check-section-refs.mjs",
     "lint:mermaid": "node scripts/lint-mermaid.mjs"
   },
   "devDependencies": {

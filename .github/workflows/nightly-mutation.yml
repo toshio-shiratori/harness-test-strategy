@@ -18,7 +18,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
-      # 全体ミューテーション。閾値は夜間用の 70%（02 §4.1）
+      # 全体ミューテーション。閾値は夜間用の 70%（02b §4.1）
       - run: ./gradlew pitest -Ppitest.threshold=70
       - name: スコアを記録
         if: always()
@@ -38,8 +38,8 @@ jobs:
           path: build/reports/pitest
           retention-days: 90
 
-  # PBT の実行回数を増やした全体テスト。通常実行（既定 1000 回）では見つからない反例を夜間に探す（02 §2.3 項目4）。
-  # 失敗時は、ログの "Repeat this test by using seed ..." のシードで再現する（02 §2.3 項目3）。
+  # PBT の実行回数を増やした全体テスト。通常実行（既定 1000 回）では見つからない反例を夜間に探す（02a §2.3 項目4）。
+  # 失敗時は、ログの "Repeat this test by using seed ..." のシードで再現する（02a §2.3 項目3）。
   pbt:
     runs-on: ubuntu-latest
     steps:

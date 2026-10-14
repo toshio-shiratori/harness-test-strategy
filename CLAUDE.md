@@ -7,18 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 概要
 
 AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)。
-`01-test-policy` → `02-test-architecture` → `03-trs-guideline` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
-`src/` は `02` の Kotlin サンプルを実際にコンパイル・実行して検証するための最小プロジェクトで、`order` / `payment` は TRS の実例（ORD-001 / PAY-001）に対応するサンプル領域。製品コードではない。
+`01-test-policy` → `02a-types-and-pbt` → `02b-execution-and-mutation` → `02c-e2e` → `03-trs-guideline` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
+`src/` は `02a`・`02b` の Kotlin サンプルを実際にコンパイル・実行して検証するための最小プロジェクトで、`order` / `payment` は TRS の実例（ORD-001 / PAY-001）に対応するサンプル領域。製品コードではない。
 
 ## 品質ゲート（変更内容ごとに通すもの）
 
 | 変更 | 実行するもの | CI |
 |---|---|---|
 | `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
-| `src/`・`build.gradle.kts`・`02` のコード例・`docs/testing/trs/` | `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の全体実行は 70%) | `kotlin-samples.yml` / `nightly-mutation.yml` |
+| `src/`・`build.gradle.kts`・`02a`・`02b` のコード例・`docs/testing/trs/` | `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の全体実行は 70%) | `kotlin-samples.yml` / `nightly-mutation.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
-- `gradle` ではなく必ず `./gradlew` を使う。`02` のコード例を変えたら `src/` も同時に更新して通す。
+- `gradle` ではなく必ず `./gradlew` を使う。`02a`・`02b` のコード例を変えたら `src/` も同時に更新して通す。
 - `docs/testing/trs/` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring を起動するテストは `src/integrationTest` に置く(`ExecutionBoundaryTest` が検査)。`TraceabilityTest` が、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
 - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は禁止(MD033)。表の罫線整列(MD060)と行長(MD013)は無効化済み。
 
@@ -26,8 +26,8 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 
 - 図は ASCII ではなく **Mermaid** を使う。
 - サンプルコードは **Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
-- 型ガードレール(`02` §1): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
-- PBT が失敗したら `02` §2.3 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
+- 型ガードレール(`02a` §1): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
+- PBT が失敗したら `02a` §2.3 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
 - 期待値は仕様(TRS の AC)を正とする。既存コードの挙動から期待値を逆生成しない(`03`)。
 - TRS の Open Issues は解決後も行を削除しない。AC / UC 番号は TRS 間で一意にする。
 
@@ -55,8 +55,8 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 | 役割 | 担当 | 権限 |
 |---|---|---|
 | `doc-author` | 方針書(01〜05)・README・TRS の執筆 | 書き込み可 |
-| `kotlin-sample-engineer` | `src/` と `02` のコード例の同期 | 書き込み可 |
-| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`02` と `src/` の同期、非公開情報の混入 | 読み取り専用 |
+| `kotlin-sample-engineer` | `src/` と `02a`・`02b` のコード例の同期 | 書き込み可 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`02a`・`02b` と `src/` の同期、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |
 
 1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。

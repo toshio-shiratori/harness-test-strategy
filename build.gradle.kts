@@ -1,4 +1,4 @@
-// docs/testing/02-test-architecture.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
+// docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
 plugins {
     kotlin("jvm") version "2.4.20" // Spring Boot 4.1.1 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.20 に揃うことを確認済み
     kotlin("plugin.spring") version "2.4.20"
@@ -42,7 +42,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// 実行境界（02 §3.3）: Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・DB 統合）は src/integrationTest に置き、
+// 実行境界（02b §3.2）: Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・DB 統合）は src/integrationTest に置き、
 // `./gradlew integrationTest` で実行する。`./gradlew test` は層1だけ（Spring・Docker 不要、全体で数秒以内）。
 testing {
     suites {
@@ -88,7 +88,7 @@ pitest {
             "com.example.order.domain.Validated\$Invalid",
         ),
     )
-    // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02 §4.1
+    // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02b §4.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
@@ -97,14 +97,14 @@ pitest {
 detekt {
     config.setFrom("config/detekt/detekt.yml")
     buildUponDefaultConfig = true
-    // 02 §2.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
+    // 02a §2.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
     source.setFrom("src/main/kotlin")
 }
 
 // UnsafeCast / UnsafeCallOnNullableType / ForbiddenAnnotation は型解決が必要なため detektMain で実行する。
 // `./gradlew detekt` でも detektMain が走るようにして、コマンドを docs・CI・ローカルで一つにする。
 tasks.named("detekt") { dependsOn("detektMain") }
-// テストソースは `as` を許容する（02 §2.2）ため検査しない
+// テストソースは `as` を許容する（02a §2.2）ため検査しない
 tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIntegrationTest", "detektIntegrationTestSourceSet") }.configureEach { enabled = false }
 
 tasks.withType<Test> {
@@ -113,7 +113,7 @@ tasks.withType<Test> {
     inputs.dir("docs/testing/trs")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する
     inputs.file("build.gradle.kts")
-    // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02 §2.3）。未指定なら Kotest の既定（1000）。
+    // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02a §2.3）。未指定なら Kotest の既定（1000）。
     // Gradle の -D はテスト JVM に渡らないため、ここで転送する。
     providers.gradleProperty("proptest.iterations").orNull?.let {
         systemProperty("kotest.proptest.default.iteration.count", it)

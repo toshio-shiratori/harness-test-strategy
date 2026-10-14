@@ -12,7 +12,7 @@ import io.kotest.matchers.string.shouldContain
 import java.io.File
 
 /**
- * 02 §4.4 の検査。`build.gradle.kts` の pitest `excludedClasses` に載ったクラスは、ミューテーションの対象外になる。
+ * 02b §4.4 の検査。`build.gradle.kts` の pitest `excludedClasses` に載ったクラスは、ミューテーションの対象外になる。
  * 除外が黙って広がってゲートが弱まらないよう、列挙されたクラスが「コンパイラ生成アクセサ以外のメンバ（ロジック）を持たない」ことを検査する。
  *
  * 除外リストは `build.gradle.kts` を直接読んで取り出す（テスト用の共有定義は作らない。ビルドスクリプトの構造を変えずに済み、

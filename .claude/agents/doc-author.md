@@ -21,7 +21,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 
 1. `CLAUDE.md` を読み、書き方の規約と品質ゲートを把握する
 2. Issue 本文を読み、従う
-3. 変更対象と、それにリンクする文書(`01` → `02` → `03` → `04` と `trs/_template.md` は相互リンクしている)を読む。見出しやファイル名を変えるときはリンク切れを探して直す
+3. 変更対象と、それにリンクする文書(`01` → `02a` → `02b` → `02c` → `03` → `04` と `trs/_template.md` は相互リンクしている)を読む。見出しやファイル名を変えるときはリンク切れを探して直す
 4. 執筆する。規約は次のとおり
    - 図は ASCII ではなく Mermaid を使う
    - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は使わない(MD033)
@@ -29,7 +29,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
    - TRS を編集するときは AC / UC 番号を TRS 間で一意にし、Open Issues に起票した曖昧点は解決後も行を残す
 5. `npm ci && npm run lint` を通す(`lint:md` と、Mermaid を変えたときは `lint:mermaid`)
 6. `docs/testing/trs/` を編集したときは `./gradlew test` も通す(`TraceabilityTest` が、pending でない全 AC にテストが紐づくことと AC 番号の一意性を検査する)
-7. `02` のコード例を変えたときは、`src/` の同期が要るため自分では直さず、報告でリーダーに伝える(`kotlin-sample-engineer` の仕事)
+7. `02a`・`02b` のコード例を変えたときは、`src/` の同期が要るため自分では直さず、報告でリーダーに伝える(`kotlin-sample-engineer` の仕事)
 
 ## 報告の形式
 
