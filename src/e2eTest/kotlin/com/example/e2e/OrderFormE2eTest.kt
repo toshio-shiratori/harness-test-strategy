@@ -4,6 +4,7 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.Tracing
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
@@ -13,11 +14,16 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.api.extension.RegisterExtension
+import org.junit.jupiter.api.extension.TestExecutionExceptionHandler
 import org.skyscreamer.jsonassert.JSONAssert
 import org.skyscreamer.jsonassert.JSONCompareMode
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * 注文追加フォーム（`static/index.html`）の E2E。起動した Spring（RANDOM_PORT）と Testcontainers の MySQL に、
@@ -26,6 +32,7 @@ import org.springframework.context.annotation.Import
  * 待機は固定の sleep を使わない。Playwright の auto-wait と、自動再試行する `assertThat(...)` で
  * 結果欄の `data-state`（idle / sending / success / error）と `codes` を判定する。一過性の `sending` は検査しない。
  * 失敗をテストの再実行で隠さない（隔離か修復か破棄を決める）。メッセージ文言は仕様ではないので検査しない。
+ * 失敗したテストだけ、トレースとスクリーンショットを `build/e2e-artifacts` に保存する(CI が成果物として保存する。待機・再試行の方針は変えない)。
  *
  * 注文追加は MySQL を読み書きしない（追加処理はログ出力のみ）。MySQL は、アプリケーションの起動に DataSource と
  * Flyway が必要なために立てており、フォームから DB までの往復を検証するものではない。
@@ -57,9 +64,26 @@ class OrderFormE2eTest {
         playwright.close()
     }
 
+    /** テスト本体が失敗したときだけ、閉じる前の画面とトレースを保存する(成功したテストは何も保存しない)。例外は握りつぶさず投げ直す。 */
+    @JvmField
+    @RegisterExtension
+    final val saveArtifactsOnFailure = TestExecutionExceptionHandler { extensionContext, failure ->
+        // 保存に失敗しても、元のテスト失敗を隠さない（保存の例外は抑制例外として付ける）
+        runCatching { saveArtifacts(extensionContext) }.onFailure(failure::addSuppressed)
+        throw failure
+    }
+
+    private fun saveArtifacts(extensionContext: ExtensionContext) {
+        val name = extensionContext.requiredTestMethod.name.substringBefore(' ').replace(Regex("[^A-Za-z0-9-]"), "_")
+        Files.createDirectories(ARTIFACTS_DIR)
+        page.screenshot(Page.ScreenshotOptions().setPath(ARTIFACTS_DIR.resolve("$name.png")).setFullPage(true))
+        context.tracing().stop(Tracing.StopOptions().setPath(ARTIFACTS_DIR.resolve("$name-trace.zip")))
+    }
+
     @BeforeEach
     fun openForm() {
         context = browser.newContext()
+        context.tracing().start(Tracing.StartOptions().setScreenshots(true).setSnapshots(true))
         page = context.newPage()
         page.navigate("http://localhost:$port/")
     }
@@ -157,5 +181,9 @@ class OrderFormE2eTest {
         assertThat(page.getByTestId("result-status")).hasText("400")
         assertThat(codes()).hasCount(2)
         codes().allTextContents() shouldContainExactlyInAnyOrder listOf("BLANK", "OUT_OF_RANGE")
+    }
+
+    private companion object {
+        val ARTIFACTS_DIR: Path = Path.of("build", "e2e-artifacts")
     }
 }
