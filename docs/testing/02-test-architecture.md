@@ -645,7 +645,7 @@ pitest {
 | 無意味な分岐の削除・アクセサ除外後 | 100%（18 / 18） | 閾値を満たす |
 | `excludedMethods` を `excludedClasses` に置換（`Ids.kt` のテスト追加後） | 95%（19 / 20） | `Yen.getAmount` のみ生存。閾値を満たす |
 
-> Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedClasses` の追加・変更も同様に人間の承認を要する（`build.gradle.kts` は CODEOWNERS の対象）。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。閾値 80% は 20 ミュータント規模では 1 件の生存で大きく動くため、対象が増えた時点で再評価する。Kotest / PIT の更新で壊れないかは、Dependabot の PR（`build.gradle.kts` を変更するため `ALL` で `pitest` が走る）で検知する。
+> Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞り、等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedClasses` の追加・変更も同様に人間の承認を要する（`build.gradle.kts` は CODEOWNERS の対象）。加えて `PitestExclusionTest`（Konsist、`./gradlew test` で実行）が `build.gradle.kts` の `excludedClasses` を読み、列挙されたクラスが実在し、コンパイラ生成アクセサ以外のメンバ（関数・`init`・本体のプロパティ・副コンストラクタ・主コンストラクタ引数の既定値・スーパータイプ呼び出しの引数・ネストした型、および companion の `init` ブロック・`@JvmStatic` 関数・`const` でないプロパティ）を持たないことを検査する（ロジックを持つクラスを除外に加えると失敗する。違反例は `config/konsist-fixtures/pitest-exclusion/` で固定している）。`excludedClasses` は 1 箇所の `listOf` に文字列リテラルで列挙する（それ以外の書き方は検査が失敗する）。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。閾値 80% は 20 ミュータント規模では 1 件の生存で大きく動くため、対象が増えた時点で再評価する。Kotest / PIT の更新で壊れないかは、Dependabot の PR（`build.gradle.kts` を変更するため `ALL` で `pitest` が走る）で検知する。
 
 ---
 
