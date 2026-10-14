@@ -54,7 +54,7 @@
 ### 3. 受入条件（AC / Gherkin）
 
 > ルール: 1 AC = 1 振る舞い／`When` は1つ／観測可能な結果のみ／曖昧語禁止／検証層タグを付与。
-> 層2 は `@integration` / `@e2e` で区別する。複数層で検証するなら `@layer:1 @layer:2`。Blocking の OI に依存する AC は `@pending:<OI-ID>` とし、期待値を書かない。
+> 層2 は `@integration` / `@e2e` で区別する。E2E は `@e2e` の代わりに `@e2e:<領域>` を付け、許可領域を示す（`display` / `communication` / `happy-path` / `browser-operation`。02c §5.1、03 §2.1）で付ける。複数層で検証するなら `@layer:1 @layer:2`。Blocking の OI に依存する AC は `@pending:<OI-ID>` とし、期待値を書かない。
 > テストはテスト名の先頭に `AC-xx-yy` を置く（括弧は JVM 名で使えない）（03 §3.4）。
 > `AC-xx-yy` の `xx`（UC の番号）は、他の TRS と重複させない。既存の TRS が使っていない番号を割り当てる（`TraceabilityTest` が重複を検出する。03 §3.4）。
 

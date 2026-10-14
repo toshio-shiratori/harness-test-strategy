@@ -16,7 +16,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 - 対象 Issue の番号と本文
 - 作業ブランチ名(main ではない)
 - 実施範囲(PR 作成まで / マージまで)
-- Docker が使える環境かどうか(`integrationTest` に必要)
+- Docker が使える環境かどうか(`integrationTest` と `e2eTest` に必要。`e2eTest` はブラウザも必要)
 
 ## 手順
 
@@ -26,11 +26,13 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 4. 実装する。規約は次のとおり
    - ドメインの値はプリミティブで持たず、コンストラクタで検証する Value Object にする
    - 状態は `sealed` 型で表し、`when` に `else` を書かない(`allWarningsAsErrors` で非網羅はビルドエラー)
-   - Spring を起動するテストは `src/integrationTest` に置く。`src/test` は層1のみ(Spring・Docker 不要)
+   - Spring を起動する統合テストは `src/integrationTest` に置く。`src/test` は層1のみ(Spring・Docker 不要)
+   - 実ブラウザ(Playwright)で操作する E2E は `src/e2eTest` にだけ置く。Spring・Testcontainers も `src/integrationTest` と `src/e2eTest` に限る(`ExecutionBoundaryTest` が検査)。E2E は 02c §5 の許可領域に限り、PR に審査記載(02c §5.3)を書く
    - Spring Boot 4 の API は 3.x と異なることがある。確認できていない API は書かず、WebFetch で公式リファレンスを確認する。確認できなければ書かずに報告する
 5. `02a`・`02b` のコード例を変えたら `src/` も同時に更新し、`src/` を変えたら `02a`・`02b` の対応するコード例も更新する
 6. ゲートを通す。`gradle` ではなく必ず `./gradlew` を使う
    - `./gradlew detekt ktlintCheck test integrationTest`
+   - `src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も通す(Docker とブラウザ〔Chromium〕が必要。PR の CI では `integration` とは別の `e2e` ジョブ)
    - 続けて `./gradlew pitest`(閾値 80%)
 7. PBT が失敗したら `02a` §2.3 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない
 8. `02a`〜`02c` や TRS を編集したときは `npm ci && npm run lint` も通す
@@ -38,7 +40,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 ## 報告の形式
 
 - 変更したファイルの一覧と内容(`src/` と `02a`・`02b` の同期状況を明記)
-- 実行したゲートと結果(実際に出力を確認したものだけ)。`integrationTest` を Docker 不在で実行できなかった場合はその旨
+- 実行したゲートと結果(実際に出力を確認したものだけ)。`integrationTest`・`e2eTest` を Docker やブラウザの不在で実行できなかった場合はその旨
 - 公式リファレンスで確認した API と、確認できなかった API
 - 保護対象(下記)に触れたかどうか
 - コミットはしない。コミットと PR 作成はリーダーが指示する

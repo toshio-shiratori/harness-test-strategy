@@ -53,7 +53,7 @@ npm ci && npm run lint
 ./gradlew pitest
 ```
 
-CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` の CI ジョブはまだありません)。
+CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` は `kotlin-samples.yml` の `e2e` ジョブで、PR で実行します)。
 
 ### E2E のセットアップ
 

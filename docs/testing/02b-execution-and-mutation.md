@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |---|---|
 | 文書ID | TEST-02b |
-| 目的 | 層1と統合テストの実行境界、ミューテーションテストの標準、AI エージェントに従わせる機械的なガードレール設定を定める |
+| 目的 | 層1・統合テスト・E2E の実行境界、ミューテーションテストの標準、AI エージェントに従わせる機械的なガードレール設定を定める |
 | 前提 | [01 基本方針書](./01-test-policy.md) の層1（最速・確定層）を中心に規定する |
 | 関連 | [05 導入手順書](./05-adoption-guide.md)（既存プロジェクトへ導入するときの診断と段階導入）。型設計・PBT は [02a](./02a-types-and-pbt.md) |
 
@@ -34,22 +34,22 @@ flowchart LR
   C4 --> D["夜間（CI）<br/>PBT 増量・全体ミューテーション<br/>AI探索エージェント"]
 ```
 
-### 3.2 層1と統合テストの実行境界
+### 3.2 層1・統合テスト・E2E の実行境界
 
-実 DB を使うテストを足すと、層1の速度要件（全体で数秒以内）を壊すおそれがある。そこで Gradle の実行タスクとソースセットで境界を分ける。
+実 DB を使うテストや実ブラウザを使うテストを足すと、層1の速度要件（全体で数秒以内）を壊すおそれがある。そこで Gradle の実行タスクとソースセットで境界を分ける。
 
-| 項目 | 層1 | 統合テスト（Integration） |
-|---|---|---|
-| ソースセット | `src/test` | `src/integrationTest`（JVM Test Suite） |
-| 実行 | `./gradlew test` | `./gradlew integrationTest` |
-| 置くもの | 型・Unit・PBT・Konsist 検査 | Spring コンテキストを起動するテスト（`@WebMvcTest`・`@SpringBootTest`）と、Testcontainers で実 DB を使うテスト |
-| 必要なもの | JDK のみ（Spring・Docker 不要） | JDK と Docker（Testcontainers） |
-| CI | `kotlin-samples.yml` の `test` ジョブ | 同 `integration` ジョブ |
+| 項目 | 層1 | 統合テスト（Integration） | E2E |
+|---|---|---|---|
+| ソースセット | `src/test` | `src/integrationTest`（JVM Test Suite） | `src/e2eTest`（JVM Test Suite） |
+| 実行 | `./gradlew test` | `./gradlew integrationTest` | `./gradlew e2eTest`（`test`・`integrationTest`・`check` には含まれない） |
+| 置くもの | 型・Unit・PBT・Konsist 検査 | Spring コンテキストを起動するテスト（`@WebMvcTest`・`@SpringBootTest`）と、Testcontainers で実 DB を使うテスト | Spring を `RANDOM_PORT` で起動し、実ブラウザ（Playwright の Chromium）で操作するテスト。02c §5.1 の許可領域のみ |
+| 必要なもの | JDK のみ（Spring・Docker 不要） | JDK と Docker（Testcontainers） | JDK、Docker（Testcontainers）、ブラウザ（`playwrightInstall` が取得する） |
+| CI | `kotlin-samples.yml` の `test` ジョブ | 同 `integration` ジョブ | 同 `e2e` ジョブ（PR で実行。`timeout-minutes: 10` が 02c §5.4 の予算） |
 
-- 層1のテストは Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`）と `org.testcontainers.*` を使わない。逆に、これらを使うテストは `src/integrationTest` にだけ置く。`ExecutionBoundaryTest`（Konsist）が検査し、違反例（`config/konsist-fixtures/boundary/`）で検出できることも確認している。
-- `TestProtectionTest`（@Disabled 検出）と `TraceabilityTest`（AC 紐づけ）は、両方のソースセットを対象にする。`src/integrationTest` が検査から外れていないことは、それぞれのテストで確認している。
-- AC に紐づく統合テストのテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03 §3.4）。
-- ミューテーション（`pitest`）の対象は `*.domain.*` だけで、統合テストは混ざらない。
+- 層1のテストは Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`）と `org.testcontainers.*` を使わない。逆に、これらを使うテストは `src/integrationTest` と `src/e2eTest` にだけ置く。ブラウザ操作（`com.microsoft.playwright.*`）は `src/e2eTest` にだけ置き、層1と `src/integrationTest` には入れない。`ExecutionBoundaryTest`（Konsist）が検査し、違反例（層1に置いた Playwright を含む。`config/konsist-fixtures/boundary/`）で検出できることも確認している。
+- `TestProtectionTest`（@Disabled 検出）と `TraceabilityTest`（AC 紐づけ）は、`src/test`・`src/integrationTest`・`src/e2eTest` の全てを対象にする。`src/integrationTest` と `src/e2eTest` が検査から外れていないことは、それぞれのテストで確認している。
+- AC に紐づく統合テスト・E2E のテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03 §3.4）。
+- ミューテーション（`pitest`）の対象は `*.domain.*` だけで、統合テストと E2E は混ざらない。
 
 ### 3.3 DB を含む Integration のサンプル（Testcontainers）
 
@@ -121,7 +121,7 @@ AI が生成したテストは「通ること」を目的化しやすく、**何
 | 値 | 実測 | 判断 |
 |---|---|---|
 | PR 80% / 夜間 70% | ドメイン層 20 ミュータントで 95%（§4.4）。1 件の生存で約 5 ポイント動く | 据え置き。規模が増えるまで統計的な意味が薄いため、夜間の推移（`nightly-mutation.yml`）が溜まってから再評価する |
-| E2E 実行 10 分（[02c §5.4](./02c-e2e.md#54-e2e-予算)） | E2E が存在しない | 実測不能のため据え置き。最初の E2E を追加した時点で測る |
+| E2E 実行 10 分（[02c §5.4](./02c-e2e.md#54-e2e-予算)） | CI の `e2e` ジョブ全体 2 分 1 秒(測定日 2026-10-14、PR #93 の CI 初回実行、ブラウザキャッシュなし。内訳は `./gradlew e2eTest` 94 秒、setup-gradle 12 秒、キャッシュ保存 5 秒)。ローカルのウォーム実行は 25〜26 秒で、テストクラスは約 8 秒（各テスト 0.1〜0.6 秒）。E2E は 3 本 | 10 分は据え置く。初回実行でも予算の約 20% で、固定費（コンテナ・ブラウザの起動と Chromium の取得）が大半を占める。E2E が 3 本の時点では、本数の増加による傾向を測れない。ブラウザキャッシュありの CI 実測は未測定のため、マージ後の最初の実行で再測定し、E2E が増えてから見直す |
 | ヒーリング 1 PR あたり 10 件（04 §3.3） | 自動修復の実績が無い | 実測不能のため据え置き。運用開始後に実績で見直す |
 
 ### 4.2 コード破壊検証手順
