@@ -154,7 +154,7 @@ class PaymentTransitionTableTest : FunSpec({
   - `OI-<数字>` の形でない値。`@pending:ISSUE-33` のような Issue 番号の参照も含む。実装待ちの AC は `@pending` で除外せず、Issue / PR で管理する（実装と同じ PR でテストを足す）。
   - Open Issues 表に無い OI-ID（綴りの誤り、削除）。他の TRS の OI-ID は、この TRS の表に同じ番号が無ければ失敗とする（番号は TRS ごとに振るため、同じ番号があれば区別できない）。
   - 未解決の Blocking でない OI-ID（`Resolved` / `Superseded` / `Won't Fix` の行、`Non-blocking` の行）。OI を解決・置換したら、同じ変更で `@pending` を外し、期待値とテストを確定する。
-  - **未検査**: `@pending:<OI-ID>` を付けた AC が、その OI の関連列に書かれているかは検査しない。検査するのは `<ID>` の妥当性（形・実在・未解決の Blocking）までで、関連列との突き合わせは行わない。したがって、未解決の Blocking な OI-ID を、その OI と無関係な AC に付けても通る。人間のレビュー（`@pending` の追加は TRS の変更）で確認する。
+  - その OI の関連列に含まれない AC に付けた `@pending:<OI-ID>`。`@pending:<OI-ID>` を付けた AC は、その OI の関連列が指す AC（範囲は展開する）に含まれなければ失敗とする。未解決の Blocking な OI-ID を、その OI と無関係な AC に付けて紐づけ検査から外す抜け道を塞ぐ。関連列が読めない（範囲表記の誤り・逆順）OI と、関連列に AC が無い OI は、上の「未解決の Blocking な Open Issue の検査」がすでに失敗とするので、ここでは二重に数えない。
   - 理由: `@pending` は期待値が人間の決定待ちの AC だけを除外する手段である（§4.3 の 3）。実装待ちや解決済みの OI を許すと、除外の抜け道になる。
 - **`AC-xx-yy` は TRS 間で重複させない。** `TraceabilityTest` は全 TRS の AC を、`src/test`・`src/integrationTest`・`src/e2eTest` 全体のテスト名と照合する。別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見え、検査が弱くなる。`xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`、PAY-002 は `03`）。新しい TRS は、既存の TRS が使っていない最小の番号から採番する。重複は `TraceabilityTest` が検出して失敗させる。
 - AC に紐づかないテストは、技術的な不変条件（PBT 等）であることを明記する。
@@ -222,5 +222,5 @@ flowchart TB
 - [ ] 異常系・境界が AC または因子水準として表現されている
 - [ ] 因子制約に、禁止組合せと組合せ別の期待結果がある
 - [ ] 期待値の根拠が仕様・デザインであり、既存コード由来ではない
-- [ ] Open Issues が履歴を保持し、未解決の Blocking が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書くのは未解決の Blocking な OI-ID だけで、`ISSUE-n` や Resolved の OI-ID は書かない）
+- [ ] Open Issues が履歴を保持し、未解決の Blocking が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書くのは未解決の Blocking な OI-ID だけで、`ISSUE-n` や Resolved の OI-ID は書かない。付けるのはその OI の関連列にある AC にだけ）
 - [ ] 全 AC にテストが紐づいている（トレーサビリティ）
