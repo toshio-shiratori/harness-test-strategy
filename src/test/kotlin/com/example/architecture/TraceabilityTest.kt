@@ -25,6 +25,8 @@ import java.io.File
  *   未解決の Blocking でない OI-ID（`Resolved` / `Superseded` / `Won't Fix` / `Non-blocking`）。
  *   対象は、行内で `@AC-xx-yy` より後ろにある `@pending:` である（AC を除外する判定と同じ範囲。行頭が `@` の行に限らない）。
  *   `@AC-xx-yy` を伴わない説明文や履歴行の `@pending:` は、AC を除外しないので対象外。
+ * - `@pending:<OI-ID>` を付けた AC は、その OI の関連列（`targets`）に含まれていなければ違反とする（無関係な AC を除外する抜け道を塞ぐ）。
+ *   関連列が読めない（範囲表記エラー・逆順）OI と、関連列に AC が無い OI は、上の検査がすでに違反にしているので、ここでは二重に数えない。
  */
 internal object UnresolvedBlockingCheck {
     private val unresolvedStates = setOf("Open", "In Discussion")
@@ -33,6 +35,7 @@ internal object UnresolvedBlockingCheck {
     private val acRange = Regex("""AC-(\d\d)-(\d\d)(?:[〜～~](?:AC-\1-)?(\d\d))?""")
     private val rangeMark = Regex("""[〜～~]""")
     private val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
+    private val acId = Regex("""AC-\d\d-\d\d""")
     private val acTagTail = Regex("""@AC-\d\d-\d\d\b[^\n]*""")
     private val pendingTag = Regex("""@pending:([^\s`|]*)""")
     private val oiId = Regex("""^OI-\d+$""")
@@ -89,13 +92,19 @@ internal object UnresolvedBlockingCheck {
     }
 
     /**
-     * 行内で `@AC-xx-yy` より後ろにある `@pending:<ID>` のうち、未解決の Blocking な OI-ID でないもの。
+     * 行内で `@AC-xx-yy` より後ろにある `@pending:<ID>` の違反。次の 2 種類を返す。
+     * - `<ID>` が未解決の Blocking な OI-ID でないもの（形・実在・状態）。AC を含まない文言なので、同じ ID は AC が違っても 1 件にまとめる。
+     * - 未解決の Blocking な OI-ID だが、付いた AC がその OI の関連列に含まれないもの（[relatedViolation]）。(AC, ID) の組ごとに 1 件。
      * 「AC を紐づけ検査から除外する」判定（[TraceabilityTest] の `pendingTag`、[violations] の `@$ac ... @pending:`）と
      * 同じ範囲を見る。行頭が `@` の行に限ると、表や引用の中の `@AC-xx-yy @pending:ISSUE-n` が検査をすり抜けて除外だけ効いてしまう
      */
     private fun pendingViolations(text: String, rows: List<Row>): List<String> {
         val byId = rows.associateBy { it.id }
-        return acTagTail.findAll(text).flatMap { tail -> pendingTag.findAll(tail.value).map { it.groupValues[1] } }.toList().distinct().mapNotNull { id ->
+        val used = acTagTail.findAll(text).flatMap { tail ->
+            val ac = acId.find(tail.value)!!.value
+            pendingTag.findAll(tail.value).map { ac to it.groupValues[1] }
+        }.toList().distinct()
+        val invalidId = used.map { it.second }.distinct().mapNotNull { id ->
             val oi = byId[id]
             when {
                 issueRef.matches(id) -> "@pending:$id は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）"
@@ -106,6 +115,18 @@ internal object UnresolvedBlockingCheck {
                 else -> null
             }
         }
+        val unrelated = used.mapNotNull { (ac, id) -> byId[id]?.takeIf { it.blocking && it.unresolved }?.let { relatedViolation(ac, it) } }
+        return invalidId + unrelated
+    }
+
+    /**
+     * `@pending:<OI-ID>` を付けた [ac] が、その OI の関連列（[targets]）に含まれないとき、無関係な AC を紐づけ検査から外す抜け道になる。
+     * 関連列が読めない（範囲表記エラー・逆順）、または AC が無い OI は、順方向の検査（[violations]）がすでに違反にしているので、二重には数えない
+     */
+    private fun relatedViolation(ac: String, oi: Row): String? {
+        val (acList, problem) = targets(oi.related)
+        return if (problem != null || acList.isEmpty() || ac in acList) null
+        else "@pending:${oi.id} を付けた $ac は ${oi.id} の関連列に含まれない（関連列: ${oi.related}。@pending は関連列にある AC にだけ付ける）"
     }
 
     /** 違反の説明。空なら合格 */
@@ -146,6 +167,7 @@ internal object UnresolvedBlockingCheck {
  * Blocking の Open Issue により期待値が未確定の AC は、Gherkin のタグに `@pending:<OI-ID>` を付けて除外する。
  * 未解決の Blocking な Open Issue が指す AC に `@pending:<OI-ID>` が無ければ失敗させる（[UnresolvedBlockingCheck]）。
  * 逆に `@pending:<ID>` が、表に無い OI-ID・未解決の Blocking でない OI-ID・`ISSUE-n` を指していても失敗させる（同上）。
+ * `@pending:<OI-ID>` を付けた AC が、その OI の関連列に含まれなくても失敗させる（同上。無関係な AC を除外する抜け道を塞ぐ）。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
 class TraceabilityTest : StringSpec({
@@ -229,25 +251,70 @@ class TraceabilityTest : StringSpec({
         )
     }
 
-    "反例: @pending が実在する別の未解決の Blocking（OI-002）だけを指していると、OI-001 の AC に OI-001 の @pending が無いので違反になる" {
+    "反例: @pending が実在する別の未解決の Blocking（OI-002）だけを指していると、OI-001 の AC に OI-001 の @pending が無く、AC-09-01 も OI-002 の関連列に無いので違反になる" {
         UnresolvedBlockingCheck.violations(
             sampleTrsRows(
                 listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
                 "@AC-09-01 @layer:1 @pending:OI-002",
                 "@AC-09-02 @layer:1 @pending:OI-002",
             ),
-        ).shouldContainExactly("OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い")
+        ).shouldContainExactly(
+            "OI-001: 未解決の Blocking が指す AC-09-01 に @pending:OI-001 が無い",
+            "@pending:OI-002 を付けた AC-09-01 は OI-002 の関連列に含まれない（関連列: AC-09-02。@pending は関連列にある AC にだけ付ける）",
+        )
     }
 
-    "現状の仕様（未検査）: @pending の OI-ID が、その AC を関連列に持たない実在の未解決の Blocking でも合格する" {
-        // ID の妥当性（形・実在・未解決の Blocking）までを検査する。@pending を付けた AC が、その OI の関連列にあるかは検査しない（別 Issue で扱う）
+    "反例: @pending の OI-ID が実在の未解決の Blocking でも、その AC が OI の関連列に無ければ違反になる（無関係な AC を除外する抜け道）" {
+        // 期待値の出所は Issue #101 の決定。AC-09-01 は OI-001 の関連列にあるので OI-001 は合格、OI-002 の関連列は AC-09-02 だけなので違反になる
         UnresolvedBlockingCheck.violations(
             sampleTrsRows(
                 listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
                 "@AC-09-01 @layer:1 @pending:OI-001 @pending:OI-002",
                 "@AC-09-02 @layer:1 @pending:OI-002",
             ),
-        ).shouldBeEmpty()
+        ).shouldContainExactly(
+            "@pending:OI-002 を付けた AC-09-01 は OI-002 の関連列に含まれない（関連列: AC-09-02。@pending は関連列にある AC にだけ付ける）",
+        )
+    }
+
+    "反例: 範囲指定の関連列の外にある AC に、その OI の @pending を付けると違反になる" {
+        UnresolvedBlockingCheck.violations(
+            sampleTrs("Blocking", "AC-09-01〜02", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:OI-001", "@AC-09-03 @layer:1 @pending:OI-001"),
+        ).shouldContainExactly(
+            "@pending:OI-001 を付けた AC-09-03 は OI-001 の関連列に含まれない（関連列: AC-09-01〜02。@pending は関連列にある AC にだけ付ける）",
+        )
+    }
+
+    "反例: 同じ (AC, OI) の組が 2 回現れても、関連列の違反は 1 件にまとまる" {
+        UnresolvedBlockingCheck.violations(
+            sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:OI-001 @pending:OI-001"),
+        ).shouldContainExactly(
+            "@pending:OI-001 を付けた AC-09-02 は OI-001 の関連列に含まれない（関連列: AC-09-01。@pending は関連列にある AC にだけ付ける）",
+        )
+    }
+
+    "反例: 同じ不正な ID を別々の AC に付けても、ID の妥当性の違反は 1 件にまとまる" {
+        listOf(
+            "ISSUE-33" to "@pending:ISSUE-33 は書けない（@pending には未解決の Blocking な OI-ID だけを書く。実装待ちは Issue / PR で管理する）",
+            "OI-099" to "@pending:OI-099 の OI-099 が Open Issues 表に無い",
+            "oi-001" to "@pending:oi-001 は OI-ID の形（OI-<数字>）でない",
+        ).forEach { (id, message) ->
+            UnresolvedBlockingCheck.violations(
+                sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:$id", "@AC-09-03 @layer:1 @pending:$id"),
+            ).shouldContainExactly(message)
+        }
+        UnresolvedBlockingCheck.violations(
+            sampleTrs("Non-blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:OI-001"),
+        ).shouldContainExactly("@pending:OI-001 の OI-001 は未解決の Blocking ではない（区分 Non-blocking、状態 Open。@pending は外す）")
+    }
+
+    "反例: 同じ AC に付いた @pending の違反は 1 件にまとまり、別の AC なら別々に数える" {
+        UnresolvedBlockingCheck.violations(
+            sampleTrs("Blocking", "AC-09-01", "Open", "@AC-09-01 @layer:1 @pending:OI-001", "@AC-09-02 @layer:1 @pending:OI-001", "@AC-09-03 @layer:1 @pending:OI-001"),
+        ).shouldContainExactly(
+            "@pending:OI-001 を付けた AC-09-02 は OI-001 の関連列に含まれない（関連列: AC-09-01。@pending は関連列にある AC にだけ付ける）",
+            "@pending:OI-001 を付けた AC-09-03 は OI-001 の関連列に含まれない（関連列: AC-09-01。@pending は関連列にある AC にだけ付ける）",
+        )
     }
 
     "反例: 範囲指定（AC-09-01〜02）の一部にだけ @pending があっても違反になる" {
@@ -262,8 +329,10 @@ class TraceabilityTest : StringSpec({
     }
 
     "反例: 関連列の AC が AC 表に無いと違反になる" {
-        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-07", "Open", "@AC-09-01 @layer:1 @pending:OI-001"))
-            .shouldContainExactly("OI-001: 関連列の AC-09-07 が AC 表に無い")
+        UnresolvedBlockingCheck.violations(sampleTrs("Blocking", "AC-09-07", "Open", "@AC-09-01 @layer:1 @pending:OI-001")).shouldContainExactly(
+            "OI-001: 関連列の AC-09-07 が AC 表に無い",
+            "@pending:OI-001 を付けた AC-09-01 は OI-001 の関連列に含まれない（関連列: AC-09-07。@pending は関連列にある AC にだけ付ける）",
+        )
     }
 
     "反例: Open Issues 表の見出しが無い TRS は違反になる" {
