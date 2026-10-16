@@ -124,7 +124,7 @@ flowchart TB
 
 | ゲート | 条件 | 実行タイミング |
 |---|---|---|
-| G0 Markdown 検査 | `markdownlint-cli2` の指摘が 0 件、かつ全 Mermaid 図が `mermaid-cli` でレンダリング可能（本ドキュメント群を含む全 `.md`）。ローカルも CI も同一コマンド: `npm ci && npm run lint` | PR／main（CI: `.github/workflows/lint.yml`） |
+| G0 Markdown 検査 | `markdownlint-cli2` の指摘が 0 件、かつ全 Mermaid 図が `mermaid-cli` でレンダリング可能。対象は、本ドキュメント群を含む全 `.md`。ローカルも CI も同一コマンド: `npm ci && npm run lint` | PR／main（CI: `.github/workflows/lint.yml`） |
 | G1 静的検査 | 型チェック・Lint がエラー 0 | 保存時／pre-commit |
 | G2 層1テスト | Unit・PBT 全件成功 | pre-commit／PR |
 | G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02b §4） | PR |
