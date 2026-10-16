@@ -406,7 +406,7 @@ class YenPropertyTest : StringSpec({
     checkAll(opSequences) { sequence ->
         var state: PaymentState = PaymentState.Pending
         sequence.forEach { op ->
-            val result = state.apply(op)
+            val result = state.apply(op, clock)
             val expected = allowed[kindOf(state) to op.kind] // TRS の遷移表。表に無い組合せは拒否される
             if (expected == null) {
                 result shouldBe rejected
@@ -422,16 +422,16 @@ class YenPropertyTest : StringSpec({
 "AC-02-08 終端状態に達した後は、以降どんな操作列でも状態が変わらない" {
     checkAll(opSequences, opSequences) { before, after ->
         var state: PaymentState = PaymentState.Pending
-        before.forEach { op -> (state.apply(op) as? Validated.Valid)?.let { state = it.value } }
+        before.forEach { op -> (state.apply(op, clock) as? Validated.Valid)?.let { state = it.value } }
         if (kindOf(state) in terminalKinds) {
             val terminal = state
-            after.forEach { op -> terminal.apply(op) shouldBe rejected }
+            after.forEach { op -> terminal.apply(op, clock) shouldBe rejected }
         }
     }
 }
 ```
 
-操作列のジェネレータは `Arb.bind` で操作の種類・時刻・失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
+操作列のジェネレータは `Arb.bind` で操作の種類と失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。時刻は生成せず、固定した `Clock`（`Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)`）を `apply(op, clock)` に渡す。全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
 
 ### 2.3 PBT 実装ルール
 
