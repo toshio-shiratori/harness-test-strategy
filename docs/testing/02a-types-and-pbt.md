@@ -121,7 +121,7 @@ fun cancelOrder(orderId: OrderId, by: UserId) { /* ... */ }
 - API 境界（外部入力）で一度だけパースし、以降は内部にドメイン型のみを流通させる（Parse, don't validate）。
 - ドメイン型の生成は `private constructor` + ファクトリ経由に限定する。`as` による強制キャストで型を偽装してはならない。
 - `!!`（非 null アサーション）、根拠のない `as`、`@Suppress`、`lateinit` の乱用は静的解析（detekt）で禁止する。
-- Spring の `@RequestBody` 等で受ける DTO はプリミティブでよいが、**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（§1.2 の例を参照）。
+- Spring の `@RequestBody` 等で受ける DTO はプリミティブでよい。ただし、**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（§1.2 の例を参照）。
 
 ### 1.2 コンストラクタ防御
 
@@ -224,7 +224,14 @@ class ApiExceptionHandler {
 }
 ```
 
-> 400 応答は `detail` の文言ではなく、機械可読な `codes`（集合として扱い、順序は仕様にしない）だけを契約とする（TRS ORD-001 OI-003, OI-006）。`"3"` や `1.5` を `Int` に黙って変換しないよう、`application.properties` で `spring.jackson.mapper.allow-coercion-of-scalars=false` と `spring.jackson.deserialization.accept-float-as-int=false` を指定している（指定しないと 204 になることを `OrderControllerHttpTest` で実測した）。分岐は `if` の式で書き、`Validated` の判定は smart cast に任せている。
+> 400 応答は `detail` の文言ではなく、機械可読な `codes`（集合として扱い、順序は仕様にしない）だけを契約とする（TRS ORD-001 OI-003, OI-006）。
+>
+> `"3"` や `1.5` を `Int` に黙って変換しないよう、`application.properties` で次を指定している。
+>
+> - `spring.jackson.mapper.allow-coercion-of-scalars=false`
+> - `spring.jackson.deserialization.accept-float-as-int=false`
+>
+> 指定しないと 204 になることを `OrderControllerHttpTest` で実測した。分岐は `if` の式で書き、`Validated` の判定は smart cast に任せている。
 
 **ルール**
 
@@ -236,7 +243,7 @@ class ApiExceptionHandler {
 
 ### 1.3 sealed 型と網羅的 `when`（網羅性チェック）
 
-状態・種別・イベントは `sealed interface`（または `sealed class`）で表現し、分岐の網羅性をコンパイラに検査させる。Kotlin では **`when` を式として使い、`else` を書かない**ことが `never` チェックに相当する。
+状態・種別・イベントは `sealed interface`（または `sealed class`）で表現し、分岐の網羅性をコンパイラに検査させる。Kotlin では **`when` を式として使い、`else` を書かない**ことが、TypeScript の `never` による網羅性チェックに相当する。
 
 ```kotlin
 package com.example.payment.domain
@@ -432,9 +439,9 @@ class YenPropertyTest : StringSpec({
 2. 不正値の拒否も Property にする（「範囲外の入力は必ず `Validated.Invalid` を返す」）。
 3. シード値を失敗時に出力し、**再現可能**にする。失敗した反例は回帰用の Example テストとして固定する。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
 
-   **PBT が失敗したときの AI の手順**（恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるため）。
+   **PBT が失敗したときの AI の手順**。恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるためである。
 
-   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、次の形式で出力することを実測した（`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property）。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。エッジケース（`Arb.int(0..1000)` なら 0・1・1000 など、範囲の端や特別な値。既定で約 2% の確率で混ざる）で落ちた場合は縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
+   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property で、次の形式で出力されることを実測した。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。エッジケース（範囲の端や特別な値。`Arb.int(0..1000)` なら 0・1・1000 など）は、既定で約 2% の確率で混ざる。エッジケースで落ちた場合は縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
 
       ```text
       Property failed after 1 attempts
@@ -448,7 +455,7 @@ class YenPropertyTest : StringSpec({
 
    2. `PropTestConfig(seed = <値>)` で同じ失敗が再現することを確認する（一時的な確認。コミットしない）。
       - 失敗シードの保存（`PropertyTesting.writeFailedSeed`）は無効化せず、既定のままにする。Kotest 6.2.5 で確認した挙動では、Property が失敗するとシードをローカルに保存する。保存先は、環境変数 `XDG_CACHE_HOME` が設定済み（空白でない）なら `$XDG_CACHE_HOME/.kotest/seeds`、未設定なら `~/.kotest/seeds` である。保存したシードは、次の条件をすべて満たす実行で再利用される。(a) `PropTestConfig(seed = …)` を指定しない実行である。(b) 同じテストパスの保存シードである。保存シードはそのテストが成功すると消える（わざと落とすテストでは成功しないため消えず、固定され続ける）。保存シードは PBT の失敗を自動で再現する手がかりになり、上の手順と矛盾しない。
-      - 一方、確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめたいときは、保存済みのシードが結果に影響しないよう、事前に上記の保存先（`$XDG_CACHE_HOME/.kotest/seeds`、未設定なら `~/.kotest/seeds`）のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控えておく。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。Kotest を更新したときは、この挙動が変わっていないか確認する。
+      - 一方、確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめたいときは、保存済みのシードが結果に影響しないよう、事前に上記の保存先のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控えておく。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。Kotest を更新したときは、この挙動が変わっていないか確認する。
    3. 縮小後の反例を Example テストとして固定する（恒久）。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
    4. 反例が仕様上の正しい入力だったのか、Property またはジェネレータの前提が誤っていたのかを判断し、必要なら Property・ジェネレータ側を直す。
 
