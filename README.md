@@ -31,14 +31,16 @@ AI(コーディングエージェント)を使った開発に、テスト戦略�
 
 ## `src/`(サンプルの検証用プロジェクト)
 
-`order` と `payment` は、TRS の実例(ORD-001 / PAY-001)に対応するサンプル領域です。製品コードではありません。
+`order` と `payment` は、TRS の実例(ORD-001 / PAY-001 / PAY-002)に対応するサンプル領域です。製品コードではありません。
 
 | 項目 | 内容 |
 |---|---|
-| 言語・フレームワーク | Kotlin 2.4.20、Spring Boot 4.1.1、JDK 21 |
-| テスト | Kotest 6.2.5(PBT・データ駆動を含む)、Konsist(アーキテクチャ検査・テスト保護・TRS との紐づけ検査) |
+| 言語・フレームワーク | Kotlin 2.4 系、Spring Boot 4.1 系、JDK 21 |
+| テスト | Kotest 6.2 系(PBT・データ駆動を含む)、Konsist(アーキテクチャ検査・テスト保護・TRS との紐づけ検査) |
 | 静的解析 | detekt、ktlint、`allWarningsAsErrors` |
 | ミューテーション | PIT。閾値は PR(変更クラスのみ)が 80%、夜間の全体実行が 70% |
+
+バージョンは系統(minor)で書いています。正確な版は `build.gradle.kts` と Gradle wrapper(`gradle/wrapper/gradle-wrapper.properties`)を正とします。
 
 ## ローカルでの確認
 

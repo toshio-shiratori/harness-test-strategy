@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)。
 `01-test-policy` → `02a-types-and-pbt` → `02b-execution-and-mutation` → `02c-e2e` → `03-trs-guideline` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
-`src/` は `02a`・`02b` の Kotlin サンプルを実際にコンパイル・実行して検証するための最小プロジェクトで、`order` / `payment` は TRS の実例（ORD-001 / PAY-001）に対応するサンプル領域。製品コードではない。
+`src/` は `02a`・`02b` の Kotlin サンプルを実際にコンパイル・実行して検証するための最小プロジェクトで、`order` / `payment` は TRS の実例（ORD-001 / PAY-001 / PAY-002）に対応するサンプル領域。製品コードではない。
 
 ## 品質ゲート（変更内容ごとに通すもの）
 
