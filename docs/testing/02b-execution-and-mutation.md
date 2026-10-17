@@ -46,7 +46,7 @@ flowchart LR
 | 必要なもの | JDK のみ（Spring・Docker 不要） | JDK と Docker（Testcontainers） | JDK、Docker（Testcontainers）、ブラウザ（`playwrightInstall` が取得する） |
 | CI | `kotlin-samples.yml` の `test` ジョブ | 同 `integration` ジョブ | 同 `e2e` ジョブ（PR で実行。`timeout-minutes: 10` が 02c §5.4 の予算） |
 
-- 層1のテストは Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`）と `org.testcontainers.*` を使わない。逆に、これらを使うテストは `src/integrationTest` と `src/e2eTest` にだけ置く。ブラウザ操作（`com.microsoft.playwright.*`）は `src/e2eTest` にだけ置き、層1と `src/integrationTest` には入れない。この配置は `ExecutionBoundaryTest`（Konsist）が検査する。違反例（層1に置いた Playwright を含む。`config/konsist-fixtures/boundary/`）で検出できることも確認している。
+- 層1のテストは Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`・`org.springframework.beans.factory.annotation.*`）と `org.testcontainers.*` を使わない。逆に、これらを使うテストは `src/integrationTest` と `src/e2eTest` にだけ置く。層1のファイルにアノテーション `@SpringBootTest`・`@WebMvcTest`・`@DataJdbcTest`・`@JdbcTest`・`@MybatisTest`・`@Testcontainers`・`@ServiceConnection` が書かれていると違反になる。検査は import の接頭辞とアノテーションの正規表現の 2 経路で行い、どちらかに当たれば違反とする。`org.springframework.http` や `org.springframework.web` のような、型だけの利用は許可する。ブラウザ操作（`com.microsoft.playwright.*`）は `src/e2eTest` にだけ置き、層1と `src/integrationTest` には入れない。この配置は `ExecutionBoundaryTest`（Konsist）が検査する。違反例（層1に置いた Playwright を含む。`config/konsist-fixtures/boundary/`）で検出できることも確認している。
 - `TestProtectionTest`（@Disabled 検出）と `TraceabilityTest`（AC 紐づけ）は、`src/test`・`src/integrationTest`・`src/e2eTest` の全てを対象にする。`src/integrationTest` と `src/e2eTest` が検査から外れていないことは、それぞれのテストで確認している。
 - AC に紐づく統合テスト・E2E のテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03 §3.4）。
 - ミューテーション（`pitest`）の対象は `*.domain.*` だけで、統合テストと E2E は混ざらない。
@@ -116,12 +116,12 @@ AI が生成したテストは「通ること」を目的化しやすく、**何
 
 本リポジトリはこの例外を使わない（上表のとおりに運用する）。評価軸を見直した実例（例外の条件をすべては満たしていない）が [05 §4](./05-adoption-guide.md#実例-導入モードの選択パイロット) にある。
 
-**仮置きの値の見直し（2026-10-10 時点）**
+**仮置きの値の見直し（2026-10-10 に作成。E2E の行は 2026-10-14 の測定で更新。PR 80% / 夜間 70% の行の判断は 2026-10-17 に更新）**
 
 | 値 | 実測 | 判断 |
 |---|---|---|
 | PR 80% / 夜間 70% | ドメイン層 20 ミュータントで 95%（§4.4）。1 件の生存で約 5 ポイント動く | 据え置き。規模が小さい間は統計的な意味が薄いため、対象（ミュータント数）が増えたとき、または夜間の実測（`nightly-mutation.yml`）が 4 週分溜まったとき（いずれか早い方）に再評価する |
-| E2E 実行 10 分（[02c §5.4](./02c-e2e.md#54-e2e-予算)） | CI の `e2e` ジョブ全体は 2 分 1 秒。測定日は 2026-10-14、PR #93 の CI 初回実行で、ブラウザキャッシュなし。内訳は `./gradlew e2eTest` が 94 秒、setup-gradle が 12 秒、キャッシュ保存が 5 秒。ローカルのウォーム実行は 25〜26 秒で、テストクラスは約 8 秒（各テスト 0.1〜0.6 秒）。E2E は 3 本 | 10 分は据え置く。初回実行でも予算の約 20% で、固定費（コンテナ・ブラウザの起動と Chromium の取得）が大半を占める。E2E が 3 本の時点では、本数の増加による傾向を測れない。ブラウザキャッシュありの CI 実測は未測定のため、マージ後の最初の実行で再測定し、E2E が増えてから見直す |
+| E2E 実行 10 分（[02c §5.4](./02c-e2e.md#54-e2e-予算)） | CI の `e2e` ジョブ全体は 2 分 1 秒。測定日は 2026-10-14、PR #93 の CI 初回実行で、ブラウザキャッシュなし。主な内訳は `./gradlew e2eTest` が 94 秒、setup-gradle が 12 秒、キャッシュ保存が 5 秒で、合計 111 秒。残りの約 10 秒は上記以外のステップである。ローカルのウォーム実行は 25〜26 秒で、テストクラスは約 8 秒（各テスト 0.1〜0.6 秒）。E2E は 3 本 | 10 分は据え置く。初回実行でも予算の約 20% で、固定費（コンテナ・ブラウザの起動と Chromium の取得）が大半を占める。E2E が 3 本の時点では、本数の増加による傾向を測れない。ブラウザキャッシュありの CI 実測は未測定のため、マージ後の最初の実行で再測定し、E2E が増えてから見直す |
 | ヒーリング 1 PR あたり 10 件（04 §3.3） | 自動修復の実績が無い | 実測不能のため据え置き。運用開始後に実績で見直す |
 
 ### 4.2 コード破壊検証手順
@@ -186,7 +186,7 @@ pitest {
 
 | 契機 | 対象 | 閾値 |
 |---|---|---|
-| PR | `scripts/pitest-targets.sh` が base との差分から変更クラスを決める。`build.gradle.kts` / `gradle/` / `config/` の変更（依存更新 PR を含む）と、テストのみの変更は `ALL`（全体）にする。対象外の変更は `NONE`（スキップ）にする | 80% |
+| PR | `scripts/pitest-targets.sh` が base との差分から変更クラスを決める。次の 2 つは `ALL`（全体）にする。1 つ目は `build.gradle.kts`・`settings.gradle.kts`・`gradle/`・`config/`・`.editorconfig` の変更で、Gradle の依存更新 PR を含む（Dependabot の github-actions と npm の PR は含まれず、`NONE` になる）。2 つ目は `order` / `payment` のドメインのテストが変わり、ドメインの本番クラスが変わっていない場合である。それ以外の対象外の変更は `NONE`（スキップ）にする | 80% |
 | main への push | 全体 | 80% |
 | 夜間（毎日 03:00 JST） | 全体。スコアを Step Summary に出力し、レポートを成果物として 90 日保管して推移を追う | 70% |
 
@@ -215,10 +215,10 @@ pitest {
 >
 > - 列挙されたクラスが実在する。
 > - 列挙されたクラスが、コンパイラ生成アクセサ以外のメンバを持たない。ロジックを持つクラスを除外に加えると失敗する。違反例（メンバの検査）は `config/konsist-fixtures/pitest-exclusion/` で固定している。メンバの例は次のとおり。
->   - クラス自身: 関数、`init`、本体のプロパティ、副コンストラクタ、主コンストラクタ引数の既定値、スーパータイプ呼び出しの引数、ネストした型
+>   - クラス自身: 関数、`init`、本体のプロパティ、副コンストラクタ、主コンストラクタ引数の既定値、スーパータイプ呼び出しの引数、インターフェース委譲（`by`）、ネストした型
 >   - companion: `init` ブロック、`@JvmStatic` 関数、`const` でないプロパティ
 >
-> `excludedClasses` は 1 箇所の `listOf` に文字列リテラルで列挙する。それ以外の書き方は検査が失敗する。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。閾値 80% は 20 ミュータント規模では 1 件の生存で大きく動くため、対象（ミュータント数）が増えたとき、または夜間の実測が 4 週分溜まったとき（いずれか早い方）に再評価する。Kotest / PIT の更新で壊れないかは、Dependabot の PR（`build.gradle.kts` を変更するため `ALL` で `pitest` が走る）で検知する。
+> `excludedClasses` は 1 箇所の `listOf` に文字列リテラルで列挙する。それ以外の書き方は検査が失敗する。PR では変更されたクラスのみを `targetClasses` に渡す（CI で差分から生成する）。閾値 80% は 20 ミュータント規模では 1 件の生存で大きく動くため、対象（ミュータント数）が増えたとき、または夜間の実測が 4 週分溜まったとき（いずれか早い方）に再評価する。Kotest / PIT の更新で壊れないかは、Dependabot による Gradle の更新 PR（`build.gradle.kts` や `gradle/` を変更するため `ALL` で `pitest` が走る）で検知する。
 
 ---
 
