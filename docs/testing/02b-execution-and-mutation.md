@@ -151,7 +151,7 @@ AI が生成したテストは「通ること」を目的化しやすく、**何
 
 ### 4.4 Gradle での実行例（PIT）
 
-JVM/Kotlin では PIT（Pitest）を用いる。本リポジトリの検証用プロジェクト（`src/`）で実際に動かして確認した構成を示す（Gradle 9.8 / Kotlin 2.4.20 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。
+JVM/Kotlin では PIT（Pitest）を用いる。本リポジトリの検証用プロジェクト（`src/`）で実際に動かして確認した構成を示す（Gradle 9 系 / Kotlin 2.4 系 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。Gradle と Kotlin は系統（minor）で書いている。正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
 
 ```kotlin
 // build.gradle.kts（抜粋）

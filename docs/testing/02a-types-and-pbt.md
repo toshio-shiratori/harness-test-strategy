@@ -22,12 +22,14 @@
 | 項目 | 前提 |
 |---|---|
 | Spring Boot | 4.1.x（Spring Framework 7.0.x、Jakarta EE 11） |
-| Kotlin | 2.4 系（Spring Boot 4.1 の BOM は 2.3 系を基準とするが、2.4.20 で動作確認済み。`kotlin-reflect` / `kotlin-stdlib` は Kotlin プラグインにより 2.4.20 に揃うことを依存解決で確認） |
-| JDK | 17 以上（Spring Boot 4 の最低要件） |
-| ビルド | Gradle 9（Kotlin DSL） |
+| Kotlin | 2.4 系（Spring Boot 4.1 の BOM は 2.3 系を基準とするが、2.4 系で動作確認済み。`kotlin-reflect` / `kotlin-stdlib` は Kotlin プラグインと同じ版に揃うことを依存解決で確認） |
+| JDK | 21（`jvmToolchain(21)`。CI も 21） |
+| ビルド | Gradle 9 系（Kotlin DSL） |
 | JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
 | テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`、実ブラウザで操作する E2E は `src/e2eTest`（[02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界)） |
 | モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
+
+表のバージョンは系統（minor）で書いている。正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
 
 > Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/integrationTest/.../adapter/web/OrderControllerHttpTest.kt`）。
 >
@@ -42,10 +44,10 @@
 > 本書のコード例は、ドメイン層を Spring 非依存の純粋な Kotlin とすることで、フレームワークの変更に影響されない構成にしている。
 
 ```kotlin
-// build.gradle.kts（抜粋。全体は検証用プロジェクトのルートにある build.gradle.kts）
+// build.gradle.kts（抜粋。バージョンは例であり、実際の版は検証用プロジェクトのルートにある build.gradle.kts を正とする）
 plugins {
-    kotlin("jvm") version "2.4.20"             // BOM（2.3 系）より新しい。動作確認済み
-    kotlin("plugin.spring") version "2.4.20"
+    kotlin("jvm") version "2.4.21"             // BOM（2.3 系）より新しい。動作確認済み
+    kotlin("plugin.spring") version "2.4.21"
     id("org.springframework.boot") version "4.1.1"   // 4.1.x の最新パッチを使う
 }
 
