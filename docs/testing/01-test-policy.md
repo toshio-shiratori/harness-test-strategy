@@ -139,7 +139,7 @@ G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先�
 
 | ゲート | 必須チェック（ジョブ） | 実装状況 |
 |---|---|---|
-| G0 | `lint`（`lint.yml`） | 実装済み |
+| G0 | `lint`（`lint.yml`） | 実装済み。`npm run lint` は、G0 の条件の検査（`markdownlint-cli2`・`mermaid-cli`）に加えて、本リポジトリ固有の `lint:refs`（`scripts/check-section-refs.mjs`、02a・02b・02c の節番号参照とリンクの検査）も実行する。`lint:refs` は導入先に求める要件ではない |
 | G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
 | G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
