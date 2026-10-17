@@ -77,6 +77,8 @@ flowchart TB
 - [ ] TRS（AC／因子制約／Open Issues）が更新されている
 - [ ] 還元先の層と理由を PR に記載している
 
+[バグ修正用の PR テンプレート](../../.github/PULL_REQUEST_TEMPLATE/bug_fix.md)の完了条件は、PR の文脈に合わせた言い換えを含む。項目の有無と条件は、テンプレートの文言ではなく本節が正である。
+
 ### 2.6 不具合記録テンプレート
 
 ```markdown
