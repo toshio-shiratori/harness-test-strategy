@@ -62,14 +62,32 @@ dependencies {
     implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("tools.jackson.module:jackson-module-kotlin")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // 層1（src/test）は Spring・Docker を使わない。spring-boot-starter-test はここに書かない
     testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
     testImplementation("io.kotest:kotest-assertions-core:6.2.5")
     testImplementation("io.kotest:kotest-property:6.2.5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// Spring を起動するテストは、層1とは別のテストスイート（src/integrationTest・src/e2eTest）に置き、依存もそれぞれのスイートにだけ書く（ここでは integrationTest のみ示す）
+testing {
+    suites {
+        register<JvmTestSuite>("integrationTest") {
+            useJUnitJupiter()
+            dependencies {
+                implementation(project())
+                implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
+                implementation("org.springframework.boot:spring-boot-starter-test")
+                implementation("io.kotest:kotest-assertions-core:6.2.5")
+            }
+        }
+    }
 }
 
 tasks.withType<Test> { useJUnitPlatform() }
 ```
+
+上のコード例は抜粋で、プラグイン・本番の依存・`tasks.withType<Test>` の細部は省いている。テストの依存については、実際の `build.gradle.kts` は、層1の依存に Konsist（アーキテクチャ検査）も持ち、`integrationTest` スイートに `spring-boot-starter-webmvc-test`・Testcontainers 等を、`e2eTest` スイートに Playwright 等を足している。層1に Spring を入れない方針は [02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界) のとおりである。
 
 > 本書の §1〜§2 のコード例は、リポジトリ直下の検証用プロジェクト（`src/`）に同一内容で置いてあり、`./gradlew test` でコンパイルとテストを実行できる（CI: `.github/workflows/kotlin-samples.yml`）。コード例を変更するときは `src/` 側も同時に更新すること。
 
