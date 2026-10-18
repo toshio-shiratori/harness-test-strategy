@@ -293,17 +293,28 @@ fun label(state: PaymentState): String =
 遷移も同じ作りで書く。許可する遷移（TRS PAY-001）以外は、同じ状態への再実行を含めて全て `INVALID_TRANSITION` で拒否し、失敗は例外ではなく `Validated` で返す。
 
 ```kotlin
-enum class TransitionError { INVALID_TRANSITION }
+/** 遷移の拒否理由は1つだけ（TRS PAY-001 OI-004）。状態名は契約にしない。 */
+enum class TransitionError { INVALID_TRANSITION, }
 
-/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。時刻は注入された Clock から取る。 */
+/** 与信。Pending だけが Authorized になれる。時刻は注入された Clock から取る（PAY-001 OI-001）。 */
+fun PaymentState.authorize(clock: Clock): Validated<PaymentState, TransitionError> =
+    when (this) {
+        PaymentState.Pending -> Validated.Valid(PaymentState.Authorized(clock.instant()))
+        is PaymentState.Authorized, is PaymentState.Captured, is PaymentState.Failed -> invalidTransition()
+    }
+
+/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。 */
 fun PaymentState.capture(clock: Clock): Validated<PaymentState, TransitionError> =
     when (this) {
         is PaymentState.Authorized -> Validated.Valid(PaymentState.Captured(clock.instant()))
-        PaymentState.Pending, is PaymentState.Captured, is PaymentState.Failed ->
-            Validated.Invalid(TransitionError.INVALID_TRANSITION)
+        PaymentState.Pending, is PaymentState.Captured, is PaymentState.Failed -> invalidTransition()
     }
-// authorize / fail も同様（src/main/kotlin/com/example/payment/domain/PaymentTransitions.kt）
+
+private fun invalidTransition(): Validated<PaymentState, TransitionError> =
+    Validated.Invalid(TransitionError.INVALID_TRANSITION)
 ```
+
+上のコード例は `PaymentState.kt`（`TransitionError`）と `PaymentTransitions.kt` の抜粋で、package・import・ファイル冒頭のコメントと `fail` を省いている。
 
 **ルール**
 
