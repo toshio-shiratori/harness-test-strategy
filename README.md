@@ -73,6 +73,60 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
 - Playwright は `Playwright.create()` で Chromium・Firefox・WebKit をすべて取得しようとします。そのため `e2eTest` には `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` を渡し、Chromium だけにしています。
 - Linux の CI などで OS の依存ライブラリが足りないときは、Playwright の `install-deps` を使います(Playwright for Java の公式ドキュメントを参照)。
 
+### サンプルアプリを手元で動かす
+
+テストが検証している挙動を、実際の画面で確かめる手順です。`src/main/resources/application.properties` には DB 接続の設定がないため、MySQL を自分で用意し、接続設定を環境変数で渡します。設定ファイルは変えません。
+
+前提は、JDK 21、Docker、空いているポート 3306 と 8080 です(使用中なら、下の `-p` と `SPRING_DATASOURCE_URL` のポートを合わせて変えます)。次の環境で確かめました。macOS(Apple Silicon、arm64)、Docker 29.3.1、OpenJDK 21。
+
+1. MySQL 8.4 を起動します。パスワード `sample` はローカル確認用の値で、他の用途に使い回しません。
+
+   ```bash
+   docker run -d --rm --name harness-sample-mysql \
+     -e MYSQL_ROOT_PASSWORD=sample -e MYSQL_DATABASE=sample \
+     -p 3306:3306 mysql:8.4
+
+   # 接続を受け付けるまで待つ(初回はイメージの取得があるため時間がかかる)
+   until docker exec harness-sample-mysql mysqladmin ping -h127.0.0.1 -uroot -psample --silent 2>/dev/null; do sleep 2; done
+   ```
+
+2. 接続設定を環境変数で渡して起動します。起動時に Flyway が `payment` テーブルを作ります(`order` 側は DB を使いません)。`Started ApplicationKt` が出たら起動済みです。止めるときは `Ctrl-C` です。
+
+   ```bash
+   SPRING_DATASOURCE_URL='jdbc:mysql://localhost:3306/sample' \
+   SPRING_DATASOURCE_USERNAME=root \
+   SPRING_DATASOURCE_PASSWORD=sample \
+   ./gradlew bootRun
+   ```
+
+   環境変数を渡さずに起動すると、`Failed to configure a DataSource: 'url' attribute is not specified` というエラーで、終了コード 1 で失敗します（`application.properties` に DB の設定がないため）。
+
+3. ブラウザで <http://localhost:8080/> を開きます。SKU と数量を入れて「追加」を押すと、結果欄に HTTP ステータスと `codes` が出ます。画面は API(`POST /orders/items`)の応答をそのまま表示するだけで、検証は API が行います。
+
+4. 終わったら、アプリを `Ctrl-C` で止め、コンテナを止めます(`--rm` を付けたので、止めると削除されます)。
+
+   ```bash
+   docker stop harness-sample-mysql
+   ```
+
+入力と応答の例です。AC は [ORD-001](docs/testing/trs/ORD-001-add-item.md) の受入条件です。`curl` でも同じ応答を確認できます。
+
+| SKU | 数量 | HTTP ステータス | `codes` | AC |
+|---|---|---|---|---|
+| `SKU-1` | `3` | 204(本文なし) | なし | AC-01-04 |
+| `SKU-1` | `1000` | 400 | `OUT_OF_RANGE` | AC-01-05、AC-01-09 |
+| `␣`(半角空白 1 文字) | `1000` | 400 | `BLANK` と `OUT_OF_RANGE`(順序は問わない) | AC-01-12 |
+
+```bash
+curl -i -X POST http://localhost:8080/orders/items \
+  -H 'Content-Type: application/json' \
+  -d '{"sku":"SKU-1","quantity":1000}'
+```
+
+- 画面に出る状態表示（成功・失敗の別）、ステータスの表示、`codes` の 1 件ずつの表示は、AC ではなく画面の設計です([ORD-001 の OI-007](docs/testing/trs/ORD-001-add-item.md))。AC が定めるのは HTTP ステータスと `codes` の値までです。`detail` の文言は仕様ではありません。
+- 数量を空欄にすると `MISSING_FIELD`(AC-01-11)、`1.5` のような小数を入れると `INVALID_JSON`（AC-01-10）が返ります（画面は数値でない入力を文字列として送るので、型の不一致として扱われます）。
+- 追加処理はログ出力のみで、注文は保存されません(ORD-001 OI-004)。成功すると、`bootRun` のログに `add item sku=SKU-1 quantity=3` が出ます。
+
 ## 自分のプロジェクトで使うには
 
 導入用のツールやパッケージはありません。文書を読み、自分のプロジェクトに合わせて取り入れます。
