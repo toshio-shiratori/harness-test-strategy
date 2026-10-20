@@ -66,3 +66,14 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 3. 保護対象(下記「変更してはいけないもの」)に触れる作業の後は、`gate-guard` を必ず起動する。`tools` は書き込めるパスの制限ではない。読み取り専用のレビュー役(`spec-reviewer` / `gate-guard`)にだけ、frontmatter の PreToolUse フック(`.claude/hooks/readonly-bash.sh`、書き込み系 Bash の拒否リスト)を足す。書き込み可の役割にはフックを足さない。フックが動く前提は、信頼済みのフォルダであること、対話セッションであること(`-p` では登録されない)、Claude Code v2.1.295 以上であることである。検出は `gate-guard` の独立レビューと、PR の段階の CODEOWNERS 承認でも行う。
 4. `gate-guard` が「ゲート弱体化: あり」を返したら、リーダーは作成側に戻して直させる。「承認: 要」を返したら、リーダーは PR 本文に該当ファイルと理由を書き、単独でマージしない。
 5. 定義の反映は即時とは限らない。`subagent_type` が解決しないときはセッションを再起動する。
+
+## Kizuna (Long-term Memory)
+
+Memories are captured and recalled automatically via hooks. For active queries:
+
+| Command | Description |
+|---------|-------------|
+| `kizuna search <query>` | Search this project's memories |
+| `kizuna search <query> --cwd <path>` | Search another project's memories |
+| `kizuna list --session <id>` | List chunks from a specific session |
+| `kizuna stats` | Show database statistics |
