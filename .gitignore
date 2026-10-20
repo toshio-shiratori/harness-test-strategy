@@ -4,3 +4,4 @@ build/
 .gradle/
 .kotlin/
 .claude/worktrees/
+.kizuna/
