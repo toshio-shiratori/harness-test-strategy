@@ -35,9 +35,9 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j")
 
     // 層1（src/test）は Spring・Docker を使わない純粋なテスト。Spring を起動するテストは integrationTest（下の testing ブロック）に置く
-    testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
-    testImplementation("io.kotest:kotest-assertions-core:6.2.5")
-    testImplementation("io.kotest:kotest-property:6.2.5")
+    testImplementation("io.kotest:kotest-runner-junit5:6.2.6")
+    testImplementation("io.kotest:kotest-assertions-core:6.2.6")
+    testImplementation("io.kotest:kotest-property:6.2.6")
     testImplementation("com.lemonappdev:konsist:0.18.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -53,7 +53,7 @@ testing {
                 implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
                 implementation("org.springframework.boot:spring-boot-starter-test")
                 implementation("org.springframework.boot:spring-boot-starter-webmvc-test") // @WebMvcTest / RestTestClient
-                implementation("io.kotest:kotest-assertions-core:6.2.5")
+                implementation("io.kotest:kotest-assertions-core:6.2.6")
                 // DB を含む Integration: Testcontainers で MySQL を起動する。バージョンは Spring Boot の BOM（Testcontainers 2.x）が管理する
                 implementation("org.springframework.boot:spring-boot-starter-jdbc")
                 implementation("org.flywaydb:flyway-core") // テストごとにスキーマを作り直す（clean / migrate）
@@ -70,7 +70,7 @@ testing {
                 implementation(project())
                 implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
                 implementation("org.springframework.boot:spring-boot-starter-test")
-                implementation("io.kotest:kotest-assertions-core:6.2.5")
+                implementation("io.kotest:kotest-assertions-core:6.2.6")
                 implementation("org.springframework.boot:spring-boot-testcontainers")
                 implementation("org.testcontainers:testcontainers-junit-jupiter")
                 implementation("org.testcontainers:testcontainers-mysql")
