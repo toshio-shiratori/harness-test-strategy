@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   test:
+    defaults:
+      run:
+        working-directory: examples/kotlin-spring
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -29,7 +32,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
-            targets="$(scripts/pitest-targets.sh "origin/$BASE_REF")"
+            targets="$(../../scripts/pitest-targets.sh "origin/$BASE_REF")"
           else
             targets=ALL
           fi
@@ -45,6 +48,9 @@ jobs:
   # Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・Testcontainers の DB 統合）。
   # `test` ジョブは Docker なしの層1だけ。ubuntu-latest には Docker が入っている
   integration:
+    defaults:
+      run:
+        working-directory: examples/kotlin-spring
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -59,6 +65,9 @@ jobs:
   # Chromium は `e2eTest` が依存する `playwrightInstall` が取得する。取得先をキャッシュする。
   # 02c §5.4 の E2E 予算（PR パイプライン内で 10 分以内）を timeout-minutes の上限にする。失敗をリトライや continue-on-error で隠さない
   e2e:
+    defaults:
+      run:
+        working-directory: examples/kotlin-spring
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -68,11 +77,11 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
-      # Playwright のブラウザ（Chromium）のダウンロード結果をキャッシュ。キーは build.gradle.kts のハッシュ(Playwright のバージョンが変わればキーも変わる)
+      # Playwright のブラウザ（Chromium）のダウンロード結果をキャッシュ。キーは examples/kotlin-spring/build.gradle.kts のハッシュ(Playwright のバージョンが変わればキーも変わる)
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('build.gradle.kts') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('examples/kotlin-spring/build.gradle.kts') }}
       - run: ./gradlew e2eTest
       # 失敗時のトレース・スクリーンショットと Gradle のテストレポート
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -80,8 +89,8 @@ jobs:
         with:
           name: e2e-artifacts-${{ github.run_number }}
           path: |
-            build/e2e-artifacts
-            build/reports/tests/e2eTest
-            build/test-results/e2eTest
+            examples/kotlin-spring/build/e2e-artifacts
+            examples/kotlin-spring/build/reports/tests/e2eTest
+            examples/kotlin-spring/build/test-results/e2eTest
           if-no-files-found: warn
           retention-days: 14

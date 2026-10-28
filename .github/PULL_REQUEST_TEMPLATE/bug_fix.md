@@ -25,4 +25,4 @@ Closes #
 ## 検証
 
 - [ ] `npm run lint`
-- [ ] `./gradlew detekt ktlintCheck test pitest`
+- [ ] `examples/kotlin-spring/` で `./gradlew detekt ktlintCheck test pitest`

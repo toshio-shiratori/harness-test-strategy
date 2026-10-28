@@ -147,7 +147,8 @@ tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIn
 tasks.withType<Test> {
     useJUnitPlatform()
     // TraceabilityTest が TRS を読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
-    inputs.dir("docs/testing/trs")
+    inputs.dir("docs/trs")
+    inputs.file("../../docs/testing/trs/_template.md")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する
     inputs.file("build.gradle.kts")
     // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02a §2.3）。未指定なら Kotest の既定（1000）。

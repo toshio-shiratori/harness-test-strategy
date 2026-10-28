@@ -166,7 +166,7 @@ flowchart TD
 
 ### 4.4 Gradle での実行例（PIT）
 
-JVM/Kotlin では PIT（Pitest）を用いる。`src/` で実際に動かして確認した構成を示す（Gradle 9 系 / Kotlin 2.4 系 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
+JVM/Kotlin では PIT（Pitest）を用いる。`src/` で実際に動かして確認した構成を示す（Gradle 9 系 / Kotlin 2.4 系 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper（`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`）を正とする。
 
 ```kotlin
 // build.gradle.kts（抜粋）
@@ -194,7 +194,7 @@ pitest {
 
 ```bash
 ./gradlew pitest                                            # 全体。結果: build/reports/pitest/index.html
-./gradlew pitest -Ppitest.targetClasses="$(scripts/pitest-targets.sh origin/main)"   # PR と同じ差分実行（ALL / NONE の扱いは下記）
+./gradlew pitest -Ppitest.targetClasses="$(../../scripts/pitest-targets.sh origin/main)"   # PR と同じ差分実行（examples/kotlin-spring/ で実行。ALL / NONE の扱いは下記）
 ```
 
 **CI での実行**（`kotlin-samples.yml` / `nightly-mutation.yml`）
@@ -248,7 +248,7 @@ AI エージェントが従うべき機械的ルールを、リポジトリ設�
 | 静的解析 | detekt と ktlint。設定は `config/detekt/detekt.yml` と `.editorconfig`。コマンドは `./gradlew detekt ktlintCheck`（ローカルも CI も同一） |
 | アーキテクチャ検査 | Konsist（`src/test/.../architecture/DomainArchitectureTest.kt`、`./gradlew test` で実行）。Kotlin 固有の検査が多いため ArchUnit ではなく Konsist を採用した |
 | テスト保護 | テストの無効化（JUnit の `@Disabled`、Kotest の `xdescribe` / `!` 接頭辞・`enabled = false`）を `TestProtectionTest`（Konsist、`./gradlew test`）で検出して失敗させる。意図的な無効化の手順は 04 §3.4.1。アサーション削除・スナップショット一括更新は機械検出せずレビューで確認する（スナップショットテストは現状未使用） |
-| 変更制限 | `docs/testing/trs/` と期待値ファイルの変更は人間レビュー必須（CODEOWNERS） |
+| 変更制限 | `docs/testing/trs/`・`examples/kotlin-spring/docs/trs/` と期待値ファイルの変更は人間レビュー必須（CODEOWNERS） |
 | エージェント指示 | リポジトリの `CLAUDE.md` 等に、本標準と 04 のヒーリング規程への参照を記載する |
 
 - 静的解析

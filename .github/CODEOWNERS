@@ -2,14 +2,15 @@
 # 一人運用のため、ルールセットの require_code_owner_review は無効。複数人になった時点で有効化する。
 /docs/testing/            @toshio-shiratori
 /docs/testing/trs/        @toshio-shiratori
+/examples/kotlin-spring/docs/trs/ @toshio-shiratori
 
 # 品質ゲートの定義（閾値・lint 設定・CI）
 /.github/                 @toshio-shiratori
 /.markdownlint-cli2.jsonc @toshio-shiratori
-/build.gradle.kts         @toshio-shiratori
+/examples/kotlin-spring/build.gradle.kts @toshio-shiratori
 /package.json             @toshio-shiratori
 /CLAUDE.md                @toshio-shiratori
 /.claude/                 @toshio-shiratori
 
 # テスト保護・アーキテクチャ検査（弱体化の防止）
-/src/test/kotlin/com/example/architecture/ @toshio-shiratori
+/examples/kotlin-spring/src/test/kotlin/com/example/architecture/ @toshio-shiratori
