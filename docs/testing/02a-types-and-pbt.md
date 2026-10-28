@@ -1,5 +1,10 @@
 # 02a. 型設計とPBT（AIガードレール＆テストアーキテクチャ標準 1/3）
 
+**この文書で決めること**
+
+- コード例の技術前提（§0）と、誤りを書けなくする型設計（§1）
+- PBT を必須とする対象、Property の型、実装ルール、失敗したときの手順（§2）
+
 | 項目 | 内容 |
 |---|---|
 | 文書ID | TEST-02a |
@@ -19,6 +24,8 @@
 
 ## 0. 技術前提（コード例のベースライン）
 
+コード例は下表の版を前提にする。表は系統（minor）で書いており、正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
+
 | 項目 | 前提 |
 |---|---|
 | Spring Boot | 4.1.x（Spring Framework 7.0.x、Jakarta EE 11） |
@@ -28,8 +35,6 @@
 | JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
 | テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`、実ブラウザで操作する E2E は `src/e2eTest`（[02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界)） |
 | モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
-
-表のバージョンは系統（minor）で書いている。正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
 
 > Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/integrationTest/.../adapter/web/OrderControllerHttpTest.kt`）。
 >
@@ -41,7 +46,7 @@
 > | `RestTestClient` | `org.springframework.test.web.servlet.client.RestTestClient`（Spring Framework 7） |
 > | `@AutoConfigureMockMvc` | `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc`（存在のみ確認。本リポジトリでは未使用） |
 >
-> 本書のコード例は、ドメイン層を Spring 非依存の純粋な Kotlin とすることで、フレームワークの変更に影響されない構成にしている。
+> コード例のドメイン層は Spring 非依存の純粋な Kotlin で、フレームワークの変更に影響されない。
 
 ```kotlin
 // build.gradle.kts（抜粋。バージョンは例であり、実際の版は検証用プロジェクトのルートにある build.gradle.kts を正とする）
@@ -87,7 +92,7 @@ testing {
 tasks.withType<Test> { useJUnitPlatform() }
 ```
 
-上のコード例は抜粋で、プラグイン・本番の依存・`tasks.withType<Test>` の細部は省いている。テストの依存については、実際の `build.gradle.kts` は、層1の依存に Konsist（アーキテクチャ検査）も持ち、`integrationTest` スイートに `spring-boot-starter-webmvc-test`・Testcontainers 等を、`e2eTest` スイートに Playwright 等を足している。層1に Spring を入れない方針は [02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界) のとおりである。
+上のコード例は抜粋で、プラグイン・`tasks.withType<Test>` の細部も省いている。実際の `build.gradle.kts` は、層1の依存に Konsist（アーキテクチャ検査）も持ち、`integrationTest` スイートに `spring-boot-starter-webmvc-test`・Testcontainers 等を、`e2eTest` スイートに Playwright 等を足している。層1に Spring を入れない方針は [02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界) のとおりである。
 
 > 本書の §1〜§2 のコード例は、リポジトリ直下の検証用プロジェクト（`src/`）に同一内容で置いてあり、`./gradlew test` でコンパイルとテストを実行できる（CI: `.github/workflows/kotlin-samples.yml`）。コード例を変更するときは `src/` 側も同時に更新すること。
 
@@ -139,9 +144,9 @@ fun cancelOrder(orderId: OrderId, by: UserId) { /* ... */ }
 **ルール**
 
 - API 境界（外部入力）で一度だけパースし、以降は内部にドメイン型のみを流通させる（Parse, don't validate）。
-- ドメイン型の生成は `private constructor` + ファクトリ経由に限定する。`as` による強制キャストで型を偽装してはならない。
+- 生成は §1.2 のとおり `private constructor` + ファクトリ経由に限る。`as` による強制キャストで型を偽装してはならない。
 - `!!`（非 null アサーション）、根拠のない `as`、`@Suppress`、`lateinit` の乱用は静的解析（detekt）で禁止する。
-- Spring の `@RequestBody` 等で受ける DTO はプリミティブでよい。ただし、**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（§1.2 の例を参照）。
+- `@RequestBody` 等で受ける DTO はプリミティブでよい。**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（例は §1.2）。
 
 ### 1.2 コンストラクタ防御
 
@@ -171,7 +176,18 @@ value class Quantity private constructor(val value: Int) {
 }
 ```
 
-アダプタ層（Spring MVC）では、DTO を境界で一度だけドメイン型へ変換し、失敗はそのまま HTTP 400 に写像する。
+アダプタ層（Spring MVC）では、DTO を境界で一度だけドメイン型へ変換し、失敗は HTTP 400 に写像する。
+
+```mermaid
+flowchart TD
+    A["リクエスト本文"] --> B{"読み取れるか<br/>（壊れた JSON・型不一致）"}
+    B -->|いいえ| C["400 INVALID_JSON"]
+    B -->|はい| D{"欠落・null があるか"}
+    D -->|はい| E["400 MISSING_FIELD"]
+    D -->|いいえ| F{"Sku.of・Quantity.of が<br/>両方 Valid か"}
+    F -->|はい| G["204"]
+    F -->|いいえ| H["400 BLANK / OUT_OF_RANGE<br/>（成立した全てを codes に）"]
+```
 
 ```kotlin
 package com.example.order.adapter.web
@@ -251,7 +267,7 @@ class ApiExceptionHandler {
 > - `spring.jackson.mapper.allow-coercion-of-scalars=false`
 > - `spring.jackson.deserialization.accept-float-as-int=false`
 >
-> 指定しないと 204 になることを `OrderControllerHttpTest` で実測した。分岐は `if` の式で書き、`Validated` の判定は smart cast に任せている。
+> 指定しないと 204 になることを `OrderControllerHttpTest` で実測した。
 
 **ルール**
 
@@ -259,11 +275,11 @@ class ApiExceptionHandler {
 - 検証は生成時の1箇所に集約し、利用側で再検証しない（二重管理の防止）。
 - 不変（immutable）を基本とし、状態変更は新しい値の生成で表現する（`val` のみ、`var` を避ける）。
 - 失敗は例外ではなく `Validated`（または `Result` 相当）で返し、呼び出し側に処理を強制する。Spring の `@Valid` / Bean Validation による検証は DTO の形式チェックに留め、**ドメインの不変条件はドメイン型のファクトリを正**とする。
-- value class を DTO に直接デシリアライズする構成は避け、DTO はプリミティブで受けて境界で変換する。**実測**（Spring Boot 4.1.1、Jackson 3 + jackson-module-kotlin）では、`private constructor` の `Quantity` を DTO のプロパティにすると `{"quantity":5000}` が `Quantity.of` の検証を素通りして生成された（`ValueClassDtoTest`）。不変条件が破られるため、DTO にドメイン型を直接使ってはならない。
+- value class を DTO に直接デシリアライズしない。**実測**（Spring Boot 4.1.1、Jackson 3 + jackson-module-kotlin）では、`private constructor` の `Quantity` を DTO のプロパティにすると `{"quantity":5000}` が `Quantity.of` の検証を素通りして生成された（`ValueClassDtoTest`）。不変条件が破られるため、DTO にドメイン型を直接使ってはならない。
 
 ### 1.3 sealed 型と網羅的 `when`（網羅性チェック）
 
-状態・種別・イベントは `sealed interface`（または `sealed class`）で表現し、分岐の網羅性をコンパイラに検査させる。Kotlin では **`when` を式として使い、`else` を書かない**ことが、TypeScript の `never` による網羅性チェックに相当する。
+状態・種別・イベントは `sealed interface`（または `sealed class`）で表現し、分岐の網羅性をコンパイラに検査させる。Kotlin では **`when` を式として使い、`else` を書かない**。
 
 ```kotlin
 package com.example.payment.domain
@@ -340,6 +356,8 @@ private fun invalidTransition(): Validated<PaymentState, TransitionError> =
 
 ### 2.1 PBT を必須とする対象
 
+次の対象は PBT を必須とする。
+
 | 対象 | 例 |
 |---|---|
 | 入力空間が広い純粋関数 | 金額計算、日付計算、文字列正規化 |
@@ -360,7 +378,7 @@ Property は次の分類のいずれかで記述し、テスト名またはコ�
 | オラクル | 単純で明らかに正しい実装と一致 | 最適化版と素朴版の結果一致 |
 | 単調性・境界 | 入力増に対する出力の方向 | 割引後価格 ≤ 割引前価格 |
 
-Kotest Property（`io.kotest:kotest-property`）での記述例。ドメイン型とジェネレータ（`Arb`）を対にして管理する。
+Kotest Property（`io.kotest:kotest-property`）での記述例。
 
 ```kotlin
 package com.example.order.domain
@@ -466,13 +484,22 @@ class YenPropertyTest : StringSpec({
 
 ### 2.3 PBT 実装ルール
 
+手順はルール3の「PBT が失敗したときの AI の手順」のとおり。
+
+```mermaid
+flowchart TD
+    A["手順1: ログからシードと縮小後の反例を取り出す"] --> B["手順2: PropTestConfig(seed) で再現を確認（一時的）"]
+    B --> C["手順3: 縮小後の反例を Example テストとして固定（恒久）"]
+    C --> D["手順4: 反例が仕様上正しい入力かを判断し、<br/>必要なら Property・ジェネレータを直す"]
+```
+
 1. **ジェネレータはドメイン型に対して一元管理する。** 各型に `arbXxx`（Kotest の `Arb`）を1つ用意し、ファクトリの検証と同じ制約を満たす値を生成する。
 2. 不正値の拒否も Property にする（「範囲外の入力は必ず `Validated.Invalid` を返す」）。
-3. シード値を失敗時に出力し、**再現可能**にする。失敗した反例は回帰用の Example テストとして固定する。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
+3. シード値を失敗時に出力し、**再現可能**にする。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動と出力の形式は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
 
    **PBT が失敗したときの AI の手順**。恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるためである。
 
-   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージは、`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property で、次の形式で出力されることを実測した。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行、シードは `Repeat this test by using seed <値>` の行にある。この形式は `PropertyTestingConfigTest` が検証している。エッジケース（範囲の端や特別な値。`Arb.int(0..1000)` なら 0・1・1000 など）は、既定で約 2% の確率で混ざる。エッジケースで落ちた場合は縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
+   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージを、`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property で実測した出力が下の例である。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行に、シードは `Repeat this test by using seed <値>` の行にある。エッジケース（範囲の端や特別な値。`Arb.int(0..1000)` なら 0・1・1000 など）は、既定で約 2% の確率で混ざる。エッジケースで落ちると縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
 
       ```text
       Property failed after 1 attempts
@@ -484,13 +511,14 @@ class YenPropertyTest : StringSpec({
       Caused by IllegalStateException: boom
       ```
 
-   2. `PropTestConfig(seed = <値>)` で同じ失敗が再現することを確認する（一時的な確認。コミットしない）。
-      - 失敗シードの保存（`PropertyTesting.writeFailedSeed`）は無効化せず、既定のままにする。Kotest 6.2.5 で確認した挙動では、Property が失敗するとシードをローカルに保存する。保存先は、環境変数 `XDG_CACHE_HOME` が設定済み（空白でない）なら `$XDG_CACHE_HOME/.kotest/seeds`、未設定なら `~/.kotest/seeds` である。保存したシードは、次の条件をすべて満たす実行で再利用される。(a) `PropTestConfig(seed = …)` を指定しない実行である。(b) 同じテストパスの保存シードである。保存シードはそのテストが成功すると消える（わざと落とすテストでは成功しないため消えず、固定され続ける）。保存シードは PBT の失敗を自動で再現する手がかりになり、上の手順と矛盾しない。
-      - 一方、確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめたいときは、保存済みのシードが結果に影響しないよう、事前に上記の保存先のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控えておく。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。Kotest を更新したときは、この挙動が変わっていないか確認する。
-   3. 縮小後の反例を Example テストとして固定する（恒久）。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
+   2. `PropTestConfig(seed = <値>)` で同じ失敗が再現することを確認する（一時的。コミットしない）。
+      - 失敗シードの保存（`PropertyTesting.writeFailedSeed`）は無効化せず、既定のままにする。Kotest 6.2.5 で確認した挙動では、Property が失敗するとシードをローカルに保存する。保存先は、環境変数 `XDG_CACHE_HOME` が設定済み（空白でない）なら `$XDG_CACHE_HOME/.kotest/seeds`、未設定なら `~/.kotest/seeds` である。
+      - 保存したシードは、(a) `PropTestConfig(seed = …)` を指定しない実行で、(b) 同じテストパスのときに再利用される。保存シードはそのテストが成功すると消える（わざと落とすテストでは成功しないため消えず、固定され続ける）。保存シードは PBT の失敗を自動で再現する手がかりになり、上の手順と矛盾しない。
+      - 確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめるときは、保存済みシードが結果に影響しないよう、事前に保存先のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控える。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。Kotest を更新したときは、この挙動が変わっていないか確認する。
+   3. 縮小後の反例を Example テストとして固定する。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
    4. 反例が仕様上の正しい入力だったのか、Property またはジェネレータの前提が誤っていたのかを判断し、必要なら Property・ジェネレータ側を直す。
 
-4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定は 1000 回（`kotest.proptest.default.iteration.count`）。Gradle の `-D` はテスト JVM に渡らないため、`build.gradle.kts` で Gradle プロパティ `-Pproptest.iterations=N` をテスト JVM のシステムプロパティ `kotest.proptest.default.iteration.count` に転送している。夜間ジョブ（`.github/workflows/nightly-mutation.yml` の `pbt`）は `./gradlew test -Pproptest.iterations=10000` で実行する（全体テストが約 20 秒で完了することを実測した）。
+4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定は 1000 回（`kotest.proptest.default.iteration.count`）。Gradle の `-D` はテスト JVM に渡らないため、`build.gradle.kts` が `-Pproptest.iterations=N` をこのシステムプロパティに転送している。夜間ジョブ（`.github/workflows/nightly-mutation.yml` の `pbt`）は `./gradlew test -Pproptest.iterations=10000` で実行する（全体テストが約 20 秒で完了することを実測した）。
 5. Property が実装のコピーになっていないこと（実装と同じ計算式で期待値を作らない）。
 
 ### 2.4 PBT と Example テストの使い分け
