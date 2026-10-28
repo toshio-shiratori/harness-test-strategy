@@ -104,14 +104,14 @@ tasks.named<Test>("e2eTest") {
 
 pitest {
     junit5PluginVersion.set("1.2.3")
-    // 既定はドメイン層全体。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
+    // 既定は層1の全対象（src/main の全パッケージ）。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
     targetClasses.set(
         providers.gradleProperty("pitest.targetClasses")
             .map { it.split(",") }
-            .orElse(listOf("com.example.order.domain.*", "com.example.payment.domain.*")),
+            .orElse(listOf("com.example.*")),
     )
     // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
-    targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
+    targetTests.set(listOf("com.example.*Test"))
     // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
     // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
     // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
