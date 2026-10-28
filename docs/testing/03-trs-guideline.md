@@ -116,7 +116,7 @@ class PaymentTransitionTableTest : FunSpec({
 })
 ```
 
-全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionTableTest.kt`（TRS PAY-001 の制約表 C-20〜C-22 に対応）。Kotest 6.2.5 での実測で分かった点は次のとおり。
+全体は `examples/kotlin-spring/src/test/kotlin/com/example/payment/domain/PaymentTransitionTableTest.kt`（TRS PAY-001 の制約表 C-20〜C-22 に対応）。Kotest 6.2.5 での実測で分かった点は次のとおり。
 
 - `withData` は `io.kotest.datatest.withData`。`kotest-runner-junit5` が持ち込む `kotest-framework-engine` に含まれ、追加の依存は要らない。
 - `StringSpec` の `"名前" { }` の中に `withData` を置くと、「Nested withData is not supported inside StringSpec test bodies」で非推奨になる（`allWarningsAsErrors` によりビルドエラー）。AC 名のコンテナの下に置くには `FunSpec` の `context(...)` などを使う。
@@ -207,7 +207,7 @@ class PaymentTransitionTableTest : FunSpec({
 
 ### 4.4 記述例
 
-列はテンプレート（[trs/_template.md](./trs/_template.md) §6）と同じ12列とする。実例は [ORD-001](./trs/ORD-001-add-item.md) を参照。
+列はテンプレート（[trs/_template.md](./trs/_template.md) §6）と同じ12列とする。実例は [ORD-001](../../examples/kotlin-spring/docs/trs/ORD-001-add-item.md) を参照。
 
 | ID | 起票日 | 起票者 | 区分 | 関連 | 内容 | 状態 | 決定内容 | 決定者 | 決定日 | 根拠 | 反映先 |
 |---|---|---|---|---|---|---|---|---|---|---|---|

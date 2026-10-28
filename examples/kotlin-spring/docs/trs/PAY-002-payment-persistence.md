@@ -3,7 +3,7 @@
 > `PaymentState` を DB に保存し、読み戻す Adapter の振る舞いを定める TRS。DB を含む Integration（層2）の実例（#56）。
 > 期待値は、人間（@toshio-shiratori）が #56 の方針協議（`/grill-me`）で決定した内容（OI-001〜005）に基づく。既存コードの挙動からの逆生成ではない。
 > AC / UC の番号は、`TraceabilityTest` が全 TRS のテストを横断して照合するため、TRS 間で重複しないように採番する（ORD-001 が `01`、PAY-001 が `02`、本 TRS が `03`）。
-> **ステータスは Approved（2026-10-11、承認者 toshio-shiratori）。Approved にできるのは人間のみ（[03](../03-trs-guideline.md)）で、以後の変更も人間の承認を要する。**
+> **ステータスは Approved（2026-10-11、承認者 toshio-shiratori）。Approved にできるのは人間のみ（[03](../../../../docs/testing/03-trs-guideline.md)）で、以後の変更も人間の承認を要する。**
 
 ## メタ情報
 

@@ -24,7 +24,7 @@
 
 ## 0. 技術前提（コード例のベースライン）
 
-コード例は下表の版を前提にする。表は系統（minor）で書いており、正確な版は `build.gradle.kts` と Gradle wrapper（`gradle/wrapper/gradle-wrapper.properties`）を正とする。
+コード例は下表の版を前提にする。表は系統（minor）で書いており、正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper（`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`）を正とする。
 
 | 項目 | 前提 |
 |---|---|
@@ -94,7 +94,7 @@ tasks.withType<Test> { useJUnitPlatform() }
 
 上のコード例は抜粋で、プラグイン・`tasks.withType<Test>` の細部も省いている。実際の `build.gradle.kts` は、層1の依存に Konsist（アーキテクチャ検査）も持ち、`integrationTest` スイートに `spring-boot-starter-webmvc-test`・Testcontainers 等を、`e2eTest` スイートに Playwright 等を足している。層1に Spring を入れない方針は [02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界) のとおりである。
 
-> 本書の §1〜§2 のコード例は、リポジトリ直下の検証用プロジェクト（`src/`）に同一内容で置いてあり、`./gradlew test` でコンパイルとテストを実行できる（CI: `.github/workflows/kotlin-samples.yml`）。コード例を変更するときは `src/` 側も同時に更新すること。
+> 本書の §1〜§2 のコード例は、リポジトリの `examples/kotlin-spring/` にある検証用プロジェクト（`examples/kotlin-spring/src/`）に同一内容で置いてあり、`./gradlew test` でコンパイルとテストを実行できる（CI: `.github/workflows/kotlin-samples.yml`）。コード例を変更するときは `src/` 側も同時に更新すること。
 
 ---
 
@@ -480,7 +480,7 @@ class YenPropertyTest : StringSpec({
 }
 ```
 
-操作列のジェネレータは `Arb.bind` で操作の種類と失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。時刻は生成せず、固定した `Clock`（`Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)`）を `apply(op, clock)` に渡す。全体は `src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
+操作列のジェネレータは `Arb.bind` で操作の種類と失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。時刻は生成せず、固定した `Clock`（`Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)`）を `apply(op, clock)` に渡す。全体は `examples/kotlin-spring/src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
 
 ### 2.3 PBT 実装ルール
 

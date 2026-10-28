@@ -171,7 +171,7 @@ internal object UnresolvedBlockingCheck {
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
 class TraceabilityTest : StringSpec({
-    val trsFiles = File("docs/testing/trs").listFiles { f -> f.extension == "md" && !f.name.startsWith("_") }.orEmpty()
+    val trsFiles = File("docs/trs").listFiles { f -> f.extension == "md" && !f.name.startsWith("_") }.orEmpty()
     val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
     val pendingTag = Regex("""@(AC-\d\d-\d\d)\b[^\n]*@pending:""") // UnresolvedBlockingCheck の @pending の検査と同じ範囲
 
@@ -226,7 +226,7 @@ class TraceabilityTest : StringSpec({
     }
 
     "TRS のテンプレートも G5 の検査を通る（未解決の Blocking の例に @pending が付いている）" {
-        UnresolvedBlockingCheck.violations(File("docs/testing/trs/_template.md").readText()).shouldBeEmpty()
+        UnresolvedBlockingCheck.violations(File("../../docs/testing/trs/_template.md").readText()).shouldBeEmpty()
     }
 
     "未解決の Blocking な Open Issue が指す AC に、その OI-ID の @pending が付いている（G5）" {

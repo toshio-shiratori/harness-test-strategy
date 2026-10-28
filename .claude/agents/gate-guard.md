@@ -30,10 +30,10 @@ hooks:
 
 次に触れる差分は、方針書・規程・期待値・ゲートの変更として人間の承認が必要である(承認は「要」)。ゲートを弱めているかどうかは、承認とは別に判定する。
 
-- 方針書・規程・期待値: `docs/testing/` の `01`・`04`、`docs/testing/trs/`(`.github/CODEOWNERS` 対象)
-- `src/test/kotlin/com/example/architecture/`(Konsist による検査・テスト保護)
-- `build.gradle.kts` の pitest 閾値・`excludedClasses`
-- `config/detekt/detekt.yml`
+- 方針書・規程・期待値: `docs/testing/` の `01`・`04`、`docs/testing/trs/`、`examples/kotlin-spring/docs/trs/`(`.github/CODEOWNERS` 対象)
+- `examples/kotlin-spring/src/test/kotlin/com/example/architecture/`(Konsist による検査・テスト保護)
+- `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`
+- `examples/kotlin-spring/config/detekt/detekt.yml`
 - `.markdownlint-cli2.jsonc`
 - `.github/`(CI、CODEOWNERS、テンプレートを含む)
 - テストの無効化(`@Disabled`、`xdescribe` 等。意図的な無効化は `04` §3.4.1 の手順を踏んでいるか)

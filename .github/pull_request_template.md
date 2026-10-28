@@ -9,4 +9,4 @@ Closes #
 ## 検証
 
 - [ ] `npm run lint`
-- [ ] `./gradlew detekt ktlintCheck test pitest`（`src/` を変えた場合）
+- [ ] `examples/kotlin-spring/` で `./gradlew detekt ktlintCheck test pitest`（`examples/kotlin-spring/src/` を変えた場合）

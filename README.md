@@ -2,7 +2,7 @@
 
 AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保てるよう、機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。
 
-成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。`src/` は、`02a`・`02b` の Kotlin サンプルがコンパイルされテストを通ることを保証する検証用プロジェクトです。
+成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。`examples/kotlin-spring/` は、`02a`・`02b` の Kotlin サンプルがコンパイルされテストを通ることを保証する検証用プロジェクトです。
 
 ## 対象読者
 
@@ -27,7 +27,7 @@ flowchart LR
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
-| [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) / [PAY-002](docs/testing/trs/PAY-002-payment-persistence.md) | TRS の実例 |
+| [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md) | TRS の実例 |
 
 ## 中心となる考え方
 
@@ -36,7 +36,9 @@ flowchart LR
 - テストの質はカバレッジではなくミューテーションテストで確かめる。
 - AI は方針書・規程・期待値を単独で変更しない。変更は PR で人間が承認する。
 
-## `src/`(サンプルの検証用プロジェクト)
+## `examples/kotlin-spring/`(サンプルの検証用プロジェクト)
+
+Gradle で自己完結したプロジェクトです。位置づけと動かし方は [examples/kotlin-spring/README.md](examples/kotlin-spring/README.md) にもあります。
 
 `order` と `payment` は TRS の実例(ORD-001 / PAY-001 / PAY-002)に対応するサンプル領域で、製品コードではありません。
 
@@ -47,7 +49,7 @@ flowchart LR
 | 静的解析 | detekt、ktlint、`allWarningsAsErrors` |
 | ミューテーション | PIT。閾値は PR(変更クラスのみ)が 80%、夜間の全体実行が 70% |
 
-バージョンは系統(minor)で書いています。正確な版は `build.gradle.kts` と Gradle wrapper(`gradle/wrapper/gradle-wrapper.properties`)を正とします。
+バージョンは系統(minor)で書いています。正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper(`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`)を正とします。
 
 ## ローカルでの確認
 
@@ -55,7 +57,8 @@ flowchart LR
 # ドキュメント(markdownlint と Mermaid の構文検査)
 npm ci && npm run lint
 
-# サンプルコード(静的解析、テスト、ミューテーションテスト)
+# サンプルコード(静的解析、テスト、ミューテーションテスト)。Gradle は examples/kotlin-spring/ で実行する
+cd examples/kotlin-spring
 ./gradlew detekt ktlintCheck test
 ./gradlew integrationTest   # Docker が必要（Testcontainers）
 ./gradlew e2eTest           # Docker とブラウザ（Chromium）が必要。下の「E2E のセットアップ」を参照
@@ -66,7 +69,9 @@ CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest`
 
 ### E2E のセットアップ
 
-E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎ、Playwright for Java(Chromium、ヘッドレス)で `static/index.html` の注文追加フォームを操作します。`test`・`integrationTest`・`check` には含まれず、`./gradlew e2eTest` で明示的に実行します。
+この節と次の節のコマンドは `examples/kotlin-spring/` で実行します。
+
+E2E(`examples/kotlin-spring/src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎ、Playwright for Java(Chromium、ヘッドレス)で `static/index.html` の注文追加フォームを操作します。`test`・`integrationTest`・`check` には含まれず、`./gradlew e2eTest` で明示的に実行します。
 
 - Docker を起動しておきます。MySQL 8.4 のコンテナを使います。
 - ブラウザは、`./gradlew e2eTest` が実行前に `playwrightInstall`(Playwright CLI の `install chromium`)を呼んで取得します。取得済みならダウンロードを省きます(CLI は毎回起動します)。`playwrightInstall` は単独でも実行できます。
@@ -84,7 +89,7 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
 
 テストが検証している挙動を、実際の画面で確かめる手順です。
 
-`src/main/resources/application.properties` には DB 接続の設定がないため、MySQL を自分で用意し、接続設定を環境変数で渡します。設定ファイルは変えません。
+`examples/kotlin-spring/src/main/resources/application.properties` には DB 接続の設定がないため、MySQL を自分で用意し、接続設定を環境変数で渡します。設定ファイルは変えません。
 
 前提は、JDK 21、Docker、空いているポート 3306 と 8080 です(使用中なら、下の `-p` と `SPRING_DATASOURCE_URL` のポートを合わせて変えます)。次の環境で確かめました。macOS(Apple Silicon、arm64)、Docker 29.3.1、OpenJDK 21。
 
@@ -118,7 +123,7 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
    docker stop harness-sample-mysql
    ```
 
-入力と応答の例です。AC は [ORD-001](docs/testing/trs/ORD-001-add-item.md) の受入条件です。`curl` でも同じ応答を確認できます。
+入力と応答の例です。AC は [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) の受入条件です。`curl` でも同じ応答を確認できます。
 
 | SKU | 数量 | HTTP ステータス | `codes` | AC |
 |---|---|---|---|---|
@@ -132,7 +137,7 @@ curl -i -X POST http://localhost:8080/orders/items \
   -d '{"sku":"SKU-1","quantity":1000}'
 ```
 
-- 画面に出る状態表示(成功・失敗の別)、ステータスの表示、`codes` の 1 件ずつの表示は、AC ではなく画面の設計です([ORD-001 の OI-007](docs/testing/trs/ORD-001-add-item.md))。AC が定めるのは HTTP ステータスと `codes` の値までで、`detail` の文言は仕様ではありません。
+- 画面に出る状態表示(成功・失敗の別)、ステータスの表示、`codes` の 1 件ずつの表示は、AC ではなく画面の設計です([ORD-001 の OI-007](examples/kotlin-spring/docs/trs/ORD-001-add-item.md))。AC が定めるのは HTTP ステータスと `codes` の値までで、`detail` の文言は仕様ではありません。
 - 数量を空欄にすると `MISSING_FIELD`(AC-01-11)、`1.5` のような小数を入れると `INVALID_JSON`(AC-01-10)が返ります(画面は数値でない入力を文字列として送るので、型の不一致として扱われます)。
 - 追加処理はログ出力のみで、注文は保存されません(ORD-001 OI-004)。成功すると、`bootRun` のログに `add item sku=SKU-1 quantity=3` が出ます。
 
@@ -145,8 +150,8 @@ curl -i -X POST http://localhost:8080/orders/items \
 1. 01 と 02a〜02c を読み、層構造と型ガードレールの方針をチームで合意する。
 2. TRS テンプレートを複製し、最初の機能の TRS を書く。実例の ORD-001 が参考になる。
 3. 次を自分のプロジェクトにコピーして調整する。
-   - `src/` の Konsist テスト(`architecture/` 配下)
-   - `build.gradle.kts` の PIT・detekt 設定
+   - `examples/kotlin-spring/src/` の Konsist テスト(`architecture/` 配下)
+   - `examples/kotlin-spring/build.gradle.kts` の PIT・detekt 設定
    - `CLAUDE.md`
 4. 不具合の運用は 04 とバグ報告テンプレート(`.github/ISSUE_TEMPLATE/bug_report.yml`)を使う。
 
