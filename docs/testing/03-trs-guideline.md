@@ -19,7 +19,7 @@
 
 TRS は、**1機能（1ユースケース群）につき1ファイル**で、「何を満たせば合格か（仕様）」と「どう検証するか（テスト設計）」を一体で保持する文書である。W字モデルに従い、要件定義の段階で起草を開始し、実装・運用を通じて更新し続ける。
 
-- 配置: `docs/testing/trs/<機能ID>-<機能名>.md`（例: `ORD-001-order-cancel.md`）
+- 配置: 導入先プロジェクトの TRS ディレクトリ（例: テンプレートと同じ `docs/testing/trs/`）に `<機能ID>-<機能名>.md` として置く（例: `CNL-001-order-cancel.md`）。
 - 仕様の経緯を複数ファイルに分散させない。
 
 ## 2. 2層構造ルール
@@ -82,46 +82,22 @@ AC を網羅的なテストケースへ展開するための設計情報。
 
 - 因子・水準は表形式で記述する。AI はこれを入力に、テストケース（組合せ網羅／ペアワイズ／直交表）を機械的に生成する。
 - 因子制約は「禁止組合せ」と「組合せ別の期待結果」を明示する。AI が成立しない組合せのテストを生成せず、期待結果を推測しないようにするため。
-- 型で表現可能な制約（sealed 型で排除される組合せ）は、制約として記載したうえで「型で排除」と付記し、テスト生成の対象外とする（02a §1）。
+- 型で表現可能な制約（型で排除される組合せ。例: 状態を閉じた型〔sealed 型など〕で表し、不正な組合せを作れなくしたもの）は、制約として記載したうえで「型で排除」と付記し、テスト生成の対象外とする（02a §1）。
 - PBT で扱う連続・大規模な値域の水準には `PBT` と付記し、ジェネレータの制約として使う。
 
 ### 2.3 因子・水準・制約表からデータ駆動テストへの展開
 
-TRS の表をテストへ展開する標準形を、次のとおり定める。展開の解釈を AI や開発者に任せない。
+TRS の表をテストへ展開する標準形を、次のとおり定める。展開の解釈を AI や開発者に任せない。表中の `§4`・`§5.1`・`§5.2` は、本書の節ではなく、[TRS テンプレート](./trs/_template.md)の節番号である（§4 因子・水準、§5.1 禁止（成立しない）組合せ、§5.2 組合せ別の期待結果）。
 
 | TRS の要素 | テストコードでの扱い |
 |---|---|
-| 因子制約表（§5.2）の1行 | データ駆動テストの**1ケース**。ケース名の先頭に制約 ID（`C-xx`）を置く |
-| 因子・水準表（§4）の水準 | 制約表の「条件」列に現れる水準を、ケースの入力に使う。連続値（`PBT` と付記した水準）は Property に任せ、ここでは境界値だけを行にする |
-| 禁止組合せ（§5.1）・型で排除する制約 | **ケースを生成しない**（テスト対象外。行を作らない） |
+| 因子制約表（テンプレート §5.2）の1行 | データ駆動テストの**1ケース**。ケース名の先頭に制約 ID（`C-xx`）を置く |
+| 因子・水準表（テンプレート §4）の水準 | 制約表の「条件」列に現れる水準を、ケースの入力に使う。連続値（`PBT` と付記した水準）は Property に任せ、ここでは境界値だけを行にする |
+| 禁止組合せ（テンプレート §5.1）・型で排除する制約 | **ケースを生成しない**（テスト対象外。行を作らない） |
 | 組合せ別の期待結果 | 制約表の値をそのまま期待値にする。**実装の挙動から逆生成しない** |
 | AC | データ駆動テストを包む**コンテナ名の先頭**に AC ID を置く（§3.4）。複数の制約行が同じ AC を検証してよい |
 
-標準は Kotest の `withData` とする。JUnit5 `@ParameterizedTest` は採用しない。理由は次のとおり。
-
-- このリポジトリのテストは Kotest に統一されている。
-- `@ParameterizedTest` には `junit-jupiter-params` の追加が必要で、実際に動かして検証できない例を書くことになる。
-
-```kotlin
-class PaymentTransitionTableTest : FunSpec({
-    // 制約表の「条件」列（F1 × F2）。期待結果は制約表の値（C-22 は INVALID_TRANSITION で拒否）
-    context("AC-02-06 終端状態からはどの操作でも遷移できない（C-22）") {
-        withData(
-            nameFn = { "${it.id} ${it.state::class.simpleName} × ${it.operation}" },
-            ts = listOf(PaymentState.Captured(at), PaymentState.Failed(FailureReason.TIMEOUT)).flatMap { state ->
-                listOf(authorize, capture, fail).map { op -> case("C-22", state, op) }
-            },
-        ) { it.apply(it.state) shouldBe rejected }
-    }
-})
-```
-
-全体は `examples/kotlin-spring/src/test/kotlin/com/example/payment/domain/PaymentTransitionTableTest.kt`（TRS PAY-001 の制約表 C-20〜C-22 に対応）。Kotest 6.2.5 での実測で分かった点は次のとおり。
-
-- `withData` は `io.kotest.datatest.withData`。`kotest-runner-junit5` が持ち込む `kotest-framework-engine` に含まれ、追加の依存は要らない。
-- `StringSpec` の `"名前" { }` の中に `withData` を置くと、「Nested withData is not supported inside StringSpec test bodies」で非推奨になる（`allWarningsAsErrors` によりビルドエラー）。AC 名のコンテナの下に置くには `FunSpec` の `context(...)` などを使う。
-- 位置引数だけで呼ぶと `withData` のオーバーロードが曖昧になるため、`nameFn` / `ts` を名前付きで渡す。
-- コンテナ名の先頭の AC ID は `TraceabilityTest` が文字列リテラルとして拾うので、検査側の変更は不要。
+データ駆動テストに使う機能は、導入先が1つに決めて標準とする（例: Kotest `withData`、JUnit `@ParameterizedTest`、pytest `parametrize`）。
 
 ## 3. Single Source of Truth（SSOT）
 
@@ -152,23 +128,26 @@ class PaymentTransitionTableTest : FunSpec({
 
 ### 3.4 トレーサビリティ
 
-`@pending` の AC を除く全 AC にテストを紐づけ、`TraceabilityTest` が機械的に検査する。
+`@pending` の AC を除く全 AC にテストを紐づけ、CI のトレーサビリティ検査が機械的に検査する。検査の実装は導入先が選ぶ。ここでは、検査が何を**失敗**にするかを定める。
 
 - **テスト名の付け方。** テスト名の先頭に `AC-xx-yy`、続けて空白と説明を置く（例: `AC-01-02 範囲外の整数は拒否される`）。
-  - Kotest の文字列名・JUnit のバッククォート名のどちらでもよく、grep で機械的に辿れる。
-  - JVM のバッククォート名は `[` `]` `:` `.` を使えないため、括弧やコロンで囲まない（ORD-001 の検証で判明）。
+  - テスト名の先頭を grep などで機械的に辿れる。
+  - `AC-xx-yy` は括弧やコロンで囲まない。テスト名に使える文字はフレームワークごとに異なるため、どの環境でも使える表記にそろえる。
   - 複数の AC を検証するテストは `AC-01-04 AC-01-05 …` と空白区切りで並べる。
-  - TRS のトレーサビリティ表には `テストクラス::テスト名` を書く。
+  - TRS のトレーサビリティ表には、テストの所在（ファイルまたはクラス）とテスト名を `::` でつないで書く（例: `<テストファイル>::<テスト名>`）。
   - AC に紐づかないテストは、技術的な不変条件（PBT 等）であることを明記する。
-- **AC に対応するテストの検査。** AC に対応するテストが存在しない場合、CI のトレーサビリティチェックで警告する（01 の G5）。**実装済み**: `TraceabilityTest`（Konsist、`./gradlew test` で実行）が、TRS の AC 表から `AC-xx-yy` を抽出し、`src/test`・`src/integrationTest`・`src/e2eTest` にその ID で始まるテスト名があるかを照合して、無ければ**失敗**させる。
+- **AC に対応するテストの検査（01 の G5）。** トレーサビリティ検査は、TRS の AC 表から `AC-xx-yy` を抽出し、導入先の層1・層2（Integration・E2E）のテスト全体から、その ID で始まるテスト名を探す。AC に対応するテストが存在しなければ**失敗**させる。
   - Gherkin のタグに `@pending:<OI-ID>` を付けた AC は除外する（Blocking の Open Issue が未解決の AC。許容範囲は下記）。
-  - 警告ではなく失敗にしたのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。
+  - 失敗にするのは、除外の手段が `@pending` に一本化されており、それを TRS 側で明示させられるため。
   - `@pending` の追加は TRS の変更として人間のレビューを受ける。
 - **未解決の Blocking な Open Issue の検査（01 の G5）。** TRS の「6. Open Issues」表の、区分が `Blocking` で状態が `Open` または `In Discussion` の行を未解決として扱う。その行の関連列にある AC のタグ行に、その行の OI-ID と同じ `@pending:<OI-ID>` が無ければ**失敗**させる。Resolved・Superseded・Won't Fix の行と Non-blocking の行は対象外。検査が前提とする書式は次のとおり。
   - 区分は `Blocking` / `Non-blocking`、状態は §4.2 の5値（`Superseded` と `Won't Fix` は `（置換先・理由）` の接尾辞可）。分類できない値（`open`、`**Blocking**` など）は失敗とする。
   - 表には1行以上が必要。見出し（`ID` / `区分` / `関連` / `状態`）が読めない、行が1つも無い、列数が合わない TRS も失敗とする（読み取りの空振りで素通りさせない）。列の名前を変えるときは検査も同時に直す。
-  - 関連列の AC の範囲表記は `AC-xx-yy〜zz` と `AC-xx-yy〜AC-xx-zz`（`〜` は `～` `~` も可）だけで、同じ `xx` の昇順に限る。範囲として読めない `〜` が残ると失敗とする。
-  - 関連列に AC が無い行（因子・水準や UC だけを指す行）は、指す AC を決められないので失敗とする。未解決の Blocking を起票するときは、関連列に AC を書き、その AC に `@pending:<OI-ID>` を付ける。
+  - 関連列の AC の範囲表記は `AC-xx-yy〜zz` と `AC-xx-yy〜AC-xx-zz`（`〜` は `～` `~` も可）だけで、同じ `xx` の昇順に限る。
+  - 次の3つは、**未解決の Blocking の行だけ**を対象に失敗とする。Resolved・Superseded・Won't Fix の行と Non-blocking の行は、関連列が因子・水準や UC だけを指していても、AC 表に無い AC を指していても失敗にしない。
+    - 関連列に AC が無い行（因子・水準や UC だけを指す行）。指す AC を決められないため。未解決の Blocking を起票するときは、関連列に AC を書き、その AC に `@pending:<OI-ID>` を付ける。
+    - 範囲として読めない `〜` が残る行（上の範囲表記に当てはまらない書き方、逆順を含む）。
+    - 関連列の AC が、その TRS の AC 表に無い行。綴りの誤りなどで存在しない AC を指したままにしないため。
   - AC を新しく足すかどうか自体が Blocking な論点のときは、仮の AC を `@pending:<OI-ID>` 付きで先に置き（期待値は書かない）、関連列でその AC を指す。
 - **`@pending` に書けるもの（許容範囲）。** `@pending:<ID>` の `<ID>` は、**その TRS の Open Issues 表にある、未解決（`Open` / `In Discussion`）の `Blocking` な OI-ID** に限る。逆向きの検査として、次は**失敗**させる。対象は、行内で `@AC-xx-yy` より後ろにある `@pending:`（AC を紐づけ検査から除外する判定と同じ範囲。Gherkin のタグ行のほか、表や引用の中も含む）。`@AC-xx-yy` を伴わない説明文や変更履歴の行の `@pending:` は AC を除外しないので対象外。
   - `OI-<数字>` の形でない値。`@pending:ISSUE-33` のような Issue 番号の参照も含む。実装待ちの AC は `@pending` で除外せず、Issue / PR で管理する（実装と同じ PR でテストを足す）。
@@ -176,8 +155,8 @@ class PaymentTransitionTableTest : FunSpec({
   - 未解決の Blocking でない OI-ID（`Resolved` / `Superseded` / `Won't Fix` の行、`Non-blocking` の行）。OI を解決・置換したら、同じ変更で `@pending` を外し、期待値とテストを確定する。
   - その OI の関連列（範囲は展開する）に含まれない AC に付けた `@pending:<OI-ID>`。無関係な AC を紐づけ検査から外す抜け道を塞ぐ。関連列が読めない（範囲表記の誤り・逆順）OI と、関連列に AC が無い OI は、上の「未解決の Blocking な Open Issue の検査」がすでに失敗とするので、二重に数えない。
   - 理由: `@pending` は期待値が人間の決定待ちの AC だけを除外する手段である（§4.3 の 3）。実装待ちや解決済みの OI を許すと、除外の抜け道になる。
-- **`AC-xx-yy` は TRS 間で重複させない。** 全 TRS の AC を、`src/test`・`src/integrationTest`・`src/e2eTest` 全体のテスト名と照合するため、別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見える。重複は失敗させる。
-  - `xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: ORD-001 は `01`、PAY-001 は `02`、PAY-002 は `03`）。
+- **`AC-xx-yy` は TRS 間で重複させない。** 全 TRS の AC を、導入先のテスト全体のテスト名と照合するため、別の TRS と同じ ID があると、別機能のテストで AC が満たされたように見える。重複は失敗させる。
+  - `xx` は UC の番号と対応させ、**TRS ごとに異なる番号**を割り当てる（例: 最初の TRS は `01`、次の TRS は `02`、その次は `03`）。
   - 新しい TRS は、既存の TRS が使っていない最小の番号から採番する。
 
 ## 4. Open Issues の履歴化
@@ -197,17 +176,42 @@ class PaymentTransitionTableTest : FunSpec({
 | `Superseded` | 後続の決定で置き換えられた（置換先 Issue ID を記載） |
 | `Won't Fix` | 対応しないと決定（理由必須） |
 
+`Open` と `In Discussion` を未解決と呼ぶ。状態は次のとおり遷移する。
+
+```mermaid
+stateDiagram-v2
+  state "In Discussion" as InDiscussion
+  state "Won't Fix" as WontFix
+  [*] --> Open: 起票
+  Open --> InDiscussion: 協議を始める
+  InDiscussion --> Open: 協議を戻す
+  Open --> Resolved: 決定
+  Open --> WontFix: 対応しないと決定
+  Open --> Superseded: 置き換え
+  InDiscussion --> Resolved: 決定
+  InDiscussion --> WontFix: 対応しないと決定
+  InDiscussion --> Superseded: 置き換え
+  Resolved --> Superseded: 決定が覆った
+  WontFix --> [*]
+  Superseded --> [*]
+```
+
+- `Open` と `In Discussion` は相互に行き来できる。
+- 未解決（`Open` / `In Discussion`）からは、`Resolved` / `Won't Fix` / `Superseded` のどれへも移れる。
+- `Resolved` からは `Superseded` へ移れる。
+- `Won't Fix` と `Superseded` は終端で、他の状態へは移らない。その決定を覆すときは、元の行を変えず、新しい OI を起票する。
+
 ### 4.3 運用ルール
 
 1. 起票者は AI でも人間でもよい。**解決（`Resolved` への遷移）は人間のみ**が行う。
 2. `Resolved` にするときは、**反映先**（どの AC／因子制約を変更したか）を必ず記載する。
 3. Blocking 区分の Open Issue が未解決の AC に対するテストは、期待値を確定させず `pending` とする。AI が推測で埋めてはならない。
-4. 後から決定が覆った場合は、元の行を `Superseded` にして新規行を追加する（上書きしない）。
+4. 後から決定が覆った場合は、元の行を `Superseded` にして新規行を追加する（上書きしない）。`Won't Fix` と `Superseded` の行は終端なので、覆すときは行を変えず、新規行を追加する（§4.2）。
 5. 追記は時系列（ID 昇順）とし、行の並べ替え・削除を行わない。
 
 ### 4.4 記述例
 
-列はテンプレート（[trs/_template.md](./trs/_template.md) §6）と同じ12列とする。実例は [ORD-001](../../examples/kotlin-spring/docs/trs/ORD-001-add-item.md) を参照。
+列はテンプレート（[trs/_template.md](./trs/_template.md) §6）と同じ12列とする。
 
 | ID | 起票日 | 起票者 | 区分 | 関連 | 内容 | 状態 | 決定内容 | 決定者 | 決定日 | 根拠 | 反映先 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -243,4 +247,4 @@ flowchart TB
 - [ ] 因子制約に、禁止組合せと組合せ別の期待結果がある
 - [ ] 期待値の根拠が仕様・デザインであり、既存コード由来ではない
 - [ ] Open Issues が履歴を保持し、未解決の Blocking が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` の許容範囲は §3.4）
-- [ ] 全 AC にテストが紐づいている（トレーサビリティ）
+- [ ] `@pending` の AC を除く全 AC にテストが紐づいている（トレーサビリティ）
