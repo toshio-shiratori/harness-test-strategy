@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        不具合は「E2E を足して終わり」にせず、最速の層（型 → Unit → PBT → Integration）へ還元します。
+        不具合は「E2E を足して終わり」にせず、最速の層（型 → 静的解析 → Unit → PBT → Integration）へ還元します。
         項目の定義は [04 §2.6](https://github.com/toshio-shiratori/harness-test-strategy/blob/main/docs/testing/04-regression-governance.md) に従います。
   - type: dropdown
     id: discovery-layer

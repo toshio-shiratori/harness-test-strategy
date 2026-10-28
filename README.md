@@ -27,6 +27,7 @@ flowchart LR
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
+| [バグ報告](docs/testing/templates/bug-report.md) / [バグ修正 PR](docs/testing/templates/bug-fix-pr.md)の雛形 | 04 の不具合還元プロトコルを運用に落とすための雛形 |
 | [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md) | TRS の実例 |
 
 ## 中心となる考え方
@@ -153,7 +154,7 @@ curl -i -X POST http://localhost:8080/orders/items \
    - `examples/kotlin-spring/src/` の Konsist テスト(`architecture/` 配下)
    - `examples/kotlin-spring/build.gradle.kts` の PIT・detekt 設定
    - `CLAUDE.md`
-4. 不具合の運用は 04 とバグ報告テンプレート(`.github/ISSUE_TEMPLATE/bug_report.yml`)を使う。
+4. 不具合の運用は 04 と、バグ報告・バグ修正 PR の雛形(`docs/testing/templates/`)を使う。
 
 すでにテスト・静的解析・CI があるプロジェクトは、次のように進めます。
 
