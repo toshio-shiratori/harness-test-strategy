@@ -1,5 +1,11 @@
 # 01. AI駆動テスト基本方針書
 
+**この文書で決めること**
+
+- テストを開発と並行で進める W字モデルと、3層の使い分け
+- 人間と AI の責務分離と、AI が越えてはならない線
+- 品質ゲート G0〜G5 の条件と、必須チェックとの対応
+
 | 項目 | 内容 |
 |---|---|
 | 文書ID | TEST-01 |
@@ -38,13 +44,15 @@ flowchart LR
   T3 -. "Open Issues で仕様を往復" .-> D2
 ```
 
-| フェーズ | 開発ライン | テストライン（並行成果物） | 主担当 |
-|---|---|---|---|
-| 要件定義 | US/UC の策定 | TRS 仕様レイヤーの起草（AC を Gherkin で記述） | 人間（合意）／AI（起草支援） |
-| 設計 | 型・ドメインモデル設計 | 因子・水準・因子制約の設計、Open Issues の起票 | 人間（型設計）／AI（網羅案） |
-| 実装 | 実装 | Unit / PBT / Integration / E2E の生成 | AI（生成・修復）／人間（レビュー） |
-| 検証 | CI 実行・リリース判定 | 探索的テスト、AIブラウザ操作エージェント | 人間＋AI |
-| 運用 | 不具合対応 | 不具合還元（04 の Shift-Left Protocol） | AI（分析）／人間（承認） |
+図は開発ラインとテストラインの並行関係、表はテストラインの成果物と主担当を示す。
+
+| フェーズ（開発ライン） | テストライン（並行成果物） | 主担当 |
+|---|---|---|
+| 要件定義（US/UC の策定） | TRS 仕様レイヤーの起草（AC を Gherkin で記述） | 人間（合意）／AI（起草支援） |
+| 設計（型・ドメインモデル設計） | 因子・水準・因子制約の設計、Open Issues の起票 | 人間（型設計）／AI（網羅案） |
+| 実装 | Unit / PBT / Integration / E2E の生成 | AI（生成・修復）／人間（レビュー） |
+| 検証（CI 実行・リリース判定） | 探索的テスト、AIブラウザ操作エージェント | 人間＋AI |
+| 運用（不具合対応） | 不具合還元（04 の Shift-Left Protocol） | AI（分析）／人間（承認） |
 
 **運用ルール**
 
@@ -57,9 +65,9 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  L3["層3: 探索・発見層<br/>人間の探索的テスト / AIブラウザ操作エージェント<br/>（少・遅・高コスト）"]
-  L2["層2: 結合・実環境層<br/>Integration / ハッピーパス厳選E2E（CI自動実行）"]
-  L1["層1: 最速・確定層<br/>型システム / Lint / Unit / PBT<br/>（多・速・低コスト）"]
+  L3["層3: 探索・発見層<br/>（少・遅・高コスト）"]
+  L2["層2: 結合・実環境層"]
+  L1["層1: 最速・確定層<br/>（多・速・低コスト）"]
   L1 -- "未知の不具合を発見" --> L2
   L2 --> L3
   L3 -. "不具合還元（Shift-Left）" .-> L1
@@ -67,30 +75,24 @@ flowchart TB
 
 ### 層1: 最速・確定層
 
-| 項目 | 内容 |
-|---|---|
-| 構成 | 型システム、Lint、Unit テスト、PBT（Property-Based Testing） |
-| フィードバック | ミリ秒〜数秒。エディタ保存時・コミット前フックで実行 |
-| 判定 | 決定的（flaky を許容しない） |
-| AIとの関係 | **AIによるコード自動修正の主軸。** AI は失敗出力を入力にして自己修復ループを回す |
-| 方針 | ビジネスロジック・検証ロジック・状態遷移の検証は原則ここで完結させる |
+- 構成: 型システム、Lint、Unit テスト、PBT（Property-Based Testing）
+- フィードバック: ミリ秒〜数秒。エディタ保存時・コミット前フックで実行
+- 判定: 決定的（flaky を許容しない）
+- AIとの関係: **AIによるコード自動修正の主軸。** AI は失敗出力を入力にして自己修復ループを回す
+- 方針: ビジネスロジック・検証ロジック・状態遷移の検証は原則ここで完結させる
 
 ### 層2: 結合・実環境層
 
-| 項目 | 内容 |
-|---|---|
-| 構成 | Integration テスト（DB・外部I/F・API 契約）、ハッピーパスに厳選した E2E |
-| 実行 | CI で全 PR に対し自動実行 |
-| 方針 | 層1で検証できないもの（配線、通信、実ブラウザ依存）に限定する。E2E の許可領域は 02c §5 に従う |
+- 構成: Integration テスト（DB・外部I/F・API 契約）、ハッピーパスに厳選した E2E
+- 実行: CI で全 PR に対し自動実行
+- 方針: 層1で検証できないもの（配線、通信、実ブラウザ依存）に限定する。E2E の許可領域は 02c §5 に従う
 
 ### 層3: 探索・発見層
 
-| 項目 | 内容 |
-|---|---|
-| 構成 | 人間の探索的テスト、AIブラウザ操作エージェントによる自律探訪 |
-| 実行 | バックグラウンドで自律実行（夜間・デプロイ後など）。PR のブロッキング条件にはしない |
-| 目的 | **仕様化されていない未知の不具合**の発見 |
-| 出口 | 発見した不具合は 04 の不具合還元プロトコルで層1へ還元する。層3は「発見」で終わらせず「再発防止の下層化」まで行う |
+- 構成: 人間の探索的テスト、AIブラウザ操作エージェントによる自律探訪
+- 実行: バックグラウンドで自律実行（夜間・デプロイ後など）。PR のブロッキング条件にはしない
+- 目的: **仕様化されていない未知の不具合**の発見
+- 出口: 発見した不具合は 04 の不具合還元プロトコルで層1へ還元する。層3は「発見」で終わらせず「再発防止の下層化」まで行う
 
 ### 3層の使い分け基準
 
@@ -104,6 +106,8 @@ flowchart TB
 > **原則**: 「より下の層で検証できるなら、下の層に置く」。上の層にテストを追加する場合は、下層で代替できない理由を PR に明記する。
 
 ## 4. 人間とAIの責務分離
+
+設計・合意・承認は人間、生成・修復は AI が担う。
 
 | 領域 | 人間 | AI |
 |---|---|---|
@@ -122,6 +126,8 @@ flowchart TB
 
 ## 5. 品質ゲート（最低基準）
 
+文書（G0）から TRS 整合（G5）までの6つのゲートを、最低基準とする。
+
 | ゲート | 条件 | 実行タイミング |
 |---|---|---|
 | G0 Markdown 検査 | `markdownlint-cli2` の指摘が 0 件、かつ全 Mermaid 図が `mermaid-cli` でレンダリング可能。対象は、本ドキュメント群を含む全 `.md`。ローカルも CI も同一コマンド: `npm ci && npm run lint` | PR／main（CI: `.github/workflows/lint.yml`） |
@@ -139,12 +145,12 @@ G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先�
 
 | ゲート | 必須チェック（ジョブ） | 実装状況 |
 |---|---|---|
-| G0 | `lint`（`lint.yml`） | 実装済み。`npm run lint` は、G0 の条件の検査（`markdownlint-cli2`・`mermaid-cli`）に加えて、本リポジトリ固有の `lint:refs`（`scripts/check-section-refs.mjs`、02a・02b・02c の節番号参照とリンクの検査）も実行する。`lint:refs` は導入先に求める要件ではない |
+| G0 | `lint`（`lint.yml`） | 実装済み。`npm run lint` は、G0 の条件の検査に加えて、本リポジトリ固有の `lint:refs`（`scripts/check-section-refs.mjs`、02a・02b・02c の節番号参照とリンクの検査）も実行する。`lint:refs` は導入先に求める要件ではない |
 | G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
 | G2 | `test`（`./gradlew test`） | 実装済み |
-| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先では、補う手段（テストの無い新規・変更クラスを PR で落とす）を導入先で実装する。本リポジトリは例外を使わない |
-| G4 | `integration`・`e2e`（`kotlin-samples.yml`、`./gradlew integrationTest` / `./gradlew e2eTest`） | 実装済み。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は `integration` ジョブ、E2E（Playwright の Chromium、`src/e2eTest`）は `e2e` ジョブで PR に対して実行し、どちらもルールセット（Protect main）の必須チェックに登録している。登録済みの必須チェックは `lint` / `test` / `check` / `integration` / `e2e` で、G4 は層2の失敗でマージを止める。層1の `test` とは別ジョブ（02b §3.2） |
-| G5 | `test`（`TraceabilityTest`） | 実装済み。AC に紐づくテストの有無と、未解決の Blocking な Open Issue（TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion`）が指す AC に `@pending:<OI-ID>` があるかと、`@pending` が未解決の Blocking な OI-ID だけを指している（`ISSUE-n`・表に無い ID・Resolved 等の OI-ID は不可）か、`@pending` を付けた AC がその OI の関連列に含まれるかを検査する（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
+| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先は、補う手段（テストの無い新規・変更クラスを PR で落とす）を実装する。本リポジトリは例外を使わない |
+| G4 | `integration`・`e2e`（`kotlin-samples.yml`、`./gradlew integrationTest` / `./gradlew e2eTest`） | 実装済み。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は `integration` ジョブ、E2E（Playwright の Chromium、`src/e2eTest`）は `e2e` ジョブで PR に対して実行する。登録済みの必須チェックは `lint` / `test` / `check` / `integration` / `e2e` で、G4 は層2の失敗でマージを止める。層1の `test` とは別ジョブ（02b §3.2） |
+| G5 | `test`（`TraceabilityTest`） | 実装済み。G5 の条件（テストの有無・`@pending` の要否・書ける ID・関連列）を検査する。「未解決の Blocking な Open Issue」は、TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion` のもの。`@pending` に書けない値は、`ISSUE-n`・表に無い ID・Resolved 等の OI-ID である（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
 
 人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。
 
