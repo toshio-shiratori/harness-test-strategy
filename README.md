@@ -1,8 +1,8 @@
 # harness-test-strategy
 
-AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保てるようにするため、機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程を文書にまとめています。
+AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保てるよう、機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。
 
-成果物は `docs/testing/` の Markdown です。アプリやライブラリではありません。`src/` は、`02a`・`02b` に載せた Kotlin のサンプルが実際にコンパイルされテストを通ることを保証する、検証用のプロジェクトです。
+成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。`src/` は、`02a`・`02b` の Kotlin サンプルがコンパイルされテストを通ることを保証する検証用プロジェクトです。
 
 ## 対象読者
 
@@ -10,17 +10,24 @@ AI(コーディングエージェント)を使った開発に、テスト戦略�
 
 ## 読む順番
 
-| 順 | 文書 | 内容 |
-|---|---|---|
-| 1 | [01 基本方針書](docs/testing/01-test-policy.md) | 基本理念、W字モデル、テストの層構造 |
-| 2a | [02a 型設計とPBT](docs/testing/02a-types-and-pbt.md) | 型で誤りを書けなくする設計、PBT(AIガードレール＆テストアーキテクチャ標準 1/3) |
-| 2b | [02b 層1の実行境界とミューテーション](docs/testing/02b-execution-and-mutation.md) | 層1と Integration の実行境界、ミューテーションテスト、AI 向けガードレール設定(同 2/3) |
-| 2c | [02c E2E 最小化原則](docs/testing/02c-e2e.md) | E2E を許可する領域、審査、予算(同 3/3) |
-| 3 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法 |
-| 4 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
-| 5 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
-| - | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
-| - | [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) / [PAY-002](docs/testing/trs/PAY-002-payment-persistence.md) | TRS の実例 |
+```mermaid
+flowchart LR
+    A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b 実行境界とミューテーション"] --> D["02c E2E"] --> E["03 TRS"] --> F["04 運用規程"] --> G["05 導入手順"]
+```
+
+02a〜02c は「AIガードレール＆テストアーキテクチャ標準」の 1/3〜3/3 です。
+
+| 文書 | 内容 |
+|---|---|
+| [01 基本方針書](docs/testing/01-test-policy.md) | 基本理念、W字モデル、テストの層構造 |
+| [02a 型設計とPBT](docs/testing/02a-types-and-pbt.md) | 型で誤りを書けなくする設計、PBT |
+| [02b 層1の実行境界とミューテーション](docs/testing/02b-execution-and-mutation.md) | 層1・統合テスト・E2E の実行境界、ミューテーションテストの実行時期と閾値、AI エージェントに従わせる機械的な設定 |
+| [02c E2E 最小化原則](docs/testing/02c-e2e.md) | E2E を許可する領域、審査、予算 |
+| [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法 |
+| [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
+| [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
+| [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
+| [ORD-001](docs/testing/trs/ORD-001-add-item.md) / [PAY-001](docs/testing/trs/PAY-001-payment-state-transition.md) / [PAY-002](docs/testing/trs/PAY-002-payment-persistence.md) | TRS の実例 |
 
 ## 中心となる考え方
 
@@ -31,7 +38,7 @@ AI(コーディングエージェント)を使った開発に、テスト戦略�
 
 ## `src/`(サンプルの検証用プロジェクト)
 
-`order` と `payment` は、TRS の実例(ORD-001 / PAY-001 / PAY-002)に対応するサンプル領域です。製品コードではありません。
+`order` と `payment` は TRS の実例(ORD-001 / PAY-001 / PAY-002)に対応するサンプル領域で、製品コードではありません。
 
 | 項目 | 内容 |
 |---|---|
@@ -59,10 +66,10 @@ CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest`
 
 ### E2E のセットアップ
 
-E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎます。Playwright for Java(Chromium、ヘッドレス)で、`static/index.html` の注文追加フォームを操作します。`test`・`integrationTest`・`check` には含まれません。`./gradlew e2eTest` で明示的に実行します。
+E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎ、Playwright for Java(Chromium、ヘッドレス)で `static/index.html` の注文追加フォームを操作します。`test`・`integrationTest`・`check` には含まれず、`./gradlew e2eTest` で明示的に実行します。
 
 - Docker を起動しておきます。MySQL 8.4 のコンテナを使います。
-- ブラウザは、`./gradlew e2eTest` が実行前に `playwrightInstall`(Playwright CLI の `install chromium`)を呼んで取得します。取得済みならダウンロードは省かれます(CLI は毎回起動します)。`playwrightInstall` は単独でも実行できます。
+- ブラウザは、`./gradlew e2eTest` が実行前に `playwrightInstall`(Playwright CLI の `install chromium`)を呼んで取得します。取得済みならダウンロードを省きます(CLI は毎回起動します)。`playwrightInstall` は単独でも実行できます。
 
   ```bash
   ./gradlew playwrightInstall
@@ -75,7 +82,9 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
 
 ### サンプルアプリを手元で動かす
 
-テストが検証している挙動を、実際の画面で確かめる手順です。`src/main/resources/application.properties` には DB 接続の設定がないため、MySQL を自分で用意し、接続設定を環境変数で渡します。設定ファイルは変えません。
+テストが検証している挙動を、実際の画面で確かめる手順です。
+
+`src/main/resources/application.properties` には DB 接続の設定がないため、MySQL を自分で用意し、接続設定を環境変数で渡します。設定ファイルは変えません。
 
 前提は、JDK 21、Docker、空いているポート 3306 と 8080 です(使用中なら、下の `-p` と `SPRING_DATASOURCE_URL` のポートを合わせて変えます)。次の環境で確かめました。macOS(Apple Silicon、arm64)、Docker 29.3.1、OpenJDK 21。
 
@@ -90,7 +99,7 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
    until docker exec harness-sample-mysql mysqladmin ping -h127.0.0.1 -uroot -psample --silent 2>/dev/null; do sleep 2; done
    ```
 
-2. 接続設定を環境変数で渡して起動します。起動時に Flyway が `payment` テーブルを作ります(`order` 側は DB を使いません)。`Started ApplicationKt` が出たら起動済みです。止めるときは `Ctrl-C` です。
+2. 接続設定を環境変数で渡して起動します。起動時に Flyway が `payment` テーブルを作ります(`order` 側は DB を使いません)。`Started ApplicationKt` が出たら起動済みです。
 
    ```bash
    SPRING_DATASOURCE_URL='jdbc:mysql://localhost:3306/sample' \
@@ -99,7 +108,7 @@ E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につ�
    ./gradlew bootRun
    ```
 
-   環境変数を渡さずに起動すると、`Failed to configure a DataSource: 'url' attribute is not specified` というエラーで、終了コード 1 で失敗します（`application.properties` に DB の設定がないため）。
+   環境変数を渡さずに起動すると、`Failed to configure a DataSource: 'url' attribute is not specified` というエラーで、終了コード 1 で失敗します(`application.properties` に DB の設定がないため)。
 
 3. ブラウザで <http://localhost:8080/> を開きます。SKU と数量を入れて「追加」を押すと、結果欄に HTTP ステータスと `codes` が出ます。画面は API(`POST /orders/items`)の応答をそのまま表示するだけで、検証は API が行います。
 
@@ -123,8 +132,8 @@ curl -i -X POST http://localhost:8080/orders/items \
   -d '{"sku":"SKU-1","quantity":1000}'
 ```
 
-- 画面に出る状態表示（成功・失敗の別）、ステータスの表示、`codes` の 1 件ずつの表示は、AC ではなく画面の設計です([ORD-001 の OI-007](docs/testing/trs/ORD-001-add-item.md))。AC が定めるのは HTTP ステータスと `codes` の値までです。`detail` の文言は仕様ではありません。
-- 数量を空欄にすると `MISSING_FIELD`(AC-01-11)、`1.5` のような小数を入れると `INVALID_JSON`（AC-01-10）が返ります（画面は数値でない入力を文字列として送るので、型の不一致として扱われます）。
+- 画面に出る状態表示(成功・失敗の別)、ステータスの表示、`codes` の 1 件ずつの表示は、AC ではなく画面の設計です([ORD-001 の OI-007](docs/testing/trs/ORD-001-add-item.md))。AC が定めるのは HTTP ステータスと `codes` の値までで、`detail` の文言は仕様ではありません。
+- 数量を空欄にすると `MISSING_FIELD`(AC-01-11)、`1.5` のような小数を入れると `INVALID_JSON`(AC-01-10)が返ります(画面は数値でない入力を文字列として送るので、型の不一致として扱われます)。
 - 追加処理はログ出力のみで、注文は保存されません(ORD-001 OI-004)。成功すると、`bootRun` のログに `add item sku=SKU-1 quantity=3` が出ます。
 
 ## 自分のプロジェクトで使うには
