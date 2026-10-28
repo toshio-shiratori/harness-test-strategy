@@ -16,14 +16,12 @@
 | ファイル | 扱う節 | 内容 | 分けた理由 |
 |---|---|---|---|
 | [02a 型設計とPBT](./02a-types-and-pbt.md) | §0 技術前提、§1 型設計、§2 PBT | 誤りを書けなくする型設計と、不変条件を検査する PBT の標準 | ドメインのコード例が中心で、型と PBT を続けて読む |
-| [02b 層1の実行境界とミューテーション](./02b-execution-and-mutation.md)（本書） | §3 層1の構成と実行境界、§4 ミューテーション、§6 AI向けガードレール設定 | テストをいつ・どこで・どの強度で回すか、それを機械的に強制する設定 | ビルド・CI の設定を変えるときに参照する。§6 は、ビルド・CI で機械的に強制する設定（コンパイラ・detekt・ktlint・Konsist）を扱うため、§3・§4 と同じくここに置く |
+| [02b 層1の実行境界とミューテーション](./02b-execution-and-mutation.md)（本書） | §3 層1 の標準構成と実行順序、§4 ミューテーションテスト標準、§6 AI向けガードレール設定（実装の拠り所） | テストをいつ・どこで・どの強度で回すか、それを機械的に強制する設定 | ビルド・CI の設定を変えるときに参照する。§6 は、ビルド・CI で機械的に強制する設定（コンパイラ・静的解析・アーキテクチャ検査）を扱うため、§3・§4 と同じくここに置く |
 | [02c E2E 最小化原則](./02c-e2e.md) | §5 E2E 最小化原則 | E2E の許可領域・審査・予算 | 独立した運用規則で、他の節と別に編集できるようにする |
 
 節番号は分割前の `02` の番号をそのまま使う（02b は第5節が欠番で、02c は第5節のみ）。参照は `02a §2.3` のように書く。
 
-> コード例は **Kotlin + Spring Boot 4.1.x** で示す。原則そのものは言語非依存である。
->
-> §3.3・§4.4 のコード例は、[02a §0 の技術前提](./02a-types-and-pbt.md#0-技術前提コード例のベースライン)に従い、`src/`・`build.gradle.kts` に対応する。変更するときは `src/` 側も同時に更新すること（型設計・PBT の同期は [02a](./02a-types-and-pbt.md) を参照）。
+> この文書は特定の言語・ツールに依存しない。括弧内のツール名は例示で、導入先の言語・ツールに読み替えて適用する。
 
 ## 3. 層1 の標準構成と実行順序
 
@@ -44,68 +42,29 @@ flowchart LR
 
 ### 3.2 層1・統合テスト・E2E の実行境界
 
-実 DB や実ブラウザのテストを足しても層1の速度要件（全体で数秒以内）を壊さないよう、Gradle の実行タスクとソースセットで境界を分ける。
+実 DB や実ブラウザのテストを足しても層1の速度要件（全体で数秒以内）を壊さないよう、実行コマンドとテストの置き場所（ディレクトリ。例: Gradle のソースセット）で境界を分ける。
 
 | 項目 | 層1 | 統合テスト（Integration） | E2E |
 |---|---|---|---|
-| ソースセット | `src/test` | `src/integrationTest`（JVM Test Suite） | `src/e2eTest`（JVM Test Suite） |
-| 実行 | `./gradlew test` | `./gradlew integrationTest` | `./gradlew e2eTest`（`test`・`integrationTest`・`check` には含まれない） |
-| 置くもの | 型・Unit・PBT・Konsist 検査 | Spring コンテキストを起動するテスト（`@WebMvcTest`・`@SpringBootTest`）と、Testcontainers で実 DB を使うテスト | Spring を `RANDOM_PORT` で起動し、実ブラウザ（Playwright の Chromium）で操作するテスト。02c §5.1 の許可領域のみ |
-| 必要なもの | JDK のみ（Spring・Docker 不要） | JDK と Docker（Testcontainers） | JDK、Docker（Testcontainers）、ブラウザ（`playwrightInstall` が取得する） |
-| CI | `kotlin-samples.yml` の `test` ジョブ | 同 `integration` ジョブ | 同 `e2e` ジョブ（PR で実行。`timeout-minutes: 10` が 02c §5.4 の予算） |
+| 置き場所 | 層1専用のディレクトリ | 統合テスト専用のディレクトリ | E2E専用のディレクトリ |
+| 実行 | 層1専用のコマンド | 統合テスト専用のコマンド | E2E専用のコマンド（層1・統合テストのコマンドや、一括実行には含めない） |
+| 置くもの | 型・Unit・PBT・アーキテクチャ検査 | アプリケーションフレームワークのコンテキストを起動するテストと、コンテナで起動した実 DB を使うテスト | 実ブラウザで操作するテスト。02c §5.1 の許可領域のみ |
+| 必要なもの | 言語のランタイムとテストランナーのみ（フレームワークの起動・コンテナ不要） | ランタイムとコンテナ実行環境 | ランタイム、コンテナ実行環境、ブラウザ |
+| CI | 層1のジョブ | 統合テストのジョブ | E2E のジョブ（PR で実行。ジョブの時間上限が 02c §5.4 の予算） |
 
-- 次の配置は `ExecutionBoundaryTest`（Konsist）が検査する。違反例（層1に置いた Playwright を含む。`config/konsist-fixtures/boundary/`）で検出できることも確認している。
-  - 層1のテストは、Spring のコンテキスト起動（`org.springframework.boot.*`・`org.springframework.test.*`・`org.springframework.context.*`・`org.springframework.beans.factory.annotation.*`）と `org.testcontainers.*` を使わない。
-  - これらを使うテストは `src/integrationTest` と `src/e2eTest` にだけ置く。
-  - 層1のファイルにアノテーション `@SpringBootTest`・`@WebMvcTest`・`@DataJdbcTest`・`@JdbcTest`・`@MybatisTest`・`@Testcontainers`・`@ServiceConnection` が書かれていると違反になる。
-  - Spring・Testcontainers の検査は import の接頭辞とアノテーションの正規表現の 2 経路で行い、どちらかに当たれば違反とする。
-  - `org.springframework.http` や `org.springframework.web` のような、型だけの利用は許可する。
-  - ブラウザ操作（`com.microsoft.playwright.*`）は `src/e2eTest` にだけ置き、層1と `src/integrationTest` には入れない。
-- `TestProtectionTest`（@Disabled 検出）と `TraceabilityTest`（AC 紐づけ）は、`src/test`・`src/integrationTest`・`src/e2eTest` の全てを対象にする。`src/integrationTest` と `src/e2eTest` が検査から外れていないことは、それぞれのテストで確認している。
+- 実行境界は、実行境界の検査で機械的に確認する。検査そのものが違反を検出できることも、違反例で確認する。
+  - 層1のテストは、フレームワークのコンテキスト起動とコンテナ（実 DB）の起動を使わない。
+  - これらを使うテストは、統合テストと E2E の置き場所にだけ置く。
+  - 層1のファイルに、コンテキスト起動やコンテナ起動を宣言する記述（アノテーションなど）があると違反になる。
+  - この検査は、依存の参照と宣言の記述の 2 経路で行い、どちらかに当たれば違反とする。
+  - コンテキストを起動しない型だけの利用は許可する。
+  - ブラウザ操作は E2E の置き場所にだけ置き、層1と統合テストには入れない。
+- テスト保護の検査（無効化の検出）とトレーサビリティ検査（AC 紐づけ）は、層1・統合テスト・E2E のすべてを対象にする。統合テストと E2E が検査から外れていないことは、それぞれのテストで確認する。
 - AC に紐づく統合テスト・E2E のテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03 §3.4）。
-- ミューテーション（`pitest`）の対象は `*.domain.*` だけで、統合テストと E2E は混ざらない。
 
-### 3.3 DB を含む Integration のサンプル（Testcontainers）
+### 3.3 DB を含む Integration
 
-実例は TRS `PAY-002`（決済状態の保存・読み戻し）の `PaymentRepositoryIntegrationTest`。Adapter は `payment.adapter.persistence`（MyBatis のマッパー、`PaymentState` ↔ 行の変換、Flyway のマイグレーション）、ポートは `payment.domain.PaymentRepository` に置く。Spring Boot 4.1.1 で次を実測確認済み。
-
-| 用途 | 内容 |
-|---|---|
-| MyBatis | `org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0`（Spring Boot 4.1.0 でビルドされた版。BOM の管理外なのでバージョンを明示する） |
-| Flyway | `org.springframework.boot:spring-boot-starter-flyway` + `org.flywaydb:flyway-mysql`（バージョンは BOM が管理） |
-| MySQL ドライバ | `com.mysql:mysql-connector-j`（BOM 管理、`runtimeOnly`） |
-| Spring Boot のテスト連携 | `org.springframework.boot:spring-boot-testcontainers`（`org.springframework.boot.testcontainers.service.connection.ServiceConnection`） |
-| Testcontainers（2.x、BOM 管理） | `org.testcontainers:testcontainers-junit-jupiter`、`org.testcontainers:testcontainers-mysql`（`org.testcontainers.mysql.MySQLContainer`） |
-
-```kotlin
-@TestConfiguration(proxyBeanMethods = false)
-class MySqlContainerConfiguration {
-    @Bean
-    @ServiceConnection // DataSource（Flyway・MyBatis が使う）をこのコンテナへ自動接続する
-    fun mysql(): MySQLContainer = MySQLContainer("mysql:8.4")
-}
-
-@SpringBootTest
-@Import(MySqlContainerConfiguration::class)
-class PaymentRepositoryIntegrationTest {
-    @Autowired
-    lateinit var repository: PaymentRepository
-
-    @Test
-    fun `AC-03-02 Authorized を保存して読み戻すと、同じ時刻の Authorized である`() {
-        val id = (PaymentId.of("p-1") as Validated.Valid).value
-        val at = Instant.parse("2026-10-11T00:00:00.123456Z")
-
-        repository.save(id, PaymentState.Authorized(at))
-
-        repository.find(id) shouldBe PaymentState.Authorized(at)
-    }
-}
-```
-
-- DB の制約（CHECK）で守る不変条件は、アプリを経由しない書き込みも拒否できる。迂回した行が読み込み時にも拒否されることは、CHECK を外した DB で別に検証する（PAY-002 AC-03-08 / AC-03-09）。
-- `@WebMvcTest` のスライスは DataSource を起動しないため、Docker は要らない。
-- `@SpringBootTest` は DataSource・Flyway・MyBatis を含むので、コンテナ設定を `@Import` する。
+- DB を含む統合テストは、コンテナで実 DB を起動して行う（例: Testcontainers）。置き場所と必要なものは §3.2 の表のとおり。
 
 ## 4. ミューテーションテスト標準
 
@@ -119,6 +78,8 @@ AI が生成したテストは、**何も検証していない（偽陽性）テ
 | 夜間 | 層1の全対象 | Mutation Score ≥ 70%（低下傾向を監視） |
 | E2E 破棄判断時 | 04 §4 の手順に従う | 代替検証で生存ミュータント 0 |
 
+PR の差分ミューテーションで、差分から対象を決められない変更（ビルド設定など）のときは全体を対象にする。
+
 閾値はプロジェクトで調整してよいが、**引き下げは人間の承認**を要する。
 
 **導入期の例外（評価軸）**: 既存プロジェクトへの導入期に限り、上表の評価軸に代えて、PR では差分実行でテストの強度（カバー済みのミュータントのうち殺せた割合）、全体実行は週次で Mutation Score を評価してよい。全体実行の頻度を夜間から週次に変えることも、この例外の範囲に含む。この例外が変えるのは評価軸と全体実行の頻度だけである。導入期の閾値の値は、05 §1 原則 2・3 と上記の「引き下げは人間の承認」による。この例外は、次の3条件をすべて満たす場合に限る。
@@ -127,15 +88,9 @@ AI が生成したテストは、**何も検証していない（偽陽性）テ
 2. **記録**: 例外にした理由と再評価のトリガーを、[05 の据置の記録](./05-adoption-guide.md#据置の記録)と同じ形式（対象・理由・再評価のトリガー）で残す。
 3. **復帰の再評価**: 週次の Mutation Score が安定したら、上表の評価軸に戻すかを再評価する。
 
-本リポジトリはこの例外を使わない（上表のとおりに運用する）。評価軸を見直した実例（例外の条件をすべては満たしていない）が [05 §4](./05-adoption-guide.md#実例-導入モードの選択パイロット) にある。
+**仮置きの値の見直し**
 
-**仮置きの値の見直し（2026-10-10 に作成。E2E の行は 2026-10-14 の測定で更新。PR 80% / 夜間 70% の行の判断は 2026-10-17 に更新）**
-
-| 値 | 実測 | 判断 |
-|---|---|---|
-| PR 80% / 夜間 70% | ドメイン層 20 ミュータントで 95%（§4.4）。1 件の生存で約 5 ポイント動く | 据え置き。規模が小さい間は統計的な意味が薄いため、対象（ミュータント数）が増えたとき、または夜間の実測（`nightly-mutation.yml`）が 4 週分溜まったとき（いずれか早い方）に再評価する |
-| E2E 実行 10 分（[02c §5.4](./02c-e2e.md#54-e2e-予算)） | CI の `e2e` ジョブ全体は 2 分 1 秒。測定日は 2026-10-14、PR #93 の CI 初回実行で、ブラウザキャッシュなし。主な内訳は `./gradlew e2eTest` が 94 秒、setup-gradle が 12 秒、キャッシュ保存が 5 秒で、合計 111 秒。残りの約 10 秒は上記以外のステップである。ローカルのウォーム実行は 25〜26 秒で、テストクラスは約 8 秒（各テスト 0.1〜0.6 秒）。E2E は 3 本 | 10 分は据え置く。初回実行でも予算の約 20% で、固定費（コンテナ・ブラウザの起動と Chromium の取得）が大半を占める。E2E が 3 本の時点では、本数の増加による傾向を測れない。ブラウザキャッシュありの CI 実測は未測定のため、マージ後の最初の実行で再測定し、E2E が増えてから見直す |
-| ヒーリング 1 PR あたり 10 件（04 §3.3） | 自動修復の実績が無い | 実測不能のため据え置き。運用開始後に実績で見直す |
+閾値・E2E の実行時間の予算（02c §5.4）・ヒーリングの上限（04 §3.3）などの初期値は、仮置きの値である。仮置きの値は実測で見直し、実測・判断（据え置き・見直し）・再評価のトリガーを記録する。
 
 ### 4.2 コード破壊検証手順
 
@@ -147,7 +102,10 @@ flowchart TD
   D -->|"失敗（Killed）<br/>タイムアウトも Killed 扱い"| E["テストは有効"]
   D -->|"全件成功（Survived）"| F["テストの穴<br/>5 生存ミュータントの処理（下表）"]
   F --> G["6 再実行<br/>（閾値を満たすまで繰り返す）"]
+  G -->|"閾値未達<br/>テストを追加して再度 5 へ"| F
 ```
+
+手順 6 で閾値を満たさないときは、手順 5 に戻り、テストを追加して再実行する。
 
 注入するミュータントは、条件反転（`<` → `<=`）、算術演算子置換、戻り値置換、条件削除、ブロック削除、境界値の±1 などである。
 
@@ -164,79 +122,12 @@ flowchart TD
 - 生存ミュータントを理由なく除外リストに追加すること。
 - カバレッジ（行・分岐）の数値だけでテストの品質を主張すること。**カバレッジは「実行された」ことを、ミューテーションは「検証された」ことを示す。**
 
-### 4.4 Gradle での実行例（PIT）
+### 4.4 ミューテーションテストの実行方法
 
-JVM/Kotlin では PIT（Pitest）を用いる。`src/` で実際に動かして確認した構成を示す（Gradle 9 系 / Kotlin 2.4 系 / Kotest 6.2.5 / `info.solidsoft.pitest` 1.19.0 / `pitest-junit5-plugin` 1.2.3）。正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper（`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`）を正とする。
-
-```kotlin
-// build.gradle.kts（抜粋）
-plugins {
-    id("info.solidsoft.pitest") version "1.19.0"
-}
-
-pitest {
-    junit5PluginVersion.set("1.2.3")
-    // 既定はドメイン層全体。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
-    targetClasses.set(
-        providers.gradleProperty("pitest.targetClasses")
-            .map { it.split(",") }
-            .orElse(listOf("com.example.order.domain.*", "com.example.payment.domain.*")),
-    )
-    // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
-    targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
-    // アクセサ以外にメンバを持たない value class / data class だけをクラス単位で除外する（検証ロジックは companion 側）
-    excludedClasses.set(listOf("com.example.order.domain.Quantity", /* ... */ "com.example.order.domain.Validated\$Invalid"))
-    mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80)) // §4.1。夜間は 70
-    outputFormats.set(listOf("HTML", "XML"))
-    timestampedReports.set(false)
-}
-```
-
-```bash
-./gradlew pitest                                            # 全体。結果: build/reports/pitest/index.html
-./gradlew pitest -Ppitest.targetClasses="$(../../scripts/pitest-targets.sh origin/main)"   # PR と同じ差分実行（examples/kotlin-spring/ で実行。ALL / NONE の扱いは下記）
-```
-
-**CI での実行**（`kotlin-samples.yml` / `nightly-mutation.yml`）
-
-| 契機 | 対象 | 閾値 |
-|---|---|---|
-| PR | `scripts/pitest-targets.sh` が base との差分から変更クラスを決める。`ALL` にする 2 つ（下記）以外の対象外の変更は `NONE`（スキップ）にする | 80% |
-| main への push | 全体 | 80% |
-| 夜間（毎日 03:00 JST） | 全体。スコアを Step Summary に出力し、レポートを成果物として 90 日保管して推移を追う | 70% |
-
-- PR では、次の 2 つは `NONE` より優先して `ALL`（全体）にする。
-  - `build.gradle.kts`・`settings.gradle.kts`・`gradle/`・`config/`・`.editorconfig` の変更。Gradle の依存更新 PR を含む（Dependabot の github-actions と npm の PR は含まれず、`NONE` になる）。
-  - `order` / `payment` のドメインのテストが変わり、ドメインの本番クラスが変わっていない場合。
-
-**実際に踏んだ注意点**
-
-| 事象 | 原因と対処 |
-|---|---|
-| `Coverage generation minion exited abnormally` | `targetTests` 未指定が原因（上のコードのコメントのとおり）。`*Test` で明示する |
-| `NoSuchMethodError: SpecRef$Reference.<init>` | `kotest-extensions-pitest` 1.2.0 は Kotest 5.5.4 向けで、Kotest 6 と衝突する。**Kotest 6 では拡張なし**（`pitest-junit5-plugin` のみ）で動く |
-| value class のゲッターが `NO_COVERAGE` | コンパイラ生成アクセサは呼ばれない。名前ベースの `excludedMethods` は全クラスに効き、将来ロジックを持つゲッターを黙って見逃すため使わない。アクセサ以外にメンバを持たないクラスだけを `excludedClasses` で除外する。`Yen.getAmount` は `plus` を持つクラスのため除外せず、生存ミュータントとして残している |
-| `plus` が 0 を返すミュータントが生存 | 交換則・結合則は常に 0 を返す実装でも成立する。**和そのものを検証するオラクル Property** を追加して検出した（[02a §2.2](./02a-types-and-pbt.md#22-property-の型定義基準)） |
-| `0..MAX` の境界のミュータントが生存 | ランダム入力は境界ちょうどの値に当たりにくい。**境界値を Example で明示**して検出した（[02a §2.4](./02a-types-and-pbt.md#24-pbt-と-example-テストの使い分け)） |
-
-**実測結果（ドメイン層）**
-
-| 段階 | 検出率（Killed / Generated） | 備考 |
-|---|---|---|
-| 初回（Quantity・Yen・PaymentState のテストのみ） | 48%（15 / 31） | `Ids.kt` はテスト無し。`NO_COVERAGE` 14 件、生存 2 件 |
-| テスト追加後 | 77%（24 / 31） | 閾値 80% を下回り `pitest` がビルド失敗（ゲートが機能することを確認） |
-| 無意味な分岐の削除・アクセサ除外後 | 100%（18 / 18） | 閾値を満たす |
-| `excludedMethods` を `excludedClasses` に置換（`Ids.kt` のテスト追加後） | 95%（19 / 20） | `Yen.getAmount` のみ生存。閾値を満たす |
-
-- Kotlin が生成するバイトコード（`when` の分岐、null チェック、インライン関数など）由来の**等価ミュータント**が出やすいため、対象はドメイン層に絞る。
-- 等価ミュータントは §4.2 の手順で人間が承認して除外する。`excludedClasses` の追加・変更も同様に人間の承認を要する（`build.gradle.kts` は CODEOWNERS の対象）。
-- `PitestExclusionTest`（Konsist、`./gradlew test` で実行）が `build.gradle.kts` の `excludedClasses` を読み、次を検査する。
-  - `excludedClasses` が 1 箇所の `listOf` に文字列リテラルで列挙されている。それ以外の書き方では検査が失敗する。
-  - 列挙されたクラスが実在する。
-  - 列挙されたクラスが、コンパイラ生成アクセサ以外のメンバを持たない。ロジックを持つクラスを除外に加えると失敗する。違反例（メンバの検査）は `config/konsist-fixtures/pitest-exclusion/` で固定している。メンバの例は次のとおり。
-    - クラス自身: 関数、`init`、本体のプロパティ、副コンストラクタ、主コンストラクタ引数の既定値、スーパータイプ呼び出しの引数、インターフェース委譲（`by`）、ネストした型
-    - companion: `init` ブロック、`@JvmStatic` 関数、`const` でないプロパティ
-- Kotest / PIT の更新で壊れないかは、Dependabot による Gradle の更新 PR で検知する（`build.gradle.kts` や `gradle/` を変更するため `ALL` で `pitest` が走る）。
+- ミューテーションテストは、言語ごとのツールで実行する（例: PIT（JVM）、Stryker（JS/TS）、mutmut（Python））。実行時期と閾値は §4.1 に従う。
+- 等価ミュータントは §4.2 の手順で人間が承認して除外する。除外設定の追加・変更も同様に人間の承認を要する。
+- ミューテーションツールやテストフレームワークの更新で壊れないかは、それらの依存更新の PR で検知する。ビルド設定の変更として、全体を対象にして実行する（§4.1）。
+- ツールごとの設定は言語によって異なるため、この標準では定めない。確認できていない設定は書かず、ツールの公式ドキュメントで確認する。
 
 ## 6. AI向けガードレール設定（実装の拠り所）
 
@@ -244,20 +135,20 @@ AI エージェントが従うべき機械的ルールを、リポジトリ設�
 
 | 領域 | 設定 |
 |---|---|
-| コンパイラ | `allWarningsAsErrors = true`。Kotlin の null 安全を維持し、Java 連携部は JSpecify の null 注解（Spring Boot 4 の標準）に従う |
-| 静的解析 | detekt と ktlint。設定は `config/detekt/detekt.yml` と `.editorconfig`。コマンドは `./gradlew detekt ktlintCheck`（ローカルも CI も同一） |
-| アーキテクチャ検査 | Konsist（`src/test/.../architecture/DomainArchitectureTest.kt`、`./gradlew test` で実行）。Kotlin 固有の検査が多いため ArchUnit ではなく Konsist を採用した |
-| テスト保護 | テストの無効化（JUnit の `@Disabled`、Kotest の `xdescribe` / `!` 接頭辞・`enabled = false`）を `TestProtectionTest`（Konsist、`./gradlew test`）で検出して失敗させる。意図的な無効化の手順は 04 §3.4.1。アサーション削除・スナップショット一括更新は機械検出せずレビューで確認する（スナップショットテストは現状未使用） |
-| 変更制限 | `docs/testing/trs/`・`examples/kotlin-spring/docs/trs/` と期待値ファイルの変更は人間レビュー必須（CODEOWNERS） |
-| エージェント指示 | リポジトリの `CLAUDE.md` 等に、本標準と 04 のヒーリング規程への参照を記載する |
+| コンパイラ | 警告をエラーとして扱う。言語の null 安全を維持し、他言語との連携部は null 可否の注釈に従う |
+| 静的解析 | Lint とフォーマッタ（例: detekt・ktlint（Kotlin）、ESLint（JS/TS）、Ruff（Python））。設定はリポジトリに置き、コマンドはローカルも CI も同一にする |
+| アーキテクチャ検査 | 層の依存方向と禁止パターンを、テストとして実行する検査で強制する（例: ArchUnit（JVM）、Konsist（Kotlin）） |
+| テスト保護 | テストの無効化（スキップ指定など）を検出して失敗させる。意図的な無効化の手順は 04 §3.4.1。アサーション削除・スナップショット一括更新は機械検出せずレビューで確認する |
+| 変更制限 | TRS と期待値ファイルの変更は人間レビュー必須（例: CODEOWNERS） |
+| エージェント指示 | リポジトリのエージェント指示ファイル（例: CLAUDE.md）に、本標準と 04 のヒーリング規程への参照を記載する |
 
 - 静的解析
-  - detekt のルールは `UnsafeCallOnNullableType`〔`!!`〕、`UnsafeCast`〔常に失敗するキャストのみ検出〕、`LateinitUsage`、`ForbiddenAnnotation`〔`@Suppress` 等〕、`ForbiddenMethodCall`〔`println` 等〕を使う。
-  - 型解決が必要なルールがあるため `detektMain` で実行する。
-  - テストの `as` 例外（[02a §2.2](./02a-types-and-pbt.md#22-property-の型定義基準)）のため、検査対象は本番ソースのみである。
-  - 根拠のない `as` 全般は detekt の標準ルールでは検出できないため、レビュー（[02a §1.4](./02a-types-and-pbt.md#14-型ガードレールのチェックリストレビュー観点)）で補う。
+  - 型の迂回（null の強制解除、安全でない型変換）、実行時の初期化漏れを招く宣言、検査の抑制指定、標準出力への出力を禁止するルールを使う。
+  - 型情報が必要なルールは、型解決を有効にして実行する。
+  - テストで型変換を認める例外（[02a §2.2](./02a-types-and-pbt.md#22-property-の型定義基準)）のため、検査対象は本番ソースのみである。
+  - 根拠のない型変換全般は標準ルールでは検出できないことがあるため、レビュー（[02a §1.4](./02a-types-and-pbt.md#14-型ガードレールのチェックリストレビュー観点)）で補う。
 - アーキテクチャ検査
-  - ドメイン層（`..domain..`）でプリミティブ型のプロパティ・引数が露出していないことを検査する。
-    - この検査の例外は2つで、いずれもテスト内にコメントで理由を残している。1つは value class が内部に保持する値と `const` 定数、もう1つは外部入力を一度だけパースする境界の `of` ファクトリである。
-  - ドメイン層が Spring に依存していないことを検査する。
-  - `when` に `else` がないことを、本番コード全体で検査する。
+  - ドメイン層でプリミティブ型のプロパティ・引数が露出していないことを検査する。
+    - この検査の例外は2つで、いずれもテスト内にコメントで理由を残す。1つは値オブジェクトが内部に保持する値と定数、もう1つは外部入力を一度だけパースする境界のファクトリである。
+  - ドメイン層がフレームワークに依存していないことを検査する。
+  - 列挙型・直和型の分岐に既定分岐（`else` など）がないことを、本番コード全体で検査する。
