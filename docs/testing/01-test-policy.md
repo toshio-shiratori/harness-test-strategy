@@ -30,21 +30,20 @@
 flowchart LR
   subgraph DEV["開発ライン"]
     direction LR
-    D1["要件定義"] --> D2["基本設計"] --> D3["詳細設計"] --> D4["実装"] --> D5["CI・リリース判定"]
+    D1["要件定義"] --> D2["設計"] --> D3["実装"] --> D4["検証"] --> D5["運用"]
   end
   subgraph TEST["テストライン（並行）"]
     direction LR
-    T1["TRS定義<br/>(US/UC)"] --> T2["受入条件(AC)確定"] --> T3["因子・水準設計"] --> T4["テスト実装(AI)"] --> T5["実行・探索"]
+    T1["TRS 起草<br/>(AC を Gherkin で)"] --> T2["因子・水準設計<br/>Open Issues 起票"] --> T3["テスト生成(AI)"] --> T4["探索的テスト"] --> T5["不具合還元"]
   end
   D1 <-.-> T1
-  D2 <-.-> T2
+  D2 <-. "Open Issues で仕様を往復" .-> T2
   D3 <-.-> T3
   D4 <-.-> T4
   D5 <-.-> T5
-  T3 -. "Open Issues で仕様を往復" .-> D2
 ```
 
-図は開発ラインとテストラインの並行関係、表はテストラインの成果物と主担当を示す。
+図は開発ラインとテストラインの並行関係（5 フェーズ）、表は同じ 5 フェーズごとのテストラインの成果物と主担当を示す。
 
 | フェーズ（開発ライン） | テストライン（並行成果物） | 主担当 |
 |---|---|---|
@@ -68,8 +67,8 @@ flowchart TB
   L3["層3: 探索・発見層<br/>（少・遅・高コスト）"]
   L2["層2: 結合・実環境層"]
   L1["層1: 最速・確定層<br/>（多・速・低コスト）"]
-  L1 -- "未知の不具合を発見" --> L2
-  L2 --> L3
+  L1 -- "層1で検証できないものを担う" --> L2
+  L2 -- "仕様化されていない未知の不具合を探す" --> L3
   L3 -. "不具合還元（Shift-Left）" .-> L1
 ```
 
@@ -130,29 +129,35 @@ flowchart TB
 
 | ゲート | 条件 | 実行タイミング |
 |---|---|---|
-| G0 Markdown 検査 | `markdownlint-cli2` の指摘が 0 件、かつ全 Mermaid 図が `mermaid-cli` でレンダリング可能。対象は、本ドキュメント群を含む全 `.md`。ローカルも CI も同一コマンド: `npm ci && npm run lint` | PR／main（CI: `.github/workflows/lint.yml`） |
+| G0 Markdown 検査 | 文書（Markdown）の構文検査の指摘が 0 件、かつ全 Mermaid 図がレンダリング可能。対象は、本ドキュメント群を含む全 `.md`（ただし対象範囲は導入先が診断で決める）。ローカルも CI も同一のコマンドで実行する | PR／main |
 | G1 静的検査 | 型チェック・Lint がエラー 0 | 保存時／pre-commit |
 | G2 層1テスト | Unit・PBT 全件成功 | pre-commit／PR |
 | G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02b §4） | PR |
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
 | G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書けるのは未解決の Blocking な OI-ID だけで、付けられるのはその OI の関連列にある AC だけ） | PR |
 
-G0 の「全 `.md`」は本リポジトリ自身の規則である。導入先では、[05 の適合度診断](./05-adoption-guide.md#3-手順と完了条件)で対象範囲を決める。対象から外す場合は、[05 §4](./05-adoption-guide.md#4-導入モード) の「適用外」の手順（理由と代替の担保の記録）による。
+G0 の対象範囲は、導入先では [05 の適合度診断](./05-adoption-guide.md#3-手順と完了条件)で決める。対象から外す場合は、[05 §4](./05-adoption-guide.md#4-導入モード) の「適用外」の手順（理由と代替の担保の記録）による。
 
 ### 5.1 ゲートと必須チェックの対応
 
-`main` は GitHub のルールセット（Protect main）で、PR 必須・force push と削除の禁止・下記の必須チェックを強制する。必須チェックは **`paths:` フィルタを付けず PR で常に実行する**（フィルタがあると、対象外の変更で未実行のまま「待機中」となりマージできなくなるため）。
+**結論: 各ゲートを何で検査し、何で失敗とするかを下表に示す。**
 
-| ゲート | 必須チェック（ジョブ） | 実装状況 |
-|---|---|---|
-| G0 | `lint`（`lint.yml`） | 実装済み。`npm run lint` は、G0 の条件の検査に加えて、本リポジトリ固有の `lint:refs`（`scripts/check-section-refs.mjs`、02a・02b・02c の節番号参照とリンクの検査）も実行する。`lint:refs` は導入先に求める要件ではない |
-| G1 | `test`（`kotlin-samples.yml`）のコンパイル（`allWarningsAsErrors`）と `./gradlew detekt ktlintCheck` | 実装済み（アーキテクチャ検査は G2 の `test` で実行） |
-| G2 | `test`（`./gradlew test`） | 実装済み |
-| G3 | `test`（`./gradlew pitest`、PR は差分のみ） | 実装済み。夜間の全体実行は `nightly-mutation.yml`。導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先は、補う手段（テストの無い新規・変更クラスを PR で落とす）を実装する。本リポジトリは例外を使わない |
-| G4 | `integration`・`e2e`（`kotlin-samples.yml`、`./gradlew integrationTest` / `./gradlew e2eTest`） | 実装済み。Integration（`@WebMvcTest` + `RestTestClient`、Testcontainers の MySQL を使う DB 統合）は `integration` ジョブ、E2E（Playwright の Chromium、`src/e2eTest`）は `e2e` ジョブで PR に対して実行する。登録済みの必須チェックは `lint` / `test` / `check` / `integration` / `e2e` で、G4 は層2の失敗でマージを止める。層1の `test` とは別ジョブ（02b §3.2） |
-| G5 | `test`（`TraceabilityTest`） | 実装済み。G5 の条件（テストの有無・`@pending` の要否・書ける ID・関連列）を検査する。「未解決の Blocking な Open Issue」は、TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion` のもの。`@pending` に書けない値は、`ISSUE-n`・表に無い ID・Resolved 等の OI-ID である（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
+ゲートを CI の必須チェックにする場合、必須チェックは **パス条件で実行を絞らず、PR で常に実行する**（例: GitHub Actions の `paths:` フィルタを付けない。絞ると、対象外の変更で未実行のまま「待機中」となりマージできなくなるため）。
 
-人間のレビューは、一人運用のため承認数を要求せず、`.github/CODEOWNERS` で対象ファイルの責任者を明示するに留める。複数人になった時点で、ルールセットの `require_code_owner_review` を有効にする。
+| ゲート | 何を検査するか | 何で失敗させるか | 実現例（ツール名は例示） |
+|---|---|---|---|
+| G0 | 文書の構文と図のレンダリング | 構文検査の指摘が 1 件でもある、または図が 1 つでもレンダリングできない | 例: markdownlint-cli2（構文）、mermaid-cli（図） |
+| G1 | 型チェックと Lint | 型エラーまたは Lint のエラーが 1 件でもある | |
+| G2 | 層1のテスト（Unit・PBT） | 1 件でもテストが失敗する | |
+| G3 | 変更ファイルの Mutation Score | Mutation Score が閾値（02b §4.1）を下回る | 例: PIT（JVM）、Stryker（JS/TS） |
+| G4 | 層2のテスト（Integration・E2E） | 1 件でもテストが失敗する | 例: Testcontainers（実 DB）、Playwright（実ブラウザ） |
+| G5 | TRS の AC とテストの紐づけ | pending でない AC に対応するテストが無いとき、CI を**失敗**させる。除外は `@pending:<OI-ID>` だけである。`@pending` の要否・書ける ID・関連列に違反するときも失敗する | TRS の AC とテストを突き合わせるテストまたはスクリプト（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
+
+- G4 は、層1と実行境界を分ける（02b §3.2）。
+- G3 で導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先は、補う手段（テストの無い新規・変更クラスを PR で落とす）を実装する。
+- G5 の「未解決の Blocking な Open Issue」は、TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion` のものである。`@pending` に書けない値は、`ISSUE-n`・表に無い ID・Resolved 等の OI-ID である（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)）。
+
+人間のレビューでは、対象ファイルの責任者を明示する（例: GitHub の CODEOWNERS）。
 
 ## 6. 用語
 
