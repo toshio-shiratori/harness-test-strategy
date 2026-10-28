@@ -27,7 +27,7 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 - 図は ASCII ではなく **Mermaid** を使う。
 - サンプルコードは **Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
 - 型ガードレール(`02a` §1): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
-- PBT が失敗したら `02a` §2.3 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
+- PBT が失敗したら `02a` §2.3.1 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
 - 期待値は仕様(TRS の AC)を正とする。既存コードの挙動から期待値を逆生成しない(`03`)。
 - TRS の Open Issues は解決後も行を削除しない。AC / UC 番号は TRS 間で一意にする。
 
