@@ -2,7 +2,7 @@
 plugins {
     kotlin("jvm") version "2.4.21" // Spring Boot 4.1.1 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
     kotlin("plugin.spring") version "2.4.21"
-    id("org.springframework.boot") version "4.1.1"
+    id("org.springframework.boot") version "4.1.2"
     id("info.solidsoft.pitest") version "1.19.0"
     id("dev.detekt") version "2.0.0-alpha.6"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
@@ -75,7 +75,7 @@ testing {
                 implementation("org.testcontainers:testcontainers-junit-jupiter")
                 implementation("org.testcontainers:testcontainers-mysql")
                 // Playwright for Java。Spring Boot の BOM の管理外なのでバージョンを明示する（Maven Central の最新リリース）
-                implementation("com.microsoft.playwright:playwright:1.63.0")
+                implementation("com.microsoft.playwright:playwright:1.64.0")
             }
         }
     }
