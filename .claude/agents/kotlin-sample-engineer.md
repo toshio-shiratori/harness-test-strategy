@@ -34,7 +34,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
    - `./gradlew detekt ktlintCheck test integrationTest`
    - `examples/kotlin-spring/src/e2eTest` や `examples/kotlin-spring/src/main/resources/static/` を変えたときは `./gradlew e2eTest` も通す(Docker とブラウザ〔Chromium〕が必要。PR の CI では `integration` とは別の `e2e` ジョブ)
    - 続けて `./gradlew pitest`(閾値 80%)
-7. PBT が失敗したら `02a` §2.3 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない
+7. PBT が失敗したら `02a` §2.3.1 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない
 8. `02a`〜`02c` や TRS を編集したときは `npm ci && npm run lint` も通す
 
 ## 報告の形式

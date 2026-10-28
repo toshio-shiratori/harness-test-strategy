@@ -2,7 +2,7 @@
 
 **この文書で決めること**
 
-- コード例の技術前提（§0）と、誤りを書けなくする型設計（§1）
+- 導入先の言語・ツールに求める前提（§0）と、誤りを書けなくする型設計（§1）
 - PBT を必須とする対象、Property の型、実装ルール、失敗したときの手順（§2）
 
 | 項目 | 内容 |
@@ -14,87 +14,25 @@
 
 | ファイル | 扱う節 | 内容 | 分けた理由 |
 |---|---|---|---|
-| [02a 型設計とPBT](./02a-types-and-pbt.md)（本書） | §0 技術前提、§1 型設計、§2 PBT | 誤りを書けなくする型設計と、不変条件を検査する PBT の標準 | ドメインのコード例が中心で、型と PBT を続けて読む |
-| [02b 層1の実行境界とミューテーション](./02b-execution-and-mutation.md) | §3 層1の構成と実行境界、§4 ミューテーション、§6 AI向けガードレール設定 | テストをいつ・どこで・どの強度で回すか、それを機械的に強制する設定 | ビルド・CI の設定を変えるときに参照する。§6 は、ビルド・CI で機械的に強制する設定（コンパイラ・detekt・ktlint・Konsist）を扱うため、§3・§4 と同じくここに置く |
+| [02a 型設計とPBT](./02a-types-and-pbt.md)（本書） | §0 技術前提、§1 型設計、§2 PBT | 誤りを書けなくする型設計と、不変条件を検査する PBT の標準 | 型と PBT を続けて読む |
+| [02b 層1の実行境界とミューテーション](./02b-execution-and-mutation.md) | §3 層1の構成と実行境界、§4 ミューテーション、§6 AI向けガードレール設定 | テストをいつ・どこで・どの強度で回すか、それを機械的に強制する設定 | ビルド・CI の設定を変えるときに参照する。§6 は、ビルド・CI で機械的に強制する設定（コンパイラ・静的解析・フォーマッタ・アーキテクチャ検査）を扱うため、§3・§4 と同じくここに置く |
 | [02c E2E 最小化原則](./02c-e2e.md) | §5 E2E 最小化原則 | E2E の許可領域・審査・予算 | 独立した運用規則で、他の節と別に編集できるようにする |
 
 節番号は分割前の `02` の番号をそのまま使う（02b は第5節が欠番で、02c は第5節のみ）。参照は `02a §2.3` のように書く。
 
-> コード例は **Kotlin + Spring Boot 4.1.x** で示す。原則そのものは言語非依存である。
+> この文書は言語・ライブラリに依存しない。ツール名は括弧の例示にとどめ、プログラミング言語のコード例は置かない。
 
 ## 0. 技術前提（コード例のベースライン）
 
-コード例は下表の版を前提にする。表は系統（minor）で書いており、正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper（`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`）を正とする。
+導入先の言語・ツールが次を満たせば、この標準をそのまま適用できる。版や依存関係は導入先が定める。
 
-| 項目 | 前提 |
+| 前提 | 使う節 |
 |---|---|
-| Spring Boot | 4.1.x（Spring Framework 7.0.x、Jakarta EE 11） |
-| Kotlin | 2.4 系（Spring Boot 4.1 の BOM は 2.3 系を基準とするが、2.4 系で動作確認済み。`kotlin-reflect` / `kotlin-stdlib` は Kotlin プラグインと同じ版に揃うことを依存解決で確認） |
-| JDK | 21（`jvmToolchain(21)`。CI も 21） |
-| ビルド | Gradle 9 系（Kotlin DSL） |
-| JSON | Jackson 3（パッケージは `tools.jackson.*`。ただし `jackson-annotations` は `com.fasterxml.jackson.annotation` のまま） |
-| テスト | JUnit Platform + Kotest（Property / Assertions）。Spring を起動するテスト（`@WebMvcTest`・`@SpringBootTest`・DB 統合）は `src/integrationTest`、実ブラウザで操作する E2E は `src/e2eTest`（[02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界)） |
-| モック | `@MockitoBean` / `@MockitoSpyBean`（`org.springframework.test.context.bean.override.mockito`。Spring Boot 3 の `@MockBean` / `@SpyBean` は廃止済み） |
-
-> Spring Boot 4 では自動構成とテスト支援が機能別モジュールに分割された。4.1.1 で次を実測確認済み（`src/integrationTest/.../adapter/web/OrderControllerHttpTest.kt`）。
->
-> | 用途 | 内容 |
-> |---|---|
-> | テスト用スターター | `org.springframework.boot:spring-boot-starter-webmvc-test` |
-> | `@WebMvcTest` | `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest` |
-> | `@AutoConfigureRestTestClient` | `org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient` |
-> | `RestTestClient` | `org.springframework.test.web.servlet.client.RestTestClient`（Spring Framework 7） |
-> | `@AutoConfigureMockMvc` | `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc`（存在のみ確認。本リポジトリでは未使用） |
->
-> コード例のドメイン層は Spring 非依存の純粋な Kotlin で、フレームワークの変更に影響されない。
-
-```kotlin
-// build.gradle.kts（抜粋。バージョンは例であり、実際の版は検証用プロジェクトのルートにある build.gradle.kts を正とする）
-plugins {
-    kotlin("jvm") version "2.4.21"             // BOM（2.3 系）より新しい。動作確認済み
-    kotlin("plugin.spring") version "2.4.21"
-    id("org.springframework.boot") version "4.1.1"   // 4.1.x の最新パッチを使う
-}
-
-kotlin {
-    jvmToolchain(21)
-    compilerOptions {
-        allWarningsAsErrors.set(true)          // 警告（冗長な else 等）をエラー化
-    }
-}
-
-dependencies {
-    implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("tools.jackson.module:jackson-module-kotlin")
-    // 層1（src/test）は Spring・Docker を使わない。spring-boot-starter-test はここに書かない
-    testImplementation("io.kotest:kotest-runner-junit5:6.2.5")
-    testImplementation("io.kotest:kotest-assertions-core:6.2.5")
-    testImplementation("io.kotest:kotest-property:6.2.5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-// Spring を起動するテストは、層1とは別のテストスイート（src/integrationTest・src/e2eTest）に置き、依存もそれぞれのスイートにだけ書く（ここでは integrationTest のみ示す）
-testing {
-    suites {
-        register<JvmTestSuite>("integrationTest") {
-            useJUnitJupiter()
-            dependencies {
-                implementation(project())
-                implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
-                implementation("org.springframework.boot:spring-boot-starter-test")
-                implementation("io.kotest:kotest-assertions-core:6.2.5")
-            }
-        }
-    }
-}
-
-tasks.withType<Test> { useJUnitPlatform() }
-```
-
-上のコード例は抜粋で、プラグイン・`tasks.withType<Test>` の細部も省いている。実際の `build.gradle.kts` は、層1の依存に Konsist（アーキテクチャ検査）も持ち、`integrationTest` スイートに `spring-boot-starter-webmvc-test`・Testcontainers 等を、`e2eTest` スイートに Playwright 等を足している。層1に Spring を入れない方針は [02b §3.2](./02b-execution-and-mutation.md#32-層1統合テストe2e-の実行境界) のとおりである。
-
-> 本書の §1〜§2 のコード例は、リポジトリの `examples/kotlin-spring/` にある検証用プロジェクト（`examples/kotlin-spring/src/`）に同一内容で置いてあり、`./gradlew test` でコンパイルとテストを実行できる（CI: `.github/workflows/kotlin-samples.yml`）。コード例を変更するときは `src/` 側も同時に更新すること。
+| 生成時に検証する値の型（ドメイン型）を作れる、静的型付けの言語 | §1.1、§1.2 |
+| 状態を閉じた型で表し、分岐の網羅性をコンパイラが検査できること | §1.3 |
+| 警告をエラーとして扱う設定（非網羅の分岐や冗長な既定分岐をビルドエラーにする） | §1.3 規則4 |
+| 型・null 安全・警告の検査を迂回する構文を検出する静的解析（例: detekt(Kotlin)、ESLint(TypeScript)） | §1.1 規則4 |
+| ジェネレータ、入力の縮小、失敗時のシード出力と再現ができる PBT ライブラリ（例: Kotest property(Kotlin)、fast-check(TypeScript)） | §2 |
 
 ---
 
@@ -104,249 +42,63 @@ tasks.withType<Test> { useJUnitPlatform() }
 
 ### 1.1 プリミティブ型の排除（ドメイン型 / Value Object 化）
 
-ドメインの意味を持つ値に `String` / `Int` / `Long` / `Boolean` を直接使わない。
+ドメインの意味を持つ値は、生成時に検証する専用の型（ドメイン型）で持つ。意味の違う値の取り違えが、コンパイルエラーになる。
 
 | 禁止 | 推奨 |
 |---|---|
-| `userId: String` | `userId: UserId` |
-| `amount: Long` | `amount: Yen`（単位・精度・上限を内包） |
-| `email: String` | `email: EmailAddress` |
-| `status: String` | `status: OrderStatus`（sealed interface） |
+| ユーザー ID を文字列のまま持つ | ユーザー ID 専用の型 |
+| 金額を整数のまま持つ | 金額型（単位・精度・上限を内包） |
+| メールアドレスを文字列のまま持つ | メールアドレス型 |
+| 状態を文字列で持つ | 状態を表す閉じた型（§1.3） |
+| 「支払い済みか」「キャンセル済みか」などの状態を、真偽値（の組合せ）で持つ | 状態を表す閉じた型（§1.3） |
 
-Kotlin では `@JvmInline value class` を使うと、実行時のオブジェクト生成コストを抑えつつ、コンパイル時に型を区別できる。
+言語に、実行時のコストを抑えながらコンパイル時に型だけを区別する仕組みがあれば、活用できる。たとえば注文 ID とユーザー ID を別の型にすると、引数の取り違えがコンパイルエラーになる。
 
-```kotlin
-package com.example.order.domain
+**規則**
 
-// 異なる意味の String を取り違えられなくする（ブランド型相当）
-@JvmInline
-value class UserId private constructor(val value: String) {
-    companion object {
-        fun of(raw: String): Validated<UserId, IdError> =
-            if (raw.isBlank()) Validated.Invalid(IdError.BLANK) else Validated.Valid(UserId(raw))
-    }
-}
-
-@JvmInline
-value class OrderId private constructor(val value: String) {
-    companion object {
-        fun of(raw: String): Validated<OrderId, IdError> =
-            if (raw.isBlank()) Validated.Invalid(IdError.BLANK) else Validated.Valid(OrderId(raw))
-    }
-}
-
-enum class IdError { BLANK }
-
-fun cancelOrder(orderId: OrderId, by: UserId) { /* ... */ }
-// cancelOrder(userId, orderId)  // ← コンパイルエラー（引数の取り違えを排除）
-```
-
-**ルール**
-
-- API 境界（外部入力）で一度だけパースし、以降は内部にドメイン型のみを流通させる（Parse, don't validate）。
-- 生成は §1.2 のとおり `private constructor` + ファクトリ経由に限る。`as` による強制キャストで型を偽装してはならない。
-- `!!`（非 null アサーション）、根拠のない `as`、`@Suppress`、`lateinit` の乱用は静的解析（detekt）で禁止する。
-- `@RequestBody` 等で受ける DTO はプリミティブでよい。**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（例は §1.2）。
+1. ドメインの意味を持つ値に、プリミティブ型（文字列・整数・真偽値など）を直接使わない。
+2. API 境界（外部入力）で一度だけパースし、以降は内部にドメイン型のみを流通させる（Parse, don't validate）。
+3. 生成は §1.2 のとおり、検証付きの生成手段に限る。強制型変換で型を偽装してはならない。
+4. 型・null 安全・警告の検査を迂回する構文（次の構文: 非 null の断定、根拠のない強制型変換、警告の抑制、初期化の遅延の乱用）は、静的解析で禁止する。
+5. 外部入力を受ける DTO はプリミティブでよい。**DTO はアダプタ層に閉じ込め**、ユースケースへ渡す前にドメイン型へ変換する（§1.2）。
 
 ### 1.2 コンストラクタ防御
 
 不正な値でオブジェクトが**存在できない**ようにする。
 
-```kotlin
-package com.example.order.domain
+検証の結果は、成功と失敗を値として持つ型で返し、失敗を例外にしない。呼び出し側に分岐を強制できる。アダプタ層では、DTO を境界で一度だけドメイン型へ変換し、失敗はエラー応答に写像する。
 
-/** 検証結果。失敗を例外ではなく値として返し、呼び出し側に分岐を強制する。 */
-sealed interface Validated<out T, out E> {
-    data class Valid<out T>(val value: T) : Validated<T, Nothing>
-    data class Invalid<out E>(val error: E) : Validated<Nothing, E>
-}
+**規則**
 
-enum class QuantityError { OUT_OF_RANGE }
+1. 値の生成は、検証付きの生成手段（ファクトリ）経由に限る。検証を通らない直接生成は、型の外から呼べなくする。
+2. 検証は生成時の1箇所に集約し、利用側で再検証しない（二重管理の防止）。
+3. 不変（immutable）を基本とし、状態変更は新しい値の生成で表現する（再代入できない宣言のみを使う）。
+4. 失敗は例外ではなく、成功と失敗を値として持つ型で返し、呼び出し側に処理を強制する。フレームワークの宣言的な検証機構（例: Bean Validation(Java/Kotlin)）による検証は DTO の形式チェックに留め、**ドメインの不変条件はドメイン型のファクトリを正**とする。
+5. ドメイン型を DTO に直接デシリアライズしない。デシリアライザが検証付きの生成手段を経由せずに値を生成し、不変条件が破られる場合があるため、DTO にドメイン型を直接使ってはならない。
 
-@JvmInline
-value class Quantity private constructor(val value: Int) {
-    companion object {
-        const val MIN = 1
-        const val MAX = 999
+### 1.3 状態の型と網羅的な分岐（網羅性チェック）
 
-        fun of(value: Int): Validated<Quantity, QuantityError> =
-            if (value in MIN..MAX) Validated.Valid(Quantity(value))
-            else Validated.Invalid(QuantityError.OUT_OF_RANGE)
-    }
-}
-```
+状態・種別・イベントは閉じた型（取りうる値が列挙された型）で表現し、分岐の網羅性をコンパイラに検査させる。既定分岐（他のすべての場合）は書かない。
 
-アダプタ層（Spring MVC）では、DTO を境界で一度だけドメイン型へ変換し、失敗は HTTP 400 に写像する。
+状態遷移も同じ作りで書く。遷移元の状態ごとに網羅的に分岐し、許可された遷移以外は拒否する。
 
-```mermaid
-flowchart TD
-    A["リクエスト本文"] --> B{"読み取れるか<br/>（壊れた JSON・型不一致）"}
-    B -->|いいえ| C["400 INVALID_JSON"]
-    B -->|はい| D{"欠落・null があるか"}
-    D -->|はい| E["400 MISSING_FIELD"]
-    D -->|いいえ| F{"Sku.of・Quantity.of が<br/>両方 Valid か"}
-    F -->|はい| G["204"]
-    F -->|いいえ| H["400 BLANK / OUT_OF_RANGE<br/>（成立した全てを codes に）"]
-```
+**規則**
 
-```kotlin
-package com.example.order.adapter.web
-
-import com.example.order.domain.Quantity
-import com.example.order.domain.Sku
-import com.example.order.domain.Validated
-import org.springframework.http.HttpStatus
-import org.springframework.http.ProblemDetail
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
-
-/**
- * 外部入力の形そのもの。ドメインの意味は持たず、アダプタ層から外へ出さない。
- * 欠落・null は Jackson に任せず、null として受けてコントローラーで MISSING_FIELD にする。
- */
-data class AddItemRequest(val sku: String?, val quantity: Int?)
-
-@RestController
-@RequestMapping("/orders")
-class OrderController(private val addItem: AddItemUseCase) {
-
-    @PostMapping("/items")
-    fun add(@RequestBody request: AddItemRequest): ResponseEntity<*> {
-        if (request.sku == null || request.quantity == null) {
-            val missing = problem(listOf(ErrorCode.MISSING_FIELD), "必須フィールドが指定されていません")
-            return ResponseEntity.badRequest().body(missing)
-        }
-        val sku = Sku.of(request.sku)
-        val quantity = Quantity.of(request.quantity)
-        // 検証段階の失敗は、同時に成立していれば全て返す
-        return if (sku is Validated.Valid && quantity is Validated.Valid) {
-            addItem.execute(sku.value, quantity.value)
-            ResponseEntity.noContent().build<Unit>()
-        } else {
-            val codes = listOfNotNull(
-                ErrorCode.BLANK.takeIf { sku is Validated.Invalid },
-                ErrorCode.OUT_OF_RANGE.takeIf { quantity is Validated.Invalid },
-            )
-            val detail = "sku は空にできず、quantity は ${Quantity.MIN}〜${Quantity.MAX} の範囲で指定してください"
-            ResponseEntity.badRequest().body(problem(codes, detail))
-        }
-    }
-}
-
-enum class ErrorCode { OUT_OF_RANGE, BLANK, INVALID_JSON, MISSING_FIELD }
-
-const val CODES_PROPERTY = "codes"
-
-internal fun problem(codes: List<ErrorCode>, detail: String): ProblemDetail =
-    ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail).also {
-        it.setProperty(CODES_PROPERTY, codes.map(ErrorCode::name))
-    }
-
-fun interface AddItemUseCase {
-    fun execute(sku: Sku, quantity: Quantity)
-}
-```
-
-コントローラーに到達する前に Spring が落とす 400（壊れた JSON・型不一致）は `@RestControllerAdvice` で同じ `codes` 形式にそろえる。
-
-```kotlin
-@RestControllerAdvice
-class ApiExceptionHandler {
-    @ExceptionHandler(HttpMessageNotReadableException::class)
-    fun onUnreadable(): ProblemDetail = problem(listOf(ErrorCode.INVALID_JSON), "リクエスト本文を読み取れません")
-}
-```
-
-> 400 応答は `detail` の文言ではなく、機械可読な `codes`（集合として扱い、順序は仕様にしない）だけを契約とする（TRS ORD-001 OI-003, OI-006）。
->
-> `"3"` や `1.5` を `Int` に黙って変換しないよう、`application.properties` で次を指定している。
->
-> - `spring.jackson.mapper.allow-coercion-of-scalars=false`
-> - `spring.jackson.deserialization.accept-float-as-int=false`
->
-> 指定しないと 204 になることを `OrderControllerHttpTest` で実測した。
-
-**ルール**
-
-- コンストラクタは `private` とし、検証付きファクトリ（`of` / `parse`）経由でのみ生成する。
-- 検証は生成時の1箇所に集約し、利用側で再検証しない（二重管理の防止）。
-- 不変（immutable）を基本とし、状態変更は新しい値の生成で表現する（`val` のみ、`var` を避ける）。
-- 失敗は例外ではなく `Validated`（または `Result` 相当）で返し、呼び出し側に処理を強制する。Spring の `@Valid` / Bean Validation による検証は DTO の形式チェックに留め、**ドメインの不変条件はドメイン型のファクトリを正**とする。
-- value class を DTO に直接デシリアライズしない。**実測**（Spring Boot 4.1.1、Jackson 3 + jackson-module-kotlin）では、`private constructor` の `Quantity` を DTO のプロパティにすると `{"quantity":5000}` が `Quantity.of` の検証を素通りして生成された（`ValueClassDtoTest`）。不変条件が破られるため、DTO にドメイン型を直接使ってはならない。
-
-### 1.3 sealed 型と網羅的 `when`（網羅性チェック）
-
-状態・種別・イベントは `sealed interface`（または `sealed class`）で表現し、分岐の網羅性をコンパイラに検査させる。Kotlin では **`when` を式として使い、`else` を書かない**。
-
-```kotlin
-package com.example.payment.domain
-
-import java.time.Instant
-
-sealed interface PaymentState {
-    data object Pending : PaymentState
-    data class Authorized(val authorizedAt: Instant) : PaymentState
-    data class Captured(val capturedAt: Instant) : PaymentState
-    data class Failed(val reason: FailureReason) : PaymentState
-}
-
-enum class FailureReason { CARD_DECLINED, TIMEOUT }
-
-// when を「式」として使い、else を置かない。
-// PaymentState に状態を追加すると、この関数を含む全ての when がコンパイルエラーになる。
-fun label(state: PaymentState): String =
-    when (state) {
-        PaymentState.Pending -> "保留"
-        is PaymentState.Authorized -> "与信済"
-        is PaymentState.Captured -> "確定"
-        is PaymentState.Failed -> "失敗"
-    }
-```
-
-遷移も同じ作りで書く。許可する遷移（TRS PAY-001）以外は、同じ状態への再実行を含めて全て `INVALID_TRANSITION` で拒否し、失敗は例外ではなく `Validated` で返す。
-
-```kotlin
-/** 遷移の拒否理由は1つだけ（TRS PAY-001 OI-004）。状態名は契約にしない。 */
-enum class TransitionError { INVALID_TRANSITION, }
-
-/** 与信。Pending だけが Authorized になれる。時刻は注入された Clock から取る（PAY-001 OI-001）。 */
-fun PaymentState.authorize(clock: Clock): Validated<PaymentState, TransitionError> =
-    when (this) {
-        PaymentState.Pending -> Validated.Valid(PaymentState.Authorized(clock.instant()))
-        is PaymentState.Authorized, is PaymentState.Captured, is PaymentState.Failed -> invalidTransition()
-    }
-
-/** 確定。Authorized だけが Captured になれる（与信を飛ばした確定は不可）。 */
-fun PaymentState.capture(clock: Clock): Validated<PaymentState, TransitionError> =
-    when (this) {
-        is PaymentState.Authorized -> Validated.Valid(PaymentState.Captured(clock.instant()))
-        PaymentState.Pending, is PaymentState.Captured, is PaymentState.Failed -> invalidTransition()
-    }
-
-private fun invalidTransition(): Validated<PaymentState, TransitionError> =
-    Validated.Invalid(TransitionError.INVALID_TRANSITION)
-```
-
-上のコード例は `PaymentState.kt`（`TransitionError`）と `PaymentTransitions.kt` の抜粋で、package・import・ファイル冒頭のコメントと `fail` を省いている。
-
-**ルール**
-
-- `status: String` と `Boolean` の組合せで状態を表現しない（`isPaid && isCancelled` のような**矛盾状態を表現可能にしない**）。
-- 状態ごとに必要なデータを各バリアントに持たせ、不正な組合せを型で排除する（`Captured` だけが `capturedAt` を持つ）。
-- `when` の `else` 分岐を禁止する（sealed / enum 対象）。`else` は将来の状態追加を黙って飲み込む。
-- sealed / enum を対象にした `when` は、式でも文でも非網羅だとコンパイルエラーになる（Kotlin 1.7 以降）。加えて `allWarningsAsErrors` を有効にし、冗長な `else` 等の警告も必ずビルドエラーにする（§0）。
-- 外部から来る文字列（DB・JSON）は、境界で enum / sealed 型へ変換する。未知の値は `Invalid` として扱い、`else` で握りつぶさない。
+1. 文字列と真偽値の組合せで状態を表現しない（「支払い済み、かつキャンセル済み」のような**矛盾状態を表現可能にしない**）。
+2. 状態ごとに必要なデータを各状態に持たせ、不正な組合せを型で排除する（たとえば「確定」状態だけが確定時刻を持つ）。
+3. 閉じた型に対する分岐で、既定分岐を禁止する。既定分岐は将来の状態追加を黙って飲み込む。
+4. 非網羅の分岐は、式でも文でもビルドエラーにする。加えて、警告をエラーとして扱う設定を有効にし、冗長な既定分岐などの警告も必ずビルドエラーにする（§0）。
+5. 外部から来る文字列（DB・JSON）は、境界で閉じた型へ変換する。未知の値は検証失敗として扱い、既定分岐で握りつぶさない。
 
 ### 1.4 型ガードレールのチェックリスト（レビュー観点）
 
-- [ ] ドメイン概念にプリミティブ型が露出していないか（Konsist で自動検査: [02b §6](./02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所)）
-- [ ] 不正な値・不正な状態の組合せが型として表現可能になっていないか
-- [ ] sealed / enum の `when` が式で網羅され、`else` が置かれていないか（Konsist で自動検査: [02b §6](./02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所)）
-- [ ] `!!` / 無根拠な `as` / `@Suppress` / `lateinit` が増えていないか
-- [ ] 外部入力の検証が境界の1箇所に集約されているか
+規則そのものは §1.1〜§1.3 を正とし、ここでは言い換えない。レビューでは、次の規則を満たしているかを確認する。
+
+- [ ] §1.1 規則1 を満たす（自動検査: [02b §6](./02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所)）
+- [ ] §1.2 規則1、§1.3 規則1・2 を満たす
+- [ ] §1.3 規則3・4 を満たす（自動検査: [02b §6](./02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所)）
+- [ ] §1.1 規則4 を満たす
+- [ ] §1.1 規則2、§1.2 規則2 を満たす
 
 ---
 
@@ -378,148 +130,48 @@ Property は次の分類のいずれかで記述し、テスト名またはコ�
 | オラクル | 単純で明らかに正しい実装と一致 | 最適化版と素朴版の結果一致 |
 | 単調性・境界 | 入力増に対する出力の方向 | 割引後価格 ≤ 割引前価格 |
 
-Kotest Property（`io.kotest:kotest-property`）での記述例。
+分類ごとに、検出できる誤りが異なる。交換則・結合則は、常に 0 を返す実装でも成り立つため、和そのものをオラクルで検証する。ランダム入力は境界ちょうどの値に当たりにくいため、境界値を Example テストで明示的に固定する（§2.4）。
 
-```kotlin
-package com.example.order.domain
-
-@JvmInline
-value class Yen private constructor(val amount: Long) {
-    operator fun plus(other: Yen): Yen = Yen(Math.addExact(amount, other.amount))
-
-    companion object {
-        const val MAX = 1_000_000_000L
-
-        fun of(amount: Long): Validated<Yen, YenError> =
-            if (amount in 0..MAX) Validated.Valid(Yen(amount)) else Validated.Invalid(YenError.OUT_OF_RANGE)
-    }
-}
-
-enum class YenError { OUT_OF_RANGE }
-```
-
-```kotlin
-package com.example.order.domain
-
-import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
-import io.kotest.property.Arb
-import io.kotest.property.arbitrary.long
-import io.kotest.property.arbitrary.map
-import io.kotest.property.checkAll
-
-// ドメイン型ごとに Arb を 1 つ用意し、ファクトリの検証と同じ制約を満たす値だけを生成する
-val arbYen: Arb<Yen> = Arb.long(0L..Yen.MAX / 2).map { (Yen.of(it) as Validated.Valid).value }
-
-class YenPropertyTest : StringSpec({
-
-    // 分類: 交換則・結合則
-    "金額の加算は交換則を満たす" {
-        checkAll(arbYen, arbYen) { a, b -> (a + b) shouldBe (b + a) }
-    }
-
-    "金額の加算は結合則を満たす" {
-        checkAll(arbYen, arbYen, arbYen) { a, b, c -> ((a + b) + c) shouldBe (a + (b + c)) }
-    }
-
-    // 分類: オラクル（常に 0 を返す実装でも交換則・結合則は成り立つため、和そのものを検証する）
-    "金額の加算は金額の和になる" {
-        checkAll(arbYen, arbYen) { a, b -> (a + b).amount shouldBe (a.amount + b.amount) }
-    }
-
-    // 分類: 境界（ランダム入力では境界ちょうどの値に当たりにくいため、明示的に固定する）
-    "境界値 0 と MAX は受理、-1 と MAX+1 は拒否" {
-        listOf(0L, Yen.MAX).forEach { (Yen.of(it) as Validated.Valid).value.amount shouldBe it }
-        listOf(-1L, Yen.MAX + 1).forEach { Yen.of(it) shouldBe Validated.Invalid(YenError.OUT_OF_RANGE) }
-    }
-
-    // 分類: 不変量（範囲外は必ず拒否される）
-    "範囲外の金額は必ず Invalid になる" {
-        checkAll(Arb.long().map { if (it in 0..Yen.MAX) -1L else it }) { n ->
-            Yen.of(n).shouldBeInstanceOf<Validated.Invalid<*>>()
-        }
-    }
-})
-```
-
-> `(Yen.of(it) as Validated.Valid).value` は **テストコード内のジェネレータに限り**許可する `as` の例外である（本番コードでは §1.1 のとおり禁止）。この例外は detekt の対象をテストソースから除外して実現する。
+> 本番コードで禁止する根拠のない強制型変換（§1.1 規則4）は、**テストコード内のジェネレータに限り**許可する例外とする。ジェネレータが検証結果の型から値を取り出すために使う。この例外は、静的解析の対象からテストソースを除外して実現する。
 
 #### 操作列の PBT（状態遷移）
 
-状態遷移の抜け（04 §2.2）は、**操作列を生成して遷移表と照合する Property** で検出する。期待値は TRS の遷移表（独立したオラクル）から作り、実装と同じ分岐で作らない。
+状態遷移の抜け（04 §2.2）は、**操作列を生成して遷移表と照合する Property** で検出する。期待値は TRS の遷移表（独立したオラクル）から作り、実装と同じ分岐で作らない。照合する Property の例を次に示す。
 
-```kotlin
-// 分類: 不変量（許可された遷移だけが状態を変え、拒否された操作は状態を変えない）
-"AC-02-07 任意の操作列で、許可された遷移だけが状態を変え、拒否された操作は状態を変えない" {
-    checkAll(opSequences) { sequence ->
-        var state: PaymentState = PaymentState.Pending
-        sequence.forEach { op ->
-            val result = state.apply(op, clock)
-            val expected = allowed[kindOf(state) to op.kind] // TRS の遷移表。表に無い組合せは拒否される
-            if (expected == null) {
-                result shouldBe rejected
-            } else {
-                kindOf(result.valid()) shouldBe expected
-                state = result.valid()
-            }
-        }
-    }
-}
+- 任意の操作列で、許可された遷移だけが状態を変え、拒否された操作は状態を変えない（分類: 不変量）
+- 終端状態に達した後は、以降どんな操作列でも状態が変わらない（分類: 不変量）
 
-// 分類: 不変量（終端状態からは、以降どんな操作列でも遷移できない）
-"AC-02-08 終端状態に達した後は、以降どんな操作列でも状態が変わらない" {
-    checkAll(opSequences, opSequences) { before, after ->
-        var state: PaymentState = PaymentState.Pending
-        before.forEach { op -> (state.apply(op, clock) as? Validated.Valid)?.let { state = it.value } }
-        if (kindOf(state) in terminalKinds) {
-            val terminal = state
-            after.forEach { op -> terminal.apply(op, clock) shouldBe rejected }
-        }
-    }
-}
-```
-
-操作列のジェネレータは `Arb.bind` で操作の種類と失敗理由を独立に生成し、種類に応じて `Op` を組み立てる（`Arb.list(ops, 0..20)`）。時刻は生成せず、固定した `Clock`（`Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)`）を `apply(op, clock)` に渡す。全体は `examples/kotlin-spring/src/test/kotlin/com/example/payment/domain/PaymentTransitionsTest.kt`。
+たとえば操作列のジェネレータは、操作の種類と操作の引数を独立に生成し、種類に応じて操作を組み立てる。時刻は生成せず、固定した時計を操作の実行に渡す。
 
 ### 2.3 PBT 実装ルール
 
-手順はルール3の「PBT が失敗したときの AI の手順」のとおり。
+ジェネレータ・不正値・シード・実行回数・期待値の作り方をそろえる。PBT が失敗したときの手順は [§2.3.1](#231-pbt-が失敗したときの-ai-の手順) のとおり。
+
+**規則**
+
+1. **ジェネレータはドメイン型に対して一元管理する。** 各型にジェネレータを1つ用意し、ファクトリの検証と同じ制約を満たす値を生成する。
+2. 不正値の拒否も Property にする（「範囲外の入力は必ず検証失敗を返す」）。
+3. シード値を失敗時に出力し、**再現可能**にする。失敗した Property のシード（乱数の種）がログに出力されるようにし、そのシードを指定して再実行すると同じ失敗を再現できる状態にする。
+4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定の回数はライブラリの既定に従う。
+5. Property が実装のコピーになっていないこと（実装と同じ計算式で期待値を作らない）。
+
+#### 2.3.1 PBT が失敗したときの AI の手順
+
+恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるためである。
 
 ```mermaid
 flowchart TD
-    A["手順1: ログからシードと縮小後の反例を取り出す"] --> B["手順2: PropTestConfig(seed) で再現を確認（一時的）"]
+    A["手順1: ログからシードと縮小後の反例を取り出す"] --> B["手順2: シードを指定して再現を確認（一時的）"]
     B --> C["手順3: 縮小後の反例を Example テストとして固定（恒久）"]
     C --> D["手順4: 反例が仕様上正しい入力かを判断し、<br/>必要なら Property・ジェネレータを直す"]
 ```
 
-1. **ジェネレータはドメイン型に対して一元管理する。** 各型に `arbXxx`（Kotest の `Arb`）を1つ用意し、ファクトリの検証と同じ制約を満たす値を生成する。
-2. 不正値の拒否も Property にする（「範囲外の入力は必ず `Validated.Invalid` を返す」）。
-3. シード値を失敗時に出力し、**再現可能**にする。Kotest 6.2.5 は、失敗した Property のメッセージに `Repeat this test by using seed <値>` を**既定で出力する**（設定は不要）。そのシードを `PropTestConfig(seed = <値>)` に渡すと同じ失敗を再現できる（`PropTestConfig` は `@ExperimentalKotest` の opt-in が必要）。この挙動と出力の形式は `PropertyTestingConfigTest` が、わざと落ちる Property で検証している（Kotest の更新で変わったら落ちる）。
-
-   **PBT が失敗したときの AI の手順**。恒久的に残すのは Example テストだけで、シード付きの Property はコミットしない。ジェネレータや Property を直すとシードの意味が変わり、同じ失敗を再現しなくなるためである。
-
-   1. ログからシードと縮小後の反例を取り出す。Kotest 6.2.5 の失敗メッセージを、`Arb.int(0..1000)` に対し `check(it < 500)` で落ちる Property で実測した出力が下の例である。縮小後の反例は `Arg <引数番号>: <縮小後の値> (shrunk from <縮小前の値>)` の行に、シードは `Repeat this test by using seed <値>` の行にある。エッジケース（範囲の端や特別な値。`Arb.int(0..1000)` なら 0・1・1000 など）は、既定で約 2% の確率で混ざる。エッジケースで落ちると縮小されず、`(shrunk from …)` が付かない `Arg 0: 1000` の形式で出力される。どちらの形式でも、`Arg` の行の値がそのまま反例である。
-
-      ```text
-      Property failed after 1 attempts
-
-          Arg 0: 500 (shrunk from 988)
-
-      Repeat this test by using seed -2729266846478331732
-
-      Caused by IllegalStateException: boom
-      ```
-
-   2. `PropTestConfig(seed = <値>)` で同じ失敗が再現することを確認する（一時的。コミットしない）。
-      - 失敗シードの保存（`PropertyTesting.writeFailedSeed`）は無効化せず、既定のままにする。Kotest 6.2.5 で確認した挙動では、Property が失敗するとシードをローカルに保存する。保存先は、環境変数 `XDG_CACHE_HOME` が設定済み（空白でない）なら `$XDG_CACHE_HOME/.kotest/seeds`、未設定なら `~/.kotest/seeds` である。
-      - 保存したシードは、(a) `PropTestConfig(seed = …)` を指定しない実行で、(b) 同じテストパスのときに再利用される。保存シードはそのテストが成功すると消える（わざと落とすテストでは成功しないため消えず、固定され続ける）。保存シードは PBT の失敗を自動で再現する手がかりになり、上の手順と矛盾しない。
-      - 確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめるときは、保存済みシードが結果に影響しないよう、事前に保存先のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控える。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。Kotest を更新したときは、この挙動が変わっていないか確認する。
-   3. 縮小後の反例を Example テストとして固定する。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
-   4. 反例が仕様上の正しい入力だったのか、Property またはジェネレータの前提が誤っていたのかを判断し、必要なら Property・ジェネレータ側を直す。
-
-4. 実行回数は層1の速度要件（全体で数秒以内）を満たす範囲で設定し、CI の夜間ジョブでは回数を増やす。既定は 1000 回（`kotest.proptest.default.iteration.count`）。Gradle の `-D` はテスト JVM に渡らないため、`build.gradle.kts` が `-Pproptest.iterations=N` をこのシステムプロパティに転送している。夜間ジョブ（`.github/workflows/nightly-mutation.yml` の `pbt`）は `./gradlew test -Pproptest.iterations=10000` で実行する（全体テストが約 20 秒で完了することを実測した）。
-5. Property が実装のコピーになっていないこと（実装と同じ計算式で期待値を作らない）。
+1. ログからシードと縮小後の反例（失敗する最小の入力）を取り出す。縮小されたかどうかにかかわらず、ログに出た引数の値がそのまま反例である。
+2. シードを指定して、同じ失敗が再現することを確認する（一時的。コミットしない）。
+   - ライブラリが失敗したシードをローカルに自動で保存・再利用する場合、その機能は無効化せず、既定のままにする。保存されたシードは PBT の失敗を自動で再現する手がかりになり、上の手順と矛盾しない。
+   - 確率的な失敗（実行ごとに出たり出なかったりする失敗）がローカルで再現するかを確かめるときは、保存済みシードが結果に影響しないよう、事前に保存先のファイルを消してから実行する。保存先を丸ごと消すと他のテストの保存シードも消えるため、先に手順1でログからシードを控える。対象テストのファイルだけを消す方法もある。消すのはローカルの保存先だけで、リポジトリの設定やコードは変えない。ライブラリを更新したときは、この挙動が変わっていないか確認する。
+3. 縮小後の反例を Example テストとして固定する。AC に紐づく不具合の場合は、修正前に失敗することを確認し（`04` §2.5）、修正と同じ PR に含める。
+4. 反例が仕様上の正しい入力だったのか、Property またはジェネレータの前提が誤っていたのかを判断し、必要なら Property・ジェネレータ側を直す。
 
 ### 2.4 PBT と Example テストの使い分け
 
