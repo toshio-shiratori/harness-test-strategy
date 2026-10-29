@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-AI駆動開発向けテスト戦略の標準。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)。
+AI駆動開発向けテスト戦略の標準。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)、検査とコントリビュートの流れは [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 リポジトリは次の 3 つに分かれる。
 
@@ -23,7 +23,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 | 変更 | 実行するもの | CI |
 |---|---|---|
 | `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
-| `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/*.md` のコード例・`docs/trs/`、`docs/testing/trs/_template.md` | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest` と `./gradlew pitest -Ppitest.domainOnly=true`(層1の全対象と、ドメイン層だけの2回。閾値はどちらも 80%、夜間の実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。README の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
+| `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/*.md` のコード例・`docs/trs/`、`docs/testing/trs/_template.md` | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest` と `./gradlew pitest -Ppitest.domainOnly=true`(層1の全対象と、ドメイン層だけの2回。閾値はどちらも 80%、夜間の実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。`examples/kotlin-spring/README.md` の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
 - `gradle` ではなく必ず `./gradlew` を使う。`docs/testing/` の `02a`・`02b` にはコード例を置かない。コード例は `examples/kotlin-spring/docs/*.md`（`02a.md`・`02b.md` など）にあり、`examples/kotlin-spring/src/` と同期させる。どちらかを変えたら、もう一方も同時に更新して通す。
@@ -64,7 +64,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 | 役割 | 担当 | 権限 |
 |---|---|---|
-| `doc-author` | 方針書(01〜05)・README・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
+| `doc-author` | 方針書(01〜05)・README・CONTRIBUTING・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
 | `kotlin-sample-engineer` | `examples/kotlin-spring/` の `src/` と `examples/kotlin-spring/docs/*.md` のコード例の同期 | 書き込み可 |
 | `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |

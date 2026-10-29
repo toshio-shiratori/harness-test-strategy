@@ -13,6 +13,7 @@
 /examples/kotlin-spring/build.gradle.kts @toshio-shiratori
 /package.json             @toshio-shiratori
 /CLAUDE.md                @toshio-shiratori
+/CONTRIBUTING.md          @toshio-shiratori
 /.claude/                 @toshio-shiratori
 
 # テスト保護・アーキテクチャ検査（弱体化の防止）
