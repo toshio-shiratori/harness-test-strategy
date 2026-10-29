@@ -1,4 +1,4 @@
-# 項目の定義は docs/testing/04-regression-governance.md §2.4・§2.6 が正。ここは参照で、項目を変えるときは 04 も更新する。
+# 項目の定義は docs/testing/04-regression-governance.md §2.4・§2.6 が正。ここは参照で、項目を変えるときは 04 と docs/testing/templates/bug-report.md も更新する(項目名と選択肢を両方で一致させる)。
 # 発見時に分かる項目だけを必須にする。根本原因・還元先・追加テスト・ミューテーション確認は調査と修正の後に分かるため任意とし、
 # 還元先の強制はバグ修正用の PR テンプレート（.github/PULL_REQUEST_TEMPLATE/bug_fix.md）の DoD で行う。
 name: バグ報告

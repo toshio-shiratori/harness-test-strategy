@@ -6,28 +6,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)。
+AI駆動開発向けテスト戦略の標準。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)。
+
+リポジトリは次の 3 つに分かれる。
+
+| パス | 位置づけ | 配布 |
+|---|---|---|
+| `docs/testing/` | 標準の本体（方針書 `01`〜`05`、`trs/_template.md`、`templates/`）。**言語中立で自己完結**する。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクせず、このリポジトリ固有の語（`src/`、サンプル TRS の ID など）を書かない。`lint:portable` が検査する | する |
+| `examples/kotlin-spring/` | 標準を Kotlin + Spring Boot に導入した一例。自己完結の Gradle プロジェクトで、Gradle のコマンドはすべてこのディレクトリで実行する。標準の各文書に対応する実現例・コード例は `docs/<文書番号>.md`（`01`・`02a`・`02b`・`02c`・`03`・`04`）にあり、`src/` と同期させる。サンプルの TRS は `docs/trs/` にある。`order` / `payment` は TRS の実例（ORD-001 / PAY-001 / PAY-002）に対応するサンプル領域で、製品コードではない | しない |
+| `docs/records/` | このリポジトリ自身の運用・パイロットの記録 | しない |
+
 `01-test-policy` → `02a-types-and-pbt` → `02b-execution-and-mutation` → `02c-e2e` → `03-trs-guideline` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
-`examples/kotlin-spring/` は `02a`・`02b` の Kotlin サンプルを実際にコンパイル・実行して検証するための、自己完結の Gradle プロジェクト（ハーネスを導入した一例で、配布しない）。Gradle のコマンドはすべてこのディレクトリで実行する。サンプルの TRS は `examples/kotlin-spring/docs/trs/` にあり、`docs/testing/trs/` には `_template.md` だけが残る。`order` / `payment` は TRS の実例（ORD-001 / PAY-001 / PAY-002）に対応するサンプル領域。製品コードではない。
 
 ## 品質ゲート（変更内容ごとに通すもの）
 
 | 変更 | 実行するもの | CI |
 |---|---|---|
-| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
-| `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/trs/`、`docs/testing/trs/_template.md`、`02a`・`02b` のコード例 | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の全体実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。README の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
+| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
+| `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/*.md` のコード例・`docs/trs/`、`docs/testing/trs/_template.md` | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest`(閾値 80%、夜間の実行〔ドメイン層のクラスが対象〕は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。README の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
-- `gradle` ではなく必ず `./gradlew` を使う。`02a`・`02b` のコード例を変えたら `examples/kotlin-spring/src/` も同時に更新して通す。
+- `gradle` ではなく必ず `./gradlew` を使う。`docs/testing/` の `02a`・`02b` にはコード例を置かない。コード例は `examples/kotlin-spring/docs/*.md`（`02a.md`・`02b.md` など）にあり、`examples/kotlin-spring/src/` と同期させる。どちらかを変えたら、もう一方も同時に更新して通す。
 - `examples/kotlin-spring/docs/trs/`（サンプルの TRS）と `docs/testing/trs/_template.md` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring・Testcontainers を使うテストは `src/integrationTest` と、実ブラウザで操作する `src/e2eTest` にだけ置き、ブラウザ操作(Playwright)は `src/e2eTest` のみ(`ExecutionBoundaryTest` が検査)。層1で実行されないテスト(JUnit の `@Test` 等。層1は Kotest のランナーだけ)は `UnrunTestDetectionTest` が検査する。`TraceabilityTest` が(`src/test`・`src/integrationTest`・`src/e2eTest` を照合し)、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
 - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は禁止(MD033)。表の罫線整列(MD060)と行長(MD013)は無効化済み。
+- `docs/testing/` を変えたら `lint:portable` も通る必要がある。許可するコードブロックの言語は `gherkin` / `mermaid` / `markdown` / `text` だけで、禁止する語の一覧は `scripts/check-portable.mjs` にある。ツール名は括弧の例示（例: PIT、Stryker）に留める。
 
 ## 書き方の規約
 
 - 図は ASCII ではなく **Mermaid** を使う。
-- サンプルコードは **Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
-- 型ガードレール(`02a` §1): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
-- PBT が失敗したら `02a` §2.3.1 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
+- サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
+- `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
+- 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
+- PBT が失敗したら `02a` §2.3.1 の手順（Kotlin の例は `examples/kotlin-spring/docs/02a.md`）に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
 - 期待値は仕様(TRS の AC)を正とする。既存コードの挙動から期待値を逆生成しない(`03`)。
 - TRS の Open Issues は解決後も行を削除しない。AC / UC 番号は TRS 間で一意にする。
 
@@ -45,7 +55,7 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 特に、ゲートを通すために次を弱めない。
 
 - `examples/kotlin-spring/src/test/kotlin/com/example/architecture/`(Konsist による検査・テスト保護)
-- `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`、`examples/kotlin-spring/config/detekt/detekt.yml`、`.markdownlint-cli2.jsonc`、`.github/`
+- `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`、`examples/kotlin-spring/config/detekt/detekt.yml`、`.markdownlint-cli2.jsonc`、`scripts/check-portable.mjs`(`lint:portable` の禁止語・許可リスト)と `package.json` の `lint` からの `lint:portable` の除外、`examples/kotlin-spring/docs/`・`docs/records/`、`.github/`
 - テストの無効化(`@Disabled`、`xdescribe` 等)。意図的な無効化の手順は `04` §3.4.1
 
 ## サブエージェントチーム(リーダー向けの運用)
@@ -54,9 +64,9 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 
 | 役割 | 担当 | 権限 |
 |---|---|---|
-| `doc-author` | 方針書(01〜05)・README・TRS の執筆 | 書き込み可 |
-| `kotlin-sample-engineer` | `examples/kotlin-spring/` と `02a`・`02b` のコード例の同期 | 書き込み可 |
-| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`02a`・`02b` と `examples/kotlin-spring/src/` の同期、非公開情報の混入 | 読み取り専用 |
+| `doc-author` | 方針書(01〜05)・README・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
+| `kotlin-sample-engineer` | `examples/kotlin-spring/` の `src/` と `examples/kotlin-spring/docs/*.md` のコード例の同期 | 書き込み可 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |
 
 1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。

@@ -3,10 +3,13 @@
 /docs/testing/            @toshio-shiratori
 /docs/testing/trs/        @toshio-shiratori
 /examples/kotlin-spring/docs/trs/ @toshio-shiratori
+/examples/kotlin-spring/docs/ @toshio-shiratori
+/docs/records/ @toshio-shiratori
 
 # 品質ゲートの定義（閾値・lint 設定・CI）
 /.github/                 @toshio-shiratori
 /.markdownlint-cli2.jsonc @toshio-shiratori
+/scripts/check-portable.mjs @toshio-shiratori
 /examples/kotlin-spring/build.gradle.kts @toshio-shiratori
 /package.json             @toshio-shiratori
 /CLAUDE.md                @toshio-shiratori
