@@ -19,7 +19,7 @@ AI駆動開発向けテスト戦略の標準（`docs/testing/`）。成果物は
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
 - `gradle` ではなく必ず `./gradlew` を使う。`02a`・`02b` のコード例を変えたら `examples/kotlin-spring/src/` も同時に更新して通す。
-- `examples/kotlin-spring/docs/trs/`（サンプルの TRS）と `docs/testing/trs/_template.md` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring・Testcontainers を使うテストは `src/integrationTest` と、実ブラウザで操作する `src/e2eTest` にだけ置き、ブラウザ操作(Playwright)は `src/e2eTest` のみ(`ExecutionBoundaryTest` が検査)。`TraceabilityTest` が(`src/test`・`src/integrationTest`・`src/e2eTest` を照合し)、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
+- `examples/kotlin-spring/docs/trs/`（サンプルの TRS）と `docs/testing/trs/_template.md` は `./gradlew test` の入力でもある。`./gradlew test` は層1のみ(Spring・Docker 不要)で、Spring・Testcontainers を使うテストは `src/integrationTest` と、実ブラウザで操作する `src/e2eTest` にだけ置き、ブラウザ操作(Playwright)は `src/e2eTest` のみ(`ExecutionBoundaryTest` が検査)。層1で実行されないテスト(JUnit の `@Test` 等。層1は Kotest のランナーだけ)は `UnrunTestDetectionTest` が検査する。`TraceabilityTest` が(`src/test`・`src/integrationTest`・`src/e2eTest` を照合し)、pending でない全 AC にテストが紐づくことと、AC 番号が TRS 間で一意であることを検査する。TRS を編集したら Gradle も通す。
 - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は禁止(MD033)。表の罫線整列(MD060)と行長(MD013)は無効化済み。
 
 ## 書き方の規約
