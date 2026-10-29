@@ -1,6 +1,6 @@
 ---
 name: spec-reviewer
-description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・02a・02b と examples/kotlin-spring/src/ の同期・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
+description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・examples/kotlin-spring/docs/*.md のコード例と examples/kotlin-spring/src/ の同期・docs/testing の言語中立と自己完結・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
 model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
@@ -34,9 +34,10 @@ hooks:
    - 期待値が仕様(TRS の AC)由来か。既存コードの挙動から逆生成された形跡がないか
    - Open Issues の行が削除されていないか(解決後も履歴として残す)。TRS が Approved になっている場合、人間の承認の根拠があるか
    - 文書間の相互リンク(`01` → `02a` → `02b` → `02c` → `03` → `04`、`trs/_template.md`)が切れていないか。見出しやファイル名の変更に追随しているか
-   - `02a`・`02b` のコード例と `examples/kotlin-spring/src/` が同期しているか(片方だけの変更になっていないか)
+   - `examples/kotlin-spring/docs/*.md` のコード例と `examples/kotlin-spring/src/` が同期しているか(片方だけの変更になっていないか)。`docs/testing/` の `02a`・`02b` にコード例が戻っていないか
+   - **`docs/testing/` の言語中立・自己完結**: `lint:portable` で検出できない違反がないか。特に、地の文での言語・フレームワーク固有の記述(特定言語の構文や API を前提にした説明)、一覧にないこのリポジトリ固有の語、`docs/testing/` の外(`examples/`・`docs/records/`・`.github/` など)の記録への依拠、導入先が持たない文書を読まないと意味が通らない箇所。ツール名は括弧の例示に留まっているか。`lint:portable` の禁止語や許可リストが緩められていないか
    - 型ガードレール: ドメイン値が Value Object か、状態が `sealed` 型で `when` に `else` がないか
-   - 書き方の規約: 図が Mermaid か、コードブロックに言語指定があるか、サンプルが Kotlin + Spring Boot 4.1.x か、未確認の API を確認済みのように書いていないか
+   - 書き方の規約: 図が Mermaid か、コードブロックに言語指定があるか、サンプル(`examples/kotlin-spring/`)が Kotlin + Spring Boot 4.1.x か、未確認の API を確認済みのように書いていないか
    - **公開リポジトリに非公開リポジトリの内部情報が混じっていないか(必須)**: 差分、コミットメッセージ、PR 本文に、非公開リポジトリの Issue 番号・リンク・内部構成(パス、ディレクトリ、モジュール名)・数値が含まれていないかを必ず確認し、結果を報告に書く
 5. 指摘ごとに、根拠(ファイルと行、または再現手順)を付ける
 

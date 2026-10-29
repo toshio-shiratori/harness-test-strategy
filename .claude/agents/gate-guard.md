@@ -35,10 +35,12 @@ hooks:
 - `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`
 - `examples/kotlin-spring/config/detekt/detekt.yml`
 - `.markdownlint-cli2.jsonc`
+- `scripts/check-portable.mjs`(`lint:portable` の禁止語・許可リスト・自己テスト)と、`package.json` の `lint` から `lint:portable` を外す変更
+- `examples/kotlin-spring/docs/`(実装例の文書。`src/` との同期が要る)と `docs/records/`(記録)。`.github/CODEOWNERS` 対象
 - `.github/`(CI、CODEOWNERS、テンプレートを含む)
 - テストの無効化(`@Disabled`、`xdescribe` 等。意図的な無効化は `04` §3.4.1 の手順を踏んでいるか)
 
-ゲートを弱める変更の例: pitest 閾値の低下、`excludedClasses` の追加、detekt / markdownlint の規則の無効化・緩和、`@Disabled` の追加、CI の job やステップの削除・`continue-on-error` の追加、`.github/` の緩和、テストの削除や期待値の書き換え。
+ゲートを弱める変更の例: pitest 閾値の低下、`excludedClasses` の追加、detekt / markdownlint の規則の無効化・緩和、`lint:portable` の許可するコードブロックの言語の追加・禁止語の削除・`package.json` の `lint` からの `lint:portable` の除外、`@Disabled` の追加、CI の job やステップの削除・`continue-on-error` の追加、`.github/` の緩和、テストの削除や期待値の書き換え。
 
 `.claude/`、`CLAUDE.md`、`package.json` も CODEOWNERS 対象である。これらは上の一覧にはないが、エージェント定義や運用規約の変更なので、変更があれば承認を「要」とし、該当ファイルを挙げて返す(承認は PR の CODEOWNERS 承認で行う)。
 

@@ -2,7 +2,7 @@
 <!-- バグ修正 PR の雛形。項目の定義は docs/testing/04-regression-governance.md §2.4・§2.5・§2.6 が正。ここは参照で、項目を変えるときは 04 も更新する。 -->
 ## 概要
 
-Closes #
+関連 Issue（課題管理ツールの表記で書く。例: GitHub なら `Closes #番号`）:
 
 ## 不具合還元（04 §2）
 
