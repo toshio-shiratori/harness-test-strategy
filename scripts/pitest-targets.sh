@@ -2,7 +2,7 @@
 # PR の差分から PIT の targetClasses（カンマ区切り）を決めて標準出力に出す。
 # 対象は層1の全対象（examples/kotlin-spring の src/main の全パッケージ。build.gradle.kts の targetClasses の既定 com.example.*）。
 # 詳細は examples/kotlin-spring/docs/02b.md §4.4。
-#   ALL  : 層1の全対象を実行する。次のいずれかである。
+#   ALL  : 層1の全対象を実行する（呼び出し側は、これに加えてドメイン層だけの実行〔-Ppitest.domainOnly=true〕も走らせる）。次のいずれかである。
 #          1. examples/kotlin-spring/ の build.gradle.kts・settings.gradle.kts・gradle/・config/・.editorconfig のいずれかが変わった
 #          2. 層1のテスト（examples/kotlin-spring/src/test/ 以下）が変わった。本番クラスの変更が同時にあっても ALL にする
 #             （テストの弱体化を、変更クラスだけの実行で見逃さないため）

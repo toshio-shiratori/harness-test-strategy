@@ -14,6 +14,7 @@ cd examples/kotlin-spring
 ./gradlew integrationTest   # Docker が必要（Testcontainers）
 ./gradlew e2eTest           # Docker とブラウザ（Chromium）が必要
 ./gradlew pitest            # ミューテーションテスト（閾値 80%）
+./gradlew pitest -Ppitest.domainOnly=true   # ドメイン層だけ（閾値 80%）
 ```
 
 `e2eTest` の準備(Docker、Chromium の取得)はリポジトリ直下の README の「[E2E のセットアップ](../../README.md#e2e-のセットアップ)」に、サンプルアプリを手元で動かす手順は同じ README の「[サンプルアプリを手元で動かす](../../README.md#サンプルアプリを手元で動かす)」にあります。

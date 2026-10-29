@@ -33,7 +33,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 6. ゲートを通す。`gradle` ではなく必ず `./gradlew` を使い、`examples/kotlin-spring/` で実行する
    - `./gradlew detekt ktlintCheck test integrationTest`
    - `examples/kotlin-spring/src/e2eTest` や `examples/kotlin-spring/src/main/resources/static/` を変えたときは `./gradlew e2eTest` も通す(Docker とブラウザ〔Chromium〕が必要。PR の CI では `integration` とは別の `e2e` ジョブ)
-   - 続けて `./gradlew pitest`(閾値 80%)
+   - 続けて `./gradlew pitest` と `./gradlew pitest -Ppitest.domainOnly=true`(層1の全対象とドメイン層だけ。閾値はどちらも 80%)
 7. PBT が失敗したら `02a` §2.3.1 の手順に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない
 8. `examples/kotlin-spring/docs/*.md` や TRS を編集したときは `npm ci && npm run lint` も通す
 

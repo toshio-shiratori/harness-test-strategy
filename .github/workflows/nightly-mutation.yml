@@ -23,22 +23,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
       # 全体ミューテーション。閾値は夜間用の 70%（02b §4.1）
       - run: ./gradlew pitest -Ppitest.threshold=70
+      # ドメイン層だけのミューテーション（サンプルの examples/kotlin-spring/docs/02b.md §4.4）。全体の結果の成否によらず実行する。レポートは別ディレクトリ（pitest-domain）に出る
+      - run: ./gradlew pitest -Ppitest.domainOnly=true -Ppitest.threshold=70
+        if: always()
       - name: スコアを記録
         if: always()
         run: |
           python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
           import re
-          s = open("build/reports/pitest/mutations.xml").read()
-          total = len(re.findall(r"<mutation ", s))
-          killed = len(re.findall(r"status='KILLED'", s))
           print("## Mutation Score")
-          print(f"- {killed}/{total} killed ({100 * killed // max(total, 1)}%)")
+          for label, d in (("全体", "pitest"), ("ドメイン層だけ", "pitest-domain")):
+              try:
+                  s = open(f"build/reports/{d}/mutations.xml").read()
+              except FileNotFoundError:
+                  print(f"- {label}: レポートなし（実行されなかったか、実行に失敗した）")
+                  continue
+              total = len(re.findall(r"<mutation ", s))
+              killed = len(re.findall(r"status='KILLED'", s))
+              print(f"- {label}: {killed}/{total} killed ({100 * killed // max(total, 1)}%)")
           PY
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: pitest-report-${{ github.run_number }}
-          path: examples/kotlin-spring/build/reports/pitest
+          path: |
+            examples/kotlin-spring/build/reports/pitest
+            examples/kotlin-spring/build/reports/pitest-domain
           retention-days: 90
 
   # PBT の実行回数を増やした全体テスト。通常実行（既定 1000 回）では見つからない反例を夜間に探す（02a §2.3 規則4）。
