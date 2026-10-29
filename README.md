@@ -2,7 +2,17 @@
 
 AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保てるよう、機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。
 
-成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。`examples/kotlin-spring/` は、`02a`・`02b` の Kotlin サンプルがコンパイルされテストを通ることを保証する検証用プロジェクトです。
+成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。
+
+## リポジトリの構成
+
+| パス | 位置づけ | 配布 |
+|---|---|---|
+| `docs/testing/` | **配布物**。標準の本体(方針書 01〜05、TRS テンプレート、バグ報告・バグ修正 PR の雛形)。言語やライブラリによらず導入できるよう、言語中立で自己完結させている。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクしない。中立性は `npm run lint` の `lint:portable` が検査する | する |
+| `examples/kotlin-spring/` | **実装例**。標準を Kotlin + Spring Boot に導入した一例で、コンパイルしてテストを通す検証用プロジェクト。標準の各文書に対応するコード例・実現例・実測(`docs/<文書番号>.md`)とサンプルの TRS(`docs/trs/`)もここにある | しない |
+| `docs/records/` | **記録**。このリポジトリ自身の運用やパイロットの記録 | しない |
+
+導入先がコピーするのは `docs/testing/` だけです。実装例と記録は、標準を理解する助けとして公開していますが、標準の要求ではありません。
 
 ## 対象読者
 
@@ -27,7 +37,8 @@ flowchart LR
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
-| [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md) | TRS の実例 |
+| [バグ報告](docs/testing/templates/bug-report.md) / [バグ修正 PR](docs/testing/templates/bug-fix-pr.md)の雛形 | 04 の不具合還元プロトコルを運用に落とすための雛形 |
+| [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md) | TRS の実例(`examples/kotlin-spring/`。配布物の外) |
 
 ## 中心となる考え方
 
@@ -47,14 +58,14 @@ Gradle で自己完結したプロジェクトです。位置づけと動かし�
 | 言語・フレームワーク | Kotlin 2.4 系、Spring Boot 4.1 系、JDK 21 |
 | テスト | Kotest 6.2 系(PBT・データ駆動を含む)、Konsist(アーキテクチャ検査・テスト保護・TRS との紐づけ検査) |
 | 静的解析 | detekt、ktlint、`allWarningsAsErrors` |
-| ミューテーション | PIT。閾値は PR(変更クラスのみ)が 80%、夜間の全体実行が 70% |
+| ミューテーション | PIT。閾値は PR(変更クラス。`ALL` のときは層1の全対象)と main への push が 80%、夜間の実行(層1の全対象)が 70%。ドメイン層のクラスが対象に入るときは、ドメイン層だけの実行も同じ閾値で併走する |
 
 バージョンは系統(minor)で書いています。正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper(`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`)を正とします。
 
 ## ローカルでの確認
 
 ```bash
-# ドキュメント(markdownlint と Mermaid の構文検査)
+# ドキュメント(markdownlint、節番号参照とリンク、docs/testing の言語中立・自己完結、Mermaid の構文検査)
 npm ci && npm run lint
 
 # サンプルコード(静的解析、テスト、ミューテーションテスト)。Gradle は examples/kotlin-spring/ で実行する
@@ -63,6 +74,7 @@ cd examples/kotlin-spring
 ./gradlew integrationTest   # Docker が必要（Testcontainers）
 ./gradlew e2eTest           # Docker とブラウザ（Chromium）が必要。下の「E2E のセットアップ」を参照
 ./gradlew pitest
+./gradlew pitest -Ppitest.domainOnly=true   # ドメイン層だけ（全体の実行と、ドメイン層のクラスを含む差分実行で CI も併走する）
 ```
 
 CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` は `kotlin-samples.yml` の `e2e` ジョブで、PR で実行します)。
@@ -149,11 +161,11 @@ curl -i -X POST http://localhost:8080/orders/items \
 
 1. 01 と 02a〜02c を読み、層構造と型ガードレールの方針をチームで合意する。
 2. TRS テンプレートを複製し、最初の機能の TRS を書く。実例の ORD-001 が参考になる。
-3. 次を自分のプロジェクトにコピーして調整する。
+3. 次を自分のプロジェクトにコピーして調整する。ここは Kotlin + Spring Boot の実装例(配布物の外)を使う場合の例で、他の言語では同じ役割のものを自分の環境で用意する。
    - `examples/kotlin-spring/src/` の Konsist テスト(`architecture/` 配下)
    - `examples/kotlin-spring/build.gradle.kts` の PIT・detekt 設定
    - `CLAUDE.md`
-4. 不具合の運用は 04 とバグ報告テンプレート(`.github/ISSUE_TEMPLATE/bug_report.yml`)を使う。
+4. 不具合の運用は 04 と、バグ報告・バグ修正 PR の雛形(`docs/testing/templates/`)を使う。
 
 すでにテスト・静的解析・CI があるプロジェクトは、次のように進めます。
 
@@ -162,7 +174,7 @@ curl -i -X POST http://localhost:8080/orders/items \
 - 現状値をベースラインに固定して悪化のみを禁止し、既存の仕組みに接続しながら段階的に取り入れます。
 - `CLAUDE.md` は、既存のエージェント指示を置き換えません。必要な参照(本標準と 04 のヒーリング規程への参照など。02b §6)を追記します。
 
-コード例は Kotlin + Spring Boot 前提ですが、原則そのものは言語非依存です。
+`docs/testing/` の文書は言語非依存です。Kotlin + Spring Boot での実装は、実装例(`examples/kotlin-spring/`)を参考にしてください。
 
 ## コントリビュート
 

@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD041 -->
-<!-- バグ修正用。項目の定義は docs/testing/04-regression-governance.md §2.4・§2.5・§2.6 が正 -->
+<!-- バグ修正用。項目の定義は docs/testing/04-regression-governance.md §2.4・§2.5・§2.6 が正。「不具合還元」「完了条件」の項目は docs/testing/templates/bug-fix-pr.md と一致させる(変えるときは両方を更新する) -->
 ## 概要
 
 Closes #
@@ -25,4 +25,4 @@ Closes #
 ## 検証
 
 - [ ] `npm run lint`
-- [ ] `examples/kotlin-spring/` で `./gradlew detekt ktlintCheck test pitest`
+- [ ] `examples/kotlin-spring/` で `./gradlew detekt ktlintCheck test pitest` と `./gradlew pitest -Ppitest.domainOnly=true`

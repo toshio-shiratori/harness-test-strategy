@@ -1,4 +1,4 @@
-# 項目の定義は docs/testing/04-regression-governance.md §2.4・§2.6 が正。ここは参照で、項目を変えるときは 04 も更新する。
+# 項目の定義は docs/testing/04-regression-governance.md §2.4・§2.6 が正。ここは参照で、項目を変えるときは 04 と docs/testing/templates/bug-report.md も更新する(項目名と選択肢を両方で一致させる)。
 # 発見時に分かる項目だけを必須にする。根本原因・還元先・追加テスト・ミューテーション確認は調査と修正の後に分かるため任意とし、
 # 還元先の強制はバグ修正用の PR テンプレート（.github/PULL_REQUEST_TEMPLATE/bug_fix.md）の DoD で行う。
 name: バグ報告
@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        不具合は「E2E を足して終わり」にせず、最速の層（型 → Unit → PBT → Integration）へ還元します。
+        不具合は「E2E を足して終わり」にせず、最速の層（型 → 静的解析 → Unit → PBT → Integration）へ還元します。
         項目の定義は [04 §2.6](https://github.com/toshio-shiratori/harness-test-strategy/blob/main/docs/testing/04-regression-governance.md) に従います。
   - type: dropdown
     id: discovery-layer

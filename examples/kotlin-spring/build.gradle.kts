@@ -90,9 +90,12 @@ tasks.register<JavaExec>("playwrightInstall") {
     args("install", "chromium")
 }
 
-// ExecutionBoundaryTest / TestProtectionTest / TraceabilityTest が src/e2eTest を読むため、変更時に層1が再実行されるよう入力に宣言する
+// ExecutionBoundaryTest / TestProtectionTest / TraceabilityTest / UnrunTestDetectionTest が src/integrationTest・src/e2eTest と
+// config/konsist-fixtures を読むため、変更時に層1が再実行されるよう入力に宣言する
 tasks.named<Test>("test") {
+    inputs.dir("src/integrationTest")
     inputs.dir("src/e2eTest")
+    inputs.dir("config/konsist-fixtures")
 }
 
 tasks.named<Test>("e2eTest") {
@@ -102,16 +105,47 @@ tasks.named<Test>("e2eTest") {
     environment("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")
 }
 
+// ドメイン層だけの実行（-Ppitest.domainOnly=true）。層1の全対象（既定）や差分実行に加えて、それらが走る契機ごとに併走させる。
+// 閾値は対象の合算にかかり、対象を広げたり、ドメイン層と他の層を同時に変えたりすると、ドメイン層に対する実効の要求が下がるため、
+// ドメイン層は別に評価する（規範 docs/testing/02b §4.1、サンプル examples/kotlin-spring/docs/02b.md §4.4）。
+// 実行するテストはドメイン層のテストだけにして、ドメイン層の変異をドメイン層自身のテストで検出できることを求める。
+// -Ppitest.targetClasses を併用すると、その中のドメイン層のクラスだけを対象にする（差分実行の併走）。ドメイン層以外のクラスが
+// 含まれていたら失敗させる（呼び出し側は、ドメイン層のクラスだけを渡す）。
+// レポートは別ディレクトリに出す（同じ場所だと後の実行が先の結果を上書きする）。targetClasses・targetTests・reportDir が
+// 通常の実行と異なるため、Gradle は同じ呼び出しの 2 回目を up-to-date 扱いにしない。
+val pitestDomainOnly = providers.gradleProperty("pitest.domainOnly").map { it.toBoolean() }.orElse(false)
+val domainPackages = listOf("com.example.order.domain", "com.example.payment.domain")
+
 pitest {
     junit5PluginVersion.set("1.2.3")
-    // 既定はドメイン層全体。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
+    // 既定は層1の全対象（src/main の全パッケージ）。PR の差分実行では scripts/pitest-targets.sh の出力を -Ppitest.targetClasses=... で渡す
     targetClasses.set(
-        providers.gradleProperty("pitest.targetClasses")
-            .map { it.split(",") }
-            .orElse(listOf("com.example.order.domain.*", "com.example.payment.domain.*")),
+        pitestDomainOnly.flatMap { domainOnly ->
+            val requested = providers.gradleProperty("pitest.targetClasses").map { it.split(",") }
+            if (domainOnly) {
+                requested
+                    .map { classes ->
+                        val outside = classes.filter { c -> domainPackages.none { c.startsWith("$it.") } }
+                        require(outside.isEmpty()) { "pitest.domainOnly=true はドメイン層のクラスだけを受け付ける。範囲外: $outside" }
+                        classes
+                    }
+                    .orElse(domainPackages.map { "$it.*" })
+            } else {
+                requested.orElse(listOf("com.example.*"))
+            }
+        },
     )
     // 未指定だと targetClasses と同じパターンが使われ、main 側のクラスをテストとして実行して失敗する
-    targetTests.set(listOf("com.example.order.domain.*Test", "com.example.payment.domain.*Test"))
+    targetTests.set(
+        pitestDomainOnly.map { domainOnly ->
+            if (domainOnly) domainPackages.map { "$it.*Test" } else listOf("com.example.*Test")
+        },
+    )
+    reportDir.set(
+        pitestDomainOnly.flatMap { domainOnly ->
+            layout.buildDirectory.dir(if (domainOnly) "reports/pitest-domain" else "reports/pitest")
+        },
+    )
     // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
     // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
     // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
