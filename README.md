@@ -58,7 +58,7 @@ Gradle で自己完結したプロジェクトです。位置づけと動かし�
 | 言語・フレームワーク | Kotlin 2.4 系、Spring Boot 4.1 系、JDK 21 |
 | テスト | Kotest 6.2 系(PBT・データ駆動を含む)、Konsist(アーキテクチャ検査・テスト保護・TRS との紐づけ検査) |
 | 静的解析 | detekt、ktlint、`allWarningsAsErrors` |
-| ミューテーション | PIT。閾値は PR(変更クラスのみ)が 80%、夜間の実行(ドメイン層のクラスが対象)が 70% |
+| ミューテーション | PIT。閾値は PR(変更クラス。`ALL` のときは層1の全対象)と main への push が 80%、夜間の実行(層1の全対象)が 70%。ドメイン層のクラスが対象に入るときは、ドメイン層だけの実行も同じ閾値で併走する |
 
 バージョンは系統(minor)で書いています。正確な版は `examples/kotlin-spring/build.gradle.kts` と Gradle wrapper(`examples/kotlin-spring/gradle/wrapper/gradle-wrapper.properties`)を正とします。
 
@@ -74,6 +74,7 @@ cd examples/kotlin-spring
 ./gradlew integrationTest   # Docker が必要（Testcontainers）
 ./gradlew e2eTest           # Docker とブラウザ（Chromium）が必要。下の「E2E のセットアップ」を参照
 ./gradlew pitest
+./gradlew pitest -Ppitest.domainOnly=true   # ドメイン層だけ（全体の実行と、ドメイン層のクラスを含む差分実行で CI も併走する）
 ```
 
 CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` は `kotlin-samples.yml` の `e2e` ジョブで、PR で実行します)。

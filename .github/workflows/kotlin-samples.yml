@@ -25,7 +25,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
       # docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
       - run: ./gradlew detekt ktlintCheck test
-      # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体
+      # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体。
+      # 全体（ALL）のときは、層1の全対象に加えて、ドメイン層だけの実行も走らせる。差分実行のときも、変更クラスにドメイン層
+      # （com.example.order.domain / com.example.payment.domain）のクラスが含まれれば、そのクラスだけをドメイン層のテストで実行する
+      # （サンプルの examples/kotlin-spring/docs/02b.md §4.4）。ドメイン層のクラスだけを渡す絞り込みは、ここ（シェル）で行う
+      # どちらかが失敗しても、もう一方の結果を得るため両方を実行して、最後にまとめて失敗にする
       - name: pitest
         env:
           EVENT: ${{ github.event_name }}
@@ -40,9 +44,19 @@ jobs:
           if [ "$targets" = "NONE" ]; then
             echo "ミューテーション対象の変更なし"
           elif [ "$targets" = "ALL" ]; then
-            ./gradlew pitest
+            status=0
+            ./gradlew pitest || status=1
+            ./gradlew pitest -Ppitest.domainOnly=true || status=1
+            exit "$status"
           else
-            ./gradlew pitest "-Ppitest.targetClasses=$targets"
+            status=0
+            ./gradlew pitest "-Ppitest.targetClasses=$targets" || status=1
+            domain_targets="$(tr ',' '\n' <<<"$targets" | grep -E '^com\.example\.(order|payment)\.domain\.' | paste -sd, - || true)"
+            if [ -n "$domain_targets" ]; then
+              echo "ドメイン層だけの実行: $domain_targets"
+              ./gradlew pitest -Ppitest.domainOnly=true "-Ppitest.targetClasses=$domain_targets" || status=1
+            fi
+            exit "$status"
           fi
 
   # Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・Testcontainers の DB 統合）。
