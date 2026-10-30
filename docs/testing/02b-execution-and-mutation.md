@@ -36,7 +36,7 @@ flowchart TB
     C1["全 Unit/PBT"] --> C2["ミューテーション<br/>（変更ファイル）"] --> C3["Integration"] --> C4["E2E"]
   end
   B --> PR
-  PR --> D["夜間（CI）<br/>PBT 増量・<br/>全体の<br/>ミューテーション・<br/>AI 探索<br/>エージェント"]
+  PR --> D["夜間（CI）<br/>・PBT 増量<br/>・全体の<br/>ミューテーション<br/>・AI 探索<br/>エージェント"]
   classDef default font-size:14px
 ```
 
