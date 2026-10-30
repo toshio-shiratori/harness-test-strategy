@@ -86,6 +86,7 @@ flowchart BT
   style L1 stroke-width:6px
   style L2 stroke-width:3px
   style L3 stroke-width:1px
+  classDef default font-size:14px
 ```
 
 下から層1・層2・層3の順に積み上がる。枠線の太さは層の厚さ（下の層ほど厚い）を表す。
