@@ -22,7 +22,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 | 変更 | 実行するもの | CI |
 |---|---|---|
-| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:mermaid` = 全 mermaid ブロックを実レンダリング。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
+| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:mermaid` = 全 mermaid ブロックを実レンダリングし、構文エラーと、描画した幅が 900px を超える図を失敗にする〔高さは検査しない〕。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
 | `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/*.md` のコード例・`docs/trs/`、`docs/testing/trs/_template.md` | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest` と `./gradlew pitest -Ppitest.domainOnly=true`(層1の全対象と、ドメイン層だけの2回。閾値はどちらも 80%、夜間の実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。`examples/kotlin-spring/README.md` の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
 
@@ -33,7 +33,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 ## 書き方の規約
 
-- 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さを測る(追加・変更した図に、幅が 900px を超える印が付かないこと。既存の図の印は対象外で、別の Issue で扱う。引数を省略するとリポジトリの全 Markdown が対象で、`lint` には含まれず、`--png` を付けると画像も確認できる)。手元の描画は GitHub の表示と一致しないため、mermaid の図と Markdown の表を追加・変更した PR は、マージ前に GitHub 上の表示も確かめる(手順は「サブエージェントチーム」の 6)。
+- 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。幅が 900px を超える図があると `lint:mermaid` が失敗し、CI の `lint` ジョブが落ちる(高さには機械的な閾値がなく、縦に極端に長くならないよう自分で判断する)。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さ・縦横比を測って確かめられる(引数を省略するとリポジトリの全 Markdown が対象で、`--png` を付けると画像も確認できる。閾値と測り方は `lint:mermaid` と同じ)。手元の描画は GitHub の表示と一致しないため、mermaid の図と Markdown の表を追加・変更した PR は、マージ前に GitHub 上の表示も確かめる(手順は「サブエージェントチーム」の 6)。
 - サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。

@@ -23,5 +23,5 @@ jobs:
           path: ~/.cache/puppeteer
           key: puppeteer-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
-      # ローカルと同一のコマンド（markdownlint + 節番号参照の検査 + 配布物の言語中立の検査 + Mermaid 構文検査）
+      # ローカルと同一のコマンド（markdownlint + 節番号参照の検査 + 配布物の言語中立の検査 + Mermaid の構文検査と、幅 900px 超の検出）
       - run: npm run lint

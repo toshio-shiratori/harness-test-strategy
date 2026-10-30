@@ -17,10 +17,11 @@
 ドキュメントの検査は、ローカルも CI(`.github/workflows/lint.yml`)も同じコマンドです。
 
 ```bash
-# markdownlint、節番号参照とリンク、docs/testing の言語中立・自己完結、Mermaid の構文検査
+# markdownlint、節番号参照とリンク、docs/testing の言語中立・自己完結、
+# Mermaid の構文検査と、幅が 900px を超える図の検出(超えると失敗。高さは検査しない)
 npm ci && npm run lint
 
-# 図を追加・変更したとき: 各図の幅・高さを測る(幅が約 900px を超えると印が付く。--png で画像も出す)
+# 図を追加・変更したとき: 各図の幅・高さ・縦横比を測る(幅が 900px を超えると印が付く。--png で画像も出す)
 # 引数を省略すると、リポジトリの全 Markdown が対象
 npm run measure:mermaid -- docs/testing/01-test-policy.md
 ```

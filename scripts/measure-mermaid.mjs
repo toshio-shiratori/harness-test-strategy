@@ -1,18 +1,16 @@
 // Markdown 内の ```mermaid ブロックを mermaid-cli (mmdc) で描画し、図ごとの幅・高さ・縦横比を測る。
-// 構文エラーの検出は lint-mermaid.mjs の役割で、こちらは「描画したときの見え方」の確認に使う。
+// 構文エラーと、幅が閾値を超える図(失敗扱い)の検出は lint-mermaid.mjs の役割で、こちらは幅・高さ・縦横比の数値を見るのに使う。
+// 閾値(900px)、走査の範囲、図の拾い方、viewBox の読み方は mermaid-common.mjs で lint-mermaid.mjs と共有する。
 // 使い方: node scripts/measure-mermaid.mjs [--png] [<file.md> ...]
 //   引数を省略するとリポジトリの全 .md を対象にする(lint-mermaid.mjs と同じ範囲。node_modules、.git、.obsidian、.claude/worktrees は除く)。
 //   --png を付けると PNG も出してパスを表示する。この一時ディレクトリは消さない(Read で画像を見るため)。
 //   PNG は mmdc の既定の表示幅(800px)に収まる大きさで出るので、幅の広い図は縮小された見え方になる。
 // 描画結果はすべて OS の一時ディレクトリに出す。リポジトリ内には何も書かない。
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-
-const root = resolve(import.meta.dirname, "..");
-// GitHub の本文の幅(約 900px)。これを超える図は縮小されて文字が読みにくくなる
-const BODY_WIDTH = 900;
+import { BODY_WIDTH, blockLines, root, svgSize, walk } from "./mermaid-common.mjs";
 
 const argv = process.argv.slice(2);
 const png = argv.includes("--png");
@@ -22,20 +20,6 @@ if (unknown.length > 0) {
   process.exit(2);
 }
 
-const IGNORED = new Set(["node_modules", ".git", ".obsidian"]);
-
-// lint-mermaid.mjs と同じ走査と除外
-function* walk(dir) {
-  for (const name of readdirSync(dir)) {
-    if (IGNORED.has(name)) continue;
-    const path = join(dir, name);
-    // worktree 内の複製は対象外。追跡ファイルは各チェックアウトで検査される
-    if (relative(root, path) === join(".claude", "worktrees")) continue;
-    if (statSync(path).isDirectory()) yield* walk(path);
-    else if (name.endsWith(".md")) yield path;
-  }
-}
-
 const given = argv.filter((a) => !a.startsWith("-")).map((a) => resolve(process.env.INIT_CWD ?? process.cwd(), a)); // npm run は cwd をリポジトリに変えるので、呼び出し元の cwd を基準にする
 const missing = given.filter((f) => !existsSync(f));
 if (missing.length > 0) {
@@ -43,14 +27,6 @@ if (missing.length > 0) {
   process.exit(2);
 }
 const files = given.length > 0 ? given : [...walk(root)];
-
-// mermaid ブロックの開始行(1 始まり)。mmdc が図を拾う正規表現(``` と ::: の囲み、行頭の空白を許す)に揃え、
-// mmdc が出力する図の番号と同じ順に並べる
-const BLOCK = /^[^\S\n]*[`:]{3}mermaid[^\S\n]*\r?$/gm;
-const blockLines = (file) => {
-  const text = readFileSync(file, "utf8");
-  return [...text.matchAll(BLOCK)].map((m) => text.slice(0, m.index).split("\n").length);
-};
 
 const targets = files.map((file) => ({ file, lines: blockLines(file) })).filter((t) => t.lines.length > 0);
 if (targets.length === 0) {
@@ -89,10 +65,9 @@ try {
       }
       lines.forEach((line, i) => {
         const svg = readFileSync(join(dir, `out-${i + 1}.svg`), "utf8");
-        // 図の大きさは svg 要素の viewBox ("minX minY width height") から読む
-        const box = /<svg[^>]*\sviewBox="([^"]+)"/.exec(svg)?.[1].trim().split(/\s+/).map(Number);
-        if (!box || box.length !== 4 || box.some(Number.isNaN)) throw new Error(`${rel}:${line} viewBox を読み取れません`);
-        rows.push({ line, i, width: Math.round(box[2]), height: Math.round(box[3]) });
+        const size = svgSize(svg);
+        if (!size) throw new Error(`${rel}:${line} viewBox を読み取れません`);
+        rows.push({ line, i, ...size });
       });
     } catch (e) {
       failed++;
