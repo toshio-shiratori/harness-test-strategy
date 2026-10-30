@@ -33,7 +33,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 ## 書き方の規約
 
-- 図は ASCII ではなく **Mermaid** を使う。
+- 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さを測る(追加・変更した図に、幅が 900px を超える印が付かないこと。既存の図の印は対象外で、別の Issue で扱う。`lint` には含まれず、`--png` を付けると画像も確認できる)。
 - サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
@@ -66,7 +66,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 |---|---|---|
 | `doc-author` | 方針書(01〜05)・README・CONTRIBUTING・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
 | `kotlin-sample-engineer` | `examples/kotlin-spring/` の `src/` と `examples/kotlin-spring/docs/*.md` のコード例の同期 | 書き込み可 |
-| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、非公開情報の混入 | 読み取り専用 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、図を描画したときの見え方、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |
 
 1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。
