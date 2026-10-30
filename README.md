@@ -19,7 +19,7 @@ flowchart TB
     direction TB
     subgraph ROW1[" "]
       direction LR
-      G1["型・静的<br/>検査"] --> G2["Unit /<br/>PBT"] --> G3["ミューテーション"]
+      G1["型・静的<br/>検査"] --> G2["Unit /<br/>PBT"] --> G3["ミューテーション　"]
     end
     subgraph ROW2[" "]
       direction LR
@@ -71,7 +71,7 @@ flowchart TB
 flowchart TB
   subgraph R1[" "]
     direction LR
-    A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b<br/>実行境界と<br/>ミューテーション"] --> D["02c E2E"]
+    A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b<br/>実行境界と<br/>ミューテーション　"] --> D["02c E2E"]
   end
   subgraph R2[" "]
     direction LR
