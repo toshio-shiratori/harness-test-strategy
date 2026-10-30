@@ -13,15 +13,25 @@ AI 駆動開発のためのテスト戦略の標準です。AI が大量にコ�
 人間が仕様(テスト要件仕様書(TRS)の受入条件(AC))と規程を承認し、AI が実装します。機械の関門を通り、人間のレビューを経たものがマージされ、関門で落ちたら AI に戻ります。AI が直せる範囲は [04 §3](docs/testing/04-regression-governance.md#3-aiヒーリング自動修復適用基準) で区切られ、期待値・仕様に関わる失敗は人間が判断します。AI は方針書・規程・期待値を単独で変更せず、変更は PR で人間が承認します。
 
 ```mermaid
-flowchart LR
-  H["人間<br/>TRS(AC)と規程を承認"] --> A["AI が実装"]
+flowchart TB
+  H["人間<br/>TRS(AC)と<br/>規程を承認"] --> A["AI が実装"]
   subgraph GATES["機械の関門"]
-    direction LR
-    G1["型・静的検査"] --> G2["Unit / PBT"] --> G3["ミューテーション"] --> G4["Integration"] --> G5["E2E"]
+    direction TB
+    subgraph ROW1[" "]
+      direction LR
+      G1["型・静的<br/>検査"] --> G2["Unit /<br/>PBT"] --> G3["ミューテーション"]
+    end
+    subgraph ROW2[" "]
+      direction LR
+      G4["Integration"] --> G5["E2E"]
+    end
+    ROW1 --> ROW2
   end
   A --> GATES
   GATES -- "落ちたら戻る" --> A
-  GATES -- "通ったら" --> R["人間のレビュー"] --> M["マージ"]
+  GATES -- "通ったら" --> R["人間の<br/>レビュー"] --> M["マージ"]
+  style ROW1 fill:none,stroke:none
+  style ROW2 fill:none,stroke:none
 ```
 
 ## 導入すると得られるもの
@@ -36,9 +46,9 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  C["docs/testing/ を自分のリポジトリにコピー"] --> Q{"既存のテスト・静的解析・CI がある?"}
-  Q -- "ない(新規)" --> N1["01 で層構造と責務分離をチームで合意"] --> N2["最初の機能の TRS を書く"] --> N3["関門の道具を用意"]
-  Q -- "ある(既存)" --> E1["05 で既存の仕組みとの重複を診断"] --> E2["現状をベースラインに固定"] --> E3["段階的に導入"]
+  C["docs/testing/<br/>を自分の<br/>リポジトリに<br/>コピー"] --> Q{"既存のテスト・<br/>静的解析・<br/>CI がある?"}
+  Q -- "ない(新規)" --> N1["01 で層構造と<br/>責務分離を<br/>チームで合意"] --> N2["最初の機能の<br/>TRS を書く"] --> N3["関門の道具を<br/>用意"]
+  Q -- "ある(既存)" --> E1["05 で既存の<br/>仕組みとの<br/>重複を診断"] --> E2["現状を<br/>ベースラインに<br/>固定"] --> E3["段階的に導入"]
 ```
 
 まず `docs/testing/` を自分のリポジトリにコピーします。コピーするのはこれだけです。
@@ -58,8 +68,18 @@ flowchart TB
 ## 文書の一覧
 
 ```mermaid
-flowchart LR
-  A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b 実行境界とミューテーション"] --> D["02c E2E"] --> E["03 TRS"] --> F["04 運用規程"] --> G["05 導入手順"]
+flowchart TB
+  subgraph R1[" "]
+    direction LR
+    A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b<br/>実行境界と<br/>ミューテーション"] --> D["02c E2E"]
+  end
+  subgraph R2[" "]
+    direction LR
+    E["03 TRS"] --> F["04 運用規程"] --> G["05 導入手順"]
+  end
+  R1 --> R2
+  style R1 fill:none,stroke:none
+  style R2 fill:none,stroke:none
 ```
 
 | 文書 | 内容 |
