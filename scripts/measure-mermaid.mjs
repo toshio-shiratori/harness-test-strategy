@@ -1,7 +1,7 @@
 // Markdown 内の ```mermaid ブロックを mermaid-cli (mmdc) で描画し、図ごとの幅・高さ・縦横比を測る。
 // 構文エラーの検出は lint-mermaid.mjs の役割で、こちらは「描画したときの見え方」の確認に使う。
 // 使い方: node scripts/measure-mermaid.mjs [--png] [<file.md> ...]
-//   引数を省略すると docs/testing/ 配下の全 .md を対象にする。
+//   引数を省略するとリポジトリの全 .md を対象にする(lint-mermaid.mjs と同じ範囲。node_modules、.git、.obsidian、.claude/worktrees は除く)。
 //   --png を付けると PNG も出してパスを表示する。この一時ディレクトリは消さない(Read で画像を見るため)。
 //   PNG は mmdc の既定の表示幅(800px)に収まる大きさで出るので、幅の広い図は縮小された見え方になる。
 // 描画結果はすべて OS の一時ディレクトリに出す。リポジトリ内には何も書かない。
@@ -22,9 +22,15 @@ if (unknown.length > 0) {
   process.exit(2);
 }
 
+const IGNORED = new Set(["node_modules", ".git", ".obsidian"]);
+
+// lint-mermaid.mjs と同じ走査と除外
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
+    if (IGNORED.has(name)) continue;
     const path = join(dir, name);
+    // worktree 内の複製は対象外。追跡ファイルは各チェックアウトで検査される
+    if (relative(root, path) === join(".claude", "worktrees")) continue;
     if (statSync(path).isDirectory()) yield* walk(path);
     else if (name.endsWith(".md")) yield path;
   }
@@ -36,7 +42,7 @@ if (missing.length > 0) {
   console.error(`ファイルが見つかりません: ${missing.join(" ")}`);
   process.exit(2);
 }
-const files = given.length > 0 ? given : [...walk(join(root, "docs", "testing"))];
+const files = given.length > 0 ? given : [...walk(root)];
 
 // mermaid ブロックの開始行(1 始まり)。mmdc が図を拾う正規表現(``` と ::: の囲み、行頭の空白を許す)に揃え、
 // mmdc が出力する図の番号と同じ順に並べる

@@ -23,12 +23,12 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 2. Issue 本文を読み、従う
 3. 変更対象と、それにリンクする文書(`01` → `02a` → `02b` → `02c` → `03` → `04` と `trs/_template.md` は相互リンクしている)を読む。見出しやファイル名を変えるときはリンク切れを探して直す
 4. 執筆する。規約は次のとおり
-   - 図は ASCII ではなく Mermaid を使う。図は本文の幅(約 900px)に収める。幅を超えると縮小されて文字が読めなくなるので、`LR` で横に一列に並べて長くなるときは `TB` にする、段に分ける、ノードを減らすなど、向きや配置を変える。1 つのノードに長い文を詰め込まず、本文や表に移す。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅を測り、追加・変更した図に印(幅が 900px 超)が付かないことを確かめる。既存の図の印は対象外(別 Issue で扱う)。図の高さには機械的な閾値がないので、縦に極端に長くならないよう自分で判断する
+   - 図は ASCII ではなく Mermaid を使う。図は本文の幅(約 900px)に収める。幅を超えると縮小されて文字が読めなくなるので、`LR` で横に一列に並べて長くなるときは `TB` にする、段に分ける、ノードを減らすなど、向きや配置を変える。1 つのノードに長い文を詰め込まず、本文や表に移す。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅を測り、追加・変更した図に印(幅が 900px 超)が付かないことを確かめる。既存の図の印は対象外(別 Issue で扱う)。図の高さには機械的な閾値がないので、縦に極端に長くならないよう自分で判断する。手元の描画は GitHub 上の表示と一致しない(字幅が違い、折り返し位置が変わる)ので、GitHub 上の表示の確認はリーダーが Chrome でする。自分ではブラウザで確かめず、報告に、追加・変更した mermaid の図と Markdown の表の一覧(ファイルと見出し)を書く
    - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は使わない(MD033)
    - `docs/testing/` には、プログラミング言語のコードブロック(許可は `gherkin` / `mermaid` / `markdown` / `text`)を置かない。ツール名は括弧の例示に留め、実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く
    - サンプルコードは `examples/kotlin-spring/` に置き、Kotlin + Spring Boot 4.1.x。確認できていない API は書かず、公式リファレンスで確認するよう注記する
    - TRS を編集するときは AC / UC 番号を TRS 間で一意にし、Open Issues に起票した曖昧点は解決後も行を残す
-5. `npm ci && npm run lint` を通す(`lint:md`、`lint:refs`、`lint:portable`〔`docs/testing/` の言語中立・自己完結〕と、Mermaid を変えたときは `lint:mermaid`)。Mermaid を追加・変更したときは、描画したときの見え方も `npm run measure:mermaid -- <変更した md>` で確かめる(追加・変更した図に印が付かないこと。既存の図の印は対象外。`lint` には含まれない)
+5. `npm ci && npm run lint` を通す(`lint:md`、`lint:refs`、`lint:portable`〔`docs/testing/` の言語中立・自己完結〕と、Mermaid を変えたときは `lint:mermaid`)。Mermaid を追加・変更したときは、描画したときの見え方も `npm run measure:mermaid -- <変更した md>` で確かめる(追加・変更した図に印が付かないこと。既存の図の印は対象外。引数を省略するとリポジトリの全 Markdown が対象。`lint` には含まれない)
 6. `examples/kotlin-spring/docs/trs/` や `docs/testing/trs/_template.md` を編集したときは `examples/kotlin-spring/` で `./gradlew test` も通す(`TraceabilityTest` が、pending でない全 AC にテストが紐づくことと AC 番号の一意性を検査する)
 7. `examples/kotlin-spring/docs/*.md` のコード例を変える必要が出たときは、`examples/kotlin-spring/src/` との同期が要るため自分では直さず、報告でリーダーに伝える(`kotlin-sample-engineer` の仕事)
 
