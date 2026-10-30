@@ -28,35 +28,27 @@
 
 ```mermaid
 flowchart TB
-  subgraph H[" "]
-    direction LR
-    HD["開発ライン"] ~~~ HT["テストライン<br/>（並行）"]
-  end
   subgraph P1[" "]
     direction LR
-    D1["要件定義"] <-.-> T1["TRS 起草<br/>(AC を<br/>Gherkin で)"]
+    D1["要件定義"] <-. 往復 .-> T1["TRS 起草<br/>(AC を<br/>Gherkin で)"]
   end
   subgraph P2[" "]
     direction LR
-    D2["設計"] <-. "Open Issues で<br/>仕様を往復" .-> T2["因子・水準設計<br/>Open Issues 起票"]
+    D2["設計"] <-. 往復 .-> T2["因子・水準設計<br/>Open Issues<br/>起票"]
   end
   subgraph P3[" "]
     direction LR
-    D3["実装"] <-.-> T3["テスト生成(AI)"]
+    D3["実装"] <-. 往復 .-> T3["テスト生成(AI)"]
   end
   subgraph P4[" "]
     direction LR
-    D4["検証"] <-.-> T4["探索的テスト"]
+    D4["検証"] <-. 往復 .-> T4["探索的テスト"]
   end
   subgraph P5[" "]
     direction LR
-    D5["運用"] <-.-> T5["不具合還元"]
+    D5["運用"] <-. 往復 .-> T5["不具合還元"]
   end
-  H ~~~ P1
   P1 --> P2 --> P3 --> P4 --> P5
-  classDef head fill:none,stroke:none,font-weight:bold
-  class HD,HT head
-  style H fill:none,stroke:none
   style P1 fill:none,stroke:#ccc
   style P2 fill:none,stroke:#ccc
   style P3 fill:none,stroke:#ccc
@@ -64,7 +56,7 @@ flowchart TB
   style P5 fill:none,stroke:#ccc
 ```
 
-図は開発ラインとテストラインの並行関係を示す。左が開発ライン、右がテストラインで、各行が 1 つのフェーズ（全 5 フェーズ）に当たる。同じ行の左右は双方向の点線で対応し（設計では Open Issues で仕様を往復する）、行の間の矢印がフェーズの進行を表す。表は同じ 5 フェーズごとのテストラインの成果物と主担当を示す。
+図は開発ラインとテストラインの並行関係を示す。左が開発ライン、右がテストラインで、各行が 1 つのフェーズ（全 5 フェーズ）に当たる。同じ行の左右は、「往復」と書いた双方向の点線でつなぐ。点線は、同じフェーズで 2 つのラインが互いに情報を返し合うことを表す（設計では Open Issues で仕様を往復する）。行の間の矢印がフェーズの進行を表す。表は同じ 5 フェーズごとのテストラインの成果物と主担当を示す。
 
 | フェーズ（開発ライン） | テストライン（並行成果物） | 主担当 |
 |---|---|---|
