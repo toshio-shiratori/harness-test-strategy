@@ -30,14 +30,13 @@
 保存時・pre-commit・PR・夜間の各段階で回す検査を次に示す。
 
 ```mermaid
-flowchart LR
-  A["保存時<br/>型チェック + Lint"] --> B["pre-commit<br/>型 + Lint + 影響範囲の Unit/PBT"]
+flowchart TB
+  A["保存時<br/>型チェック + Lint"] --> B["pre-commit<br/>型 + Lint +<br/>影響範囲の<br/>Unit/PBT"]
   subgraph PR["PR（CI）"]
-    direction LR
     C1["全 Unit/PBT"] --> C2["ミューテーション<br/>（変更ファイル）"] --> C3["Integration"] --> C4["E2E"]
   end
   B --> C1
-  C4 --> D["夜間（CI）<br/>PBT 増量・全体ミューテーション<br/>AI探索エージェント"]
+  C4 --> D["夜間（CI）<br/>PBT 増量・全体<br/>ミューテーション<br/>AI探索<br/>エージェント"]
 ```
 
 ### 3.2 層1・統合テスト・E2E の実行境界

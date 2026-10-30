@@ -27,23 +27,44 @@
 開発ラインとテストラインを要件定義の段階から**並行**で進める。テストは実装後の工程ではない。
 
 ```mermaid
-flowchart LR
-  subgraph DEV["開発ライン"]
+flowchart TB
+  subgraph H[" "]
     direction LR
-    D1["要件定義"] --> D2["設計"] --> D3["実装"] --> D4["検証"] --> D5["運用"]
+    HD["開発ライン"] ~~~ HT["テストライン<br/>（並行）"]
   end
-  subgraph TEST["テストライン（並行）"]
+  subgraph P1[" "]
     direction LR
-    T1["TRS 起草<br/>(AC を Gherkin で)"] --> T2["因子・水準設計<br/>Open Issues 起票"] --> T3["テスト生成(AI)"] --> T4["探索的テスト"] --> T5["不具合還元"]
+    D1["要件定義"] <-.-> T1["TRS 起草<br/>(AC を<br/>Gherkin で)"]
   end
-  D1 <-.-> T1
-  D2 <-. "Open Issues で仕様を往復" .-> T2
-  D3 <-.-> T3
-  D4 <-.-> T4
-  D5 <-.-> T5
+  subgraph P2[" "]
+    direction LR
+    D2["設計"] <-. "Open Issues で<br/>仕様を往復" .-> T2["因子・水準設計<br/>Open Issues 起票"]
+  end
+  subgraph P3[" "]
+    direction LR
+    D3["実装"] <-.-> T3["テスト生成(AI)"]
+  end
+  subgraph P4[" "]
+    direction LR
+    D4["検証"] <-.-> T4["探索的テスト"]
+  end
+  subgraph P5[" "]
+    direction LR
+    D5["運用"] <-.-> T5["不具合還元"]
+  end
+  H ~~~ P1
+  P1 --> P2 --> P3 --> P4 --> P5
+  classDef head fill:none,stroke:none,font-weight:bold
+  class HD,HT head
+  style H fill:none,stroke:none
+  style P1 fill:none,stroke:#ccc
+  style P2 fill:none,stroke:#ccc
+  style P3 fill:none,stroke:#ccc
+  style P4 fill:none,stroke:#ccc
+  style P5 fill:none,stroke:#ccc
 ```
 
-図は開発ラインとテストラインの並行関係（5 フェーズ）、表は同じ 5 フェーズごとのテストラインの成果物と主担当を示す。
+図は開発ラインとテストラインの並行関係を示す。左が開発ライン、右がテストラインで、各行が 1 つのフェーズ（全 5 フェーズ）に当たる。同じ行の左右は双方向の点線で対応し（設計では Open Issues で仕様を往復する）、行の間の矢印がフェーズの進行を表す。表は同じ 5 フェーズごとのテストラインの成果物と主担当を示す。
 
 | フェーズ（開発ライン） | テストライン（並行成果物） | 主担当 |
 |---|---|---|
