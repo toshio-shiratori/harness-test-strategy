@@ -32,7 +32,7 @@ flowchart TB
   GATES -- "通ったら" --> R["人間の<br/>レビュー"] --> M["マージ"]
   style ROW1 fill:none,stroke:none
   style ROW2 fill:none,stroke:none
-  style G3 font-size:14px
+  classDef default font-size:14px
 ```
 
 ## 導入すると得られるもの
@@ -81,6 +81,7 @@ flowchart TB
   R1 --> R2
   style R1 fill:none,stroke:none
   style R2 fill:none,stroke:none
+  classDef default font-size:14px
 ```
 
 | 文書 | 内容 |
