@@ -20,7 +20,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       # 全体ミューテーション。閾値は夜間用の 70%（02b §4.1）
       - run: ./gradlew pitest -Ppitest.threshold=70
       # ドメイン層だけのミューテーション（サンプルの examples/kotlin-spring/docs/02b.md §4.4）。全体の結果の成否によらず実行する。レポートは別ディレクトリ（pitest-domain）に出る
@@ -64,5 +64,5 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: ./gradlew test -Pproptest.iterations=10000

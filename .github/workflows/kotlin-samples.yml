@@ -22,7 +22,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       # docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
       - run: ./gradlew detekt ktlintCheck test
       # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体。
@@ -72,7 +72,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: ./gradlew integrationTest
 
   # 実ブラウザ（Playwright の Chromium）で動かす E2E。`integration` と同じく Docker（Testcontainers の MySQL）が要る。
@@ -90,7 +90,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       # Playwright のブラウザ（Chromium）のダウンロード結果をキャッシュ。キーは examples/kotlin-spring/build.gradle.kts のハッシュ(Playwright のバージョンが変わればキーも変わる)
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
