@@ -48,7 +48,7 @@ flowchart TB
 ```mermaid
 flowchart TB
   C["docs/testing/<br/>を自分の<br/>リポジトリに<br/>コピー"] --> Q{"既存のテスト・<br/>静的解析・<br/>CI がある?"}
-  Q -- "ない(新規)" --> N1["01 で層構造と<br/>責務分離を<br/>チームで合意"] --> N2["最初の機能の<br/>TRS を書く"] --> N3["関門の道具を<br/>用意"]
+  Q -- "ない(新規)" --> N1["01 で層構造と<br/>責務分離を<br/>チームで合意"] --> N2["最初の機能の<br/>要件定義書を<br/>書く"] --> N2b["その要件定義書<br/>から TRS を<br/>書く"] --> N3["関門の道具を<br/>用意"]
   Q -- "ある(既存)" --> E1["05 で既存の<br/>仕組みとの<br/>重複を診断"] --> E2["現状を<br/>ベースラインに<br/>固定"] --> E3["段階的に導入"]
 ```
 
@@ -57,8 +57,9 @@ flowchart TB
 **新規のプロジェクト**
 
 1. [01 基本方針書](docs/testing/01-test-policy.md)の層構造と責務分離をチームで合意します。
-2. 最初の機能の TRS を、[テンプレート](docs/testing/trs/_template.md)から書きます([03 §5](docs/testing/03-trs-guideline.md#5-策定フロー))。
-3. 関門の道具を、自分の言語で用意します。
+2. 最初の機能の要求を、[要件定義書のテンプレート](docs/testing/templates/requirements.md)に書きます。
+3. その要件定義書を入力に、TRS を[テンプレート](docs/testing/trs/_template.md)から書きます([03 §5](docs/testing/03-trs-guideline.md#5-策定フロー))。
+4. 関門の道具を、自分の言語で用意します。
    - 言語・ツールの前提は、[02a §0](docs/testing/02a-types-and-pbt.md#0-技術前提導入先の言語ツールに求めるもの) が求めるものです。
    - ミューテーション・実行境界・エージェント向けの設定は、[02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準)と [02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所) に従います。
    - 一例は[実装例](#実装例)です。
@@ -96,6 +97,7 @@ flowchart TB
 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法 |
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
+| [要件定義書テンプレート](docs/testing/templates/requirements.md) | TRS の起草に要る最小限の要求(目的・利用者・要件・未決事項)を、要件 ID を付けて書く雛形 |
 | [TRS テンプレート](docs/testing/trs/_template.md) | 新しい TRS を書くときの雛形 |
 | [バグ報告](docs/testing/templates/bug-report.md) / [バグ修正 PR](docs/testing/templates/bug-fix-pr.md) の雛形 | 04 の不具合還元プロトコルを運用に落とすための雛形 |
 
