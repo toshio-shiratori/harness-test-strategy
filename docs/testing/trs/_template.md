@@ -1,6 +1,6 @@
 # TRS-<機能ID>: <機能名>
 
-> 使い方: このファイルを導入先の TRS ディレクトリ（例: `docs/testing/trs/`）に `<機能ID>-<機能名>.md` としてコピーして使う。
+> 使い方: このファイルを `<機能ID>-<機能名>.md` としてコピーして使う。置き場所は導入先の TRS ディレクトリ（例: `docs/testing/trs/`）。
 > 山括弧 `< >` と `例:` の行は置き換え／削除すること。ガイドライン: [03-trs-guideline.md](../03-trs-guideline.md)
 > **1機能 = 1ファイル。Open Issues は解決後も削除しない。**
 
@@ -54,7 +54,7 @@
 ### 3. 受入条件（AC / Gherkin）
 
 > ルール: 1 AC = 1 振る舞い／`When` は1つ／観測可能な結果のみ／曖昧語禁止／検証層タグを付与。
-> 層2 は `@integration` / `@e2e` で区別する。E2E は `@e2e` の代わりに `@e2e:<領域>` を付け、許可領域を示す（`display` / `communication` / `happy-path` / `browser-operation`。02c §5.1、03 §2.1）。複数層で検証するなら `@layer:1 @layer:2`。Blocking の OI に依存する AC は `@pending:<OI-ID>` とし、期待値を書かない。
+> 層2 は `@integration` / `@e2e` で区別する。E2E は `@e2e` の代わりに `@e2e:<領域>` を付け、許可領域を示す（02c §5.1、03 §2.1）。領域は `display` / `communication` / `happy-path` / `browser-operation` のいずれかである。複数層で検証するなら `@layer:1 @layer:2`。Blocking の OI に依存する AC は `@pending:<OI-ID>` とし、期待値を書かない。
 > テストはテスト名の先頭に `AC-xx-yy` を置く。括弧やコロンで囲まない（03 §3.4）。
 > `AC-xx-yy` の `xx`（UC の番号）は、他の TRS と重複させない。既存の TRS が使っていない番号を割り当てる（トレーサビリティ検査が重複を検出する。03 §3.4）。
 
@@ -158,7 +158,7 @@ Feature: 注文キャンセル
 ### 6. Open Issues
 
 > **削除禁止。** 解決しても行を残し、状態を `Resolved` にして決定内容・決定者・決定日・反映先を記録する。
-> 解決（Resolved）にできるのは人間のみ。決定が覆った場合は旧行を `Superseded` にして新規行を追加する（`Won't Fix` と `Superseded` の行は終端なので、覆すときは行を変えず新規行を追加する。03 §4.2）。
+> 解決（Resolved）にできるのは人間のみ。決定が覆った場合は旧行を `Superseded` にして新規行を追加する。ただし `Won't Fix` と `Superseded` の行は終端なので、覆すときは行を変えず新規行を追加する（03 §4.2）。
 > 区分 `Blocking` が未解決の AC に対するテストは、期待値を確定せず `pending` とする。
 
 | ID | 起票日 | 起票者 | 区分 | 関連 | 内容（疑問・論点） | 状態 | 決定内容 | 決定者 | 決定日 | 根拠 | 反映先 |
@@ -167,7 +167,7 @@ Feature: 注文キャンセル
 | OI-002 | `<YYYY-MM-DD>` | `<AI/氏名>` | Non-blocking | AC-01-01 | キャンセル完了通知の文言 | Open | | | | | |
 | OI-003 | `<YYYY-MM-DD>` | `<AI/氏名>` | Blocking | F1-L5, AC-01-06 | キャンセル済の注文への再キャンセルは成功扱いかエラーか | Open | | | | | |
 
-**状態の凡例**: `Open` / `In Discussion` / `Resolved` / `Superseded`（置換先 ID を記載）/ `Won't Fix`（理由必須）。遷移は 03 §4.2
+**状態の凡例**: `Open` / `In Discussion` / `Resolved` / `Superseded` / `Won't Fix`。`Superseded` は置換先 ID を記載し、`Won't Fix` は理由を必須とする。遷移は 03 §4.2
 
 **機械検査のルール**（失敗条件の全体は 03 §3.4）
 
