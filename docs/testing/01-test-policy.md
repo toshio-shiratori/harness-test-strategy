@@ -153,7 +153,7 @@ flowchart BT
 | G2 層1テスト | Unit・PBT 全件成功 | pre-commit／PR |
 | G3 ミューテーション | 変更ファイルの Mutation Score が閾値以上（02b §4） | PR |
 | G4 層2テスト | Integration・E2E 全件成功 | PR／マージ前 |
-| G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書けるのは未解決の Blocking な OI-ID だけで、付けられるのはその OI の関連列にある AC だけ） | PR |
+| G5 TRS 整合 | 対応する TRS の AC に紐づくテストが存在し、未解決の Blocking な Open Issue が指す AC が `@pending:<OI-ID>` で明示されている（`@pending` に書ける ID と付けてよい AC は [03 §3.4](./03-trs-guideline.md#34-トレーサビリティ) で定める） | PR |
 
 G0 の対象範囲は、導入先では [05 の適合度診断](./05-adoption-guide.md#3-手順と完了条件)で決める。対象から外す場合は、[05 §4](./05-adoption-guide.md#4-導入モード) の「適用外」の手順（理由と代替の担保の記録）による。
 
@@ -170,11 +170,10 @@ G0 の対象範囲は、導入先では [05 の適合度診断](./05-adoption-gu
 | G2 | 層1のテスト（Unit・PBT） | 1 件でもテストが失敗する | |
 | G3 | 変更ファイルの Mutation Score | Mutation Score が閾値（02b §4.1）を下回る | 例: PIT（JVM）、Stryker（JS/TS） |
 | G4 | 層2のテスト（Integration・E2E） | 1 件でもテストが失敗する | 例: Testcontainers（実 DB）、Playwright（実ブラウザ） |
-| G5 | TRS の AC とテストの紐づけ | pending でない AC に対応するテストが無いとき、CI を**失敗**させる。除外は `@pending:<OI-ID>` だけである。`@pending` の要否・書ける ID・関連列に違反するときも失敗する | TRS の AC とテストを突き合わせるテストまたはスクリプト（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
+| G5 | TRS の AC とテストの紐づけ | pending でない AC に対応するテストが無いとき、CI を**失敗**させる。除外は `@pending:<OI-ID>` だけである。`@pending` が要るのに無いとき、または書ける範囲に反するときも失敗する | TRS の AC とテストを突き合わせるテストまたはスクリプト（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
 
 - G4 は、層1と実行境界を分ける（02b §3.2）。
 - G3 で導入期の例外（[02b §4.1](./02b-execution-and-mutation.md#41-適用タイミングと閾値)）を使う導入先は、補う手段（テストの無い新規・変更クラスを PR で落とす）を実装する。
-- G5 の「未解決の Blocking な Open Issue」は、TRS の Open Issues 表で区分が `Blocking`、状態が `Open` または `In Discussion` のものである。`@pending` に書けない値は、`ISSUE-n`・表に無い ID・Resolved 等の OI-ID である（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)）。
 
 人間のレビューでは、対象ファイルの責任者を明示する（例: GitHub の CODEOWNERS）。
 
