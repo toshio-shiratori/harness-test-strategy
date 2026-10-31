@@ -12,10 +12,6 @@ performance:
     active: false
 
 style:
-  # Ids.kt の cancelOrder は「引数の型で取り違えを防ぐ」ことを示す、実処理なしのサンプル。
-  # @Suppress は禁止（ForbiddenAnnotation）なので、このファイルに限りここで除外する。
-  UnusedParameter:
-    excludes: ['**/order/domain/Ids.kt']
   ForbiddenAnnotation: # `@Suppress` 等で警告を黙らせることを禁止
     active: true
     annotations:
