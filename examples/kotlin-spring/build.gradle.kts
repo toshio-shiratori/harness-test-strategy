@@ -150,15 +150,7 @@ pitest {
     // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
     // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
     // 除外の追加・変更は人間の承認が必要（このファイルは CODEOWNERS 対象）。
-    excludedClasses.set(
-        listOf(
-            "com.example.order.domain.Quantity",
-            "com.example.order.domain.UserId",
-            "com.example.order.domain.OrderId",
-            "com.example.order.domain.Sku",
-            "com.example.order.domain.Validated\$Invalid",
-        ),
-    )
+    excludedClasses.set(listOf())
     // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02b §4.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
     outputFormats.set(listOf("HTML", "XML"))
