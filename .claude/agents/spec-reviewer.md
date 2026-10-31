@@ -1,6 +1,6 @@
 ---
 name: spec-reviewer
-description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・examples/kotlin-spring/docs/*.md のコード例と examples/kotlin-spring/src/ の同期・docs/testing の言語中立と自己完結・図を描画したときの見え方・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
+description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・examples/kotlin-spring/docs/*.md のコード例と examples/kotlin-spring/src/ の同期・docs/testing の言語中立と自己完結・図を描画したときの見え方・文章の簡潔さ・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
 model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
@@ -38,6 +38,7 @@ hooks:
    - **`docs/testing/` の言語中立・自己完結**: `lint:portable` で検出できない違反がないか。特に、地の文での言語・フレームワーク固有の記述(特定言語の構文や API を前提にした説明)、一覧にないこのリポジトリ固有の語、`docs/testing/` の外(`examples/`・`docs/records/`・`.github/` など)の記録への依拠、導入先が持たない文書を読まないと意味が通らない箇所。ツール名は括弧の例示に留まっているか。`lint:portable` の禁止語や許可リストが緩められていないか
    - 型ガードレール: ドメイン値が Value Object か、状態が `sealed` 型で `when` に `else` がないか
    - 書き方の規約: 図が Mermaid か、コードブロックに言語指定があるか、サンプル(`examples/kotlin-spring/`)が Kotlin + Spring Boot 4.1.x か、未確認の API を確認済みのように書いていないか
+   - 簡潔さ: 差分で足した・変えた文章が、`CLAUDE.md` の「書き方の規約」の 4 原則を守っているか。同じ規則が別の文書にもないかは、検索して確かめる
    - **描画したときの見え方**: 差分に mermaid ブロックを追加・変更した Markdown があれば、ソースを読むだけで済ませず、描画して確かめる。`npm run measure:mermaid -- <変更した md>` で各図の幅・高さ・縦横比と、本文の幅(約 900px)を超えるかの印を得る(引数を省略するとリポジトリの全 `.md`)。幅が 900px を超える図は `lint:mermaid` が失敗にするので、印が付いた図はマージ前に直させる。高さには機械的な閾値を置かず(lint も検査しない)、レビュアーの判断に委ねる。印の付いた図や縦に長そうな図は、`--png` を付けて出力された PNG のパスを Read で開いて見る。`measure:mermaid` は描画結果を OS の一時ディレクトリに出すだけで、リポジトリには何も書かないので、読み取り専用のままで実行できる。`mmdc` を直接実行せず(出力先を指定する書き込みになる)、必ずこのスクリプトを使う。`measure:mermaid` の字幅・折り返しは GitHub 上の表示と一致しないので、GitHub 上の表示(図の折り返し、拡大縮小ボタンとの重なり、Markdown の表の列幅・折り返し)の最終確認は、マージ前にリーダーが Chrome で PR のブランチのファイル表示を開いてする。レビュー役自身はブラウザを使わず、報告の「確認できなかった観点」に「GitHub 上の表示はリーダーの確認に委ねる」と書く。次を指摘する
      - 幅が約 900px を超え、本文の幅に収めるために縮小されて文字が読みにくくなる図(`LR` で横に一列に並べた図に多い。向きや配置を変える修正案を書く)
      - 縦に極端に長く、スクロールしないと全体が見えない図(高さと縦横比を根拠にする)

@@ -34,6 +34,11 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 ## 書き方の規約
 
 - 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。幅が 900px を超える図があると `lint:mermaid` が失敗し、CI の `lint` ジョブが落ちる(高さには機械的な閾値がなく、縦に極端に長くならないよう自分で判断する)。GitHub 上ではノードの 1 行に全角約 7 字(半角は約 0.5 字)しか入らず、8 字目で語の途中で折れるので、7 字以内で語の切れ目に `<br/>` を入れる(8 字の語を含む図は `classDef default font-size:14px` にすると収まる)。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さ・縦横比を測って確かめられる(引数を省略するとリポジトリの全 Markdown が対象で、`--png` を付けると画像も確認できる。閾値と測り方は `lint:mermaid` と同じ)。手元の描画は GitHub の表示と一致しないため、mermaid の図と Markdown の表を追加・変更した PR は、マージ前に GitHub 上の表示も確かめる(手順は「サブエージェントチーム」の 6)。
+- 文章は次の 4 原則で簡潔にする。機械では検査せず、`spec-reviewer` がレビューで確かめる。
+  1. 同じ規則は 1 か所にだけ書き、ほかの文書からは参照する。
+  2. 規則・理由・書式の細目を分ける。理由は規則と別の文にし、書式の細目は表か別の小見出しに移す。
+  3. 3 つ以上の要素の関係は図に、並んだ規則は表にする。表のセルには要点だけを書く。
+  4. 括弧の中に括弧を書かない。補足が長いときは別の文にする。
 - サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
@@ -66,7 +71,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 |---|---|---|
 | `doc-author` | 方針書(01〜05)・README・CONTRIBUTING・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
 | `kotlin-sample-engineer` | `examples/kotlin-spring/` の `src/` と `examples/kotlin-spring/docs/*.md` のコード例の同期 | 書き込み可 |
-| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、図を描画したときの見え方、非公開情報の混入 | 読み取り専用 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、図を描画したときの見え方、文章の簡潔さ、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |
 
 1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。
