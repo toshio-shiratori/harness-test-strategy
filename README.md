@@ -1,6 +1,6 @@
 # harness-test-strategy
 
-AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保てるよう、機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。AI(コーディングエージェント)を使った開発に、テスト戦略とガバナンスを導入したいチームが読む想定です。
+AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保つことを目的とします。機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。AI(コーディングエージェント)を使った開発に、テスト戦略とガバナンスを導入したいチームが読む想定です。
 
 ## 解決する問題
 
@@ -37,7 +37,7 @@ flowchart TB
 
 ## 導入すると得られるもの
 
-- **誤りを上流の速い層で止められる。** 検出は「書けない(型)、すぐ落ちる(Unit / PBT(Property-Based Testing))、結合で落ちる、探索で見つかる」の順に遅く、高コストになります([01 §1](docs/testing/01-test-policy.md#1-基本理念))。
+- **誤りを上流の速い層で止められる。** 検出は「書けない(型)、すぐ落ちる(Unit / PBT)、結合で落ちる、探索で見つかる」の順です。後ろの層ほど遅く、高コストになります([01 §1](docs/testing/01-test-policy.md#1-基本理念))。PBT は Property-Based Testing の略です。
 - **期待値の出所が一つに定まる。** 期待値の正は人間が承認した仕様(TRS の AC など)にあり、AC に紐づくテストの有無を機械的に検査できます([03 §3](docs/testing/03-trs-guideline.md#3-single-source-of-truthssot))。
 - **既存の運用を止めずに入れられる。** 現状をベースラインに固定して悪化のみを禁止し、段階的に取り入れます([05 §1](docs/testing/05-adoption-guide.md#1-導入の原則))。
 
@@ -58,7 +58,10 @@ flowchart TB
 
 1. [01 基本方針書](docs/testing/01-test-policy.md)の層構造と責務分離をチームで合意します。
 2. 最初の機能の TRS を、[テンプレート](docs/testing/trs/_template.md)から書きます([03 §5](docs/testing/03-trs-guideline.md#5-策定フロー))。
-3. [02a §0](docs/testing/02a-types-and-pbt.md#0-技術前提導入先の言語ツールに求めるもの) が求める言語・ツールの前提を、自分の言語で用意します。ミューテーション・実行境界・エージェント向けの設定は [02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準)・[02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所) に従って用意します。一例は[実装例](#実装例)です。
+3. 関門の道具を、自分の言語で用意します。
+   - 言語・ツールの前提は、[02a §0](docs/testing/02a-types-and-pbt.md#0-技術前提導入先の言語ツールに求めるもの) が求めるものです。
+   - ミューテーション・実行境界・エージェント向けの設定は、[02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準)と [02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所) に従います。
+   - 一例は[実装例](#実装例)です。
 
 **既存のプロジェクト**(すでにテスト・静的解析・CI がある)
 
@@ -100,7 +103,7 @@ flowchart TB
 
 ## 実装例
 
-[examples/kotlin-spring/](examples/kotlin-spring/README.md) に、標準を Kotlin + Spring Boot に導入した一例があります。コンパイルしてテストを通す検証用プロジェクトで、標準の各文書に対応するコード例・実現例・実測と、サンプルの TRS([ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md))があります。標準を理解する助けとして公開していますが、標準の要求ではなく、導入先がコピーするものでもありません。技術構成と動かし方は、実装例の README にあります。
+[examples/kotlin-spring/](examples/kotlin-spring/README.md) に、標準を Kotlin + Spring Boot に導入した一例があります。コンパイルしてテストを通す検証用プロジェクトです。標準の各文書に対応するコード例・実現例・実測と、サンプルの TRS があります(TRS は [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md))。標準を理解する助けとして公開していますが、標準の要求ではなく、導入先がコピーするものでもありません。技術構成と動かし方は、実装例の README にあります。
 
 ## コントリビュート
 
