@@ -33,4 +33,5 @@ npm run measure:mermaid -- docs/testing/01-test-policy.md
 ## コントリビュートの流れ
 
 - 方針・規程・期待値(`docs/testing/`)の変更は PR で行い、責任者(`.github/CODEOWNERS`)の承認を得ます。
+- 文章の書き方(図・表・簡潔さの原則)は、[CLAUDE.md](CLAUDE.md) の「書き方の規約」に従います。
 - バグ修正の PR は、タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作成します。
