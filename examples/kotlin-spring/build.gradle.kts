@@ -27,7 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    // 永続化 Adapter（payment.adapter.persistence）: MyBatis + Flyway + MySQL。
+    // 永続化 Adapter（adapter.persistence）: MyBatis + Flyway + MySQL。
     // mybatis-spring-boot-starter 4.1.0 は Spring Boot 4.1.0 でビルドされた版（Maven Central の pom で確認）。BOM の管理外なのでバージョンを明示する
     implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
@@ -114,7 +114,7 @@ tasks.named<Test>("e2eTest") {
 // レポートは別ディレクトリに出す（同じ場所だと後の実行が先の結果を上書きする）。targetClasses・targetTests・reportDir が
 // 通常の実行と異なるため、Gradle は同じ呼び出しの 2 回目を up-to-date 扱いにしない。
 val pitestDomainOnly = providers.gradleProperty("pitest.domainOnly").map { it.toBoolean() }.orElse(false)
-val domainPackages = listOf("com.example.order.domain", "com.example.payment.domain")
+val domainPackages = listOf("com.example.todo.domain")
 
 pitest {
     junit5PluginVersion.set("1.2.3")
@@ -148,9 +148,14 @@ pitest {
     )
     // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
     // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
-    // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
+    // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（TaskTitle$Companion 等）にある。
     // 除外の追加・変更は人間の承認が必要（このファイルは CODEOWNERS 対象）。
-    excludedClasses.set(listOf())
+    excludedClasses.set(
+        listOf(
+            "com.example.todo.domain.TaskId",
+            "com.example.todo.domain.TaskTitle",
+        ),
+    )
     // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02b §4.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
     outputFormats.set(listOf("HTML", "XML"))

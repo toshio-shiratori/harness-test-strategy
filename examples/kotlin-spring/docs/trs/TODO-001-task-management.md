@@ -206,20 +206,20 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 
 | AC ID | 関連 UC | 検証層 | 優先度 | 紐づくテスト |
 |---|---|---|---|---|
-| AC-01-01 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-02 | UC-01-A1 | 層1 | Must | 未実装 |
-| AC-01-03 | UC-01-A1 | 層1 | Must | 未実装 |
-| AC-01-04 | UC-01-A1 | 層1 | Must | 未実装 |
-| AC-01-05 | UC-01-A1 | 層1 | Must | 未実装 |
-| AC-01-06 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-07 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-08 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-09 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-10 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-11 | UC-01 | 層1 | Must | 未実装 |
-| AC-01-12 | UC-01 | 層1 | Must | 未実装 |
+| AC-01-01 | UC-01 | 層1 | Must | `TaskConstraintTableTest::AC-01-01`, `TaskTitleTest::AC-01-01` |
+| AC-01-02 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-02`, `TaskTitleTest::AC-01-02` |
+| AC-01-03 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-03` |
+| AC-01-04 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-04`, `TaskTitleTest::AC-01-04` |
+| AC-01-05 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-05`, `TaskTitleTest::AC-01-05` |
+| AC-01-06 | UC-01 | 層1 | Must | `TaskConstraintTableTest::AC-01-06` |
+| AC-01-07 | UC-01 | 層1 | Must | `TaskConstraintTableTest::AC-01-07`, `TaskTitleTest::AC-01-07` |
+| AC-01-08 | UC-01 | 層1 | Must | `TaskConstraintTableTest::AC-01-08` |
+| AC-01-09 | UC-01 | 層1 | Must | `TaskTest::AC-01-09` |
+| AC-01-10 | UC-01 | 層1 | Must | `TaskTest::AC-01-10` |
+| AC-01-11 | UC-01 | 層1 | Must | `TaskTest::AC-01-11` |
+| AC-01-12 | UC-01 | 層1 | Must | `TaskTest::AC-01-12` |
 | AC-01-13 | UC-01 | 層2（Integration） | Must | 未実装 |
-| AC-01-14 | UC-01-A2 | 層1 | Must | 未実装 |
+| AC-01-14 | UC-01-A2 | 層1 | Must | `DueDateTest::AC-01-14`, `TaskConstraintTableTest::AC-01-14` |
 | AC-01-15 | UC-01 | 層2（Integration） | Must | 未実装 |
 | AC-01-16 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
 | AC-01-17 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
@@ -230,46 +230,46 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 | AC-01-22 | UC-01-A1 | 層2（E2E） | Must | 未実装 |
 | AC-01-23 | UC-01 | 層2（E2E） | Must | 未実装 |
 | AC-01-24 | UC-01-A3 | 層2（Integration） | Must | 未実装 |
-| AC-01-25 | UC-01-A1 | 層1 | Must | 未実装 |
-| AC-01-26 | UC-01 | 層1 | Must | 未実装 |
+| AC-01-25 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-25`, `TaskTitleTest::AC-01-25` |
+| AC-01-26 | UC-01 | 層1 | Must | `DueDateTest::AC-01-26`, `TaskConstraintTableTest::AC-01-26` |
 | AC-01-27 | UC-01-A2 | 層2（Integration） | Must | 未実装 |
 | AC-01-28 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
-| AC-02-01 | UC-02 | 層1 | Must | 未実装 |
+| AC-02-01 | UC-02 | 層1 | Must | `TaskConstraintTableTest::AC-02-01`, `TaskTest::AC-02-01` |
 | AC-02-02 | UC-02-A2 | 層2（Integration） | Must | 未実装 |
 | AC-02-03 | UC-02-A1 | 層2（Integration） | Must | 未実装 |
 | AC-02-04 | UC-02 | 層2（Integration） | Must | 未実装 |
 | AC-02-05 | UC-02 | 層2（E2E） | Must | 未実装 |
 | AC-02-07 | UC-02-A2 | 層2（Integration） | Must | 未実装 |
-| AC-02-08 | UC-02-A2 | 層1 | Must | 未実装 |
-| AC-03-01 | UC-03 | 層1 | Must | 未実装 |
+| AC-02-08 | UC-02-A2 | 層1 | Must | `TaskConstraintTableTest::AC-02-08`, `TaskTest::AC-02-08` |
+| AC-03-01 | UC-03 | 層1 | Must | `TaskConstraintTableTest::AC-03-01`, `TaskTest::AC-03-01` |
 | AC-03-02 | UC-03-A2 | 層2（Integration） | Must | 未実装 |
 | AC-03-03 | UC-03-A1 | 層2（Integration） | Must | 未実装 |
 | AC-03-04 | UC-03 | 層2（Integration） | Must | 未実装 |
 | AC-03-05 | UC-03-A2 | 層2（Integration） | Must | 未実装 |
-| AC-03-06 | UC-03-A2 | 層1 | Must | 未実装 |
+| AC-03-06 | UC-03-A2 | 層1 | Must | `TaskConstraintTableTest::AC-03-06`, `TaskTest::AC-03-06` |
 | AC-03-07 | UC-03 | 層2（E2E） | Must | 未実装 |
-| AC-04-01 | UC-04 | 層1 | Must | 未実装 |
-| AC-04-02 | UC-04 | 層1 | Must | 未実装 |
+| AC-04-01 | UC-04 | 層1 | Must | `TaskCategoryTest::AC-04-01` |
+| AC-04-02 | UC-04 | 層1 | Must | `TaskCategoryTest::AC-04-02` |
 | AC-04-03 | UC-04 | 層2（Integration） | Must | 未実装 |
-| AC-04-04 | UC-04 | 層1 / 層2（Integration） | Must | 未実装 |
+| AC-04-04 | UC-04 | 層1 / 層2（Integration） | Must | 層1: `TaskCategoryTest::AC-04-04`、層2: 未実装 |
 | AC-04-05 | UC-04 | 層2（E2E） | Must | 未実装 |
 | AC-04-06 | UC-04-A1 | 層2（Integration） | Must | 未実装 |
-| AC-05-01 | UC-05 | 層1 | Must | 未実装 |
-| AC-05-02 | UC-05 | 層1 | Must | 未実装 |
-| AC-05-03 | UC-05 | 層1 | Must | 未実装 |
-| AC-05-04 | UC-05-A1 | 層1 | Must | 未実装 |
-| AC-05-05 | UC-05 | 層1 | Must | 未実装 |
+| AC-05-01 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-01`, `TaskListTest::AC-05-01` |
+| AC-05-02 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-02`, `TaskListTest::AC-05-02` |
+| AC-05-03 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-03`, `TaskListTest::AC-05-03`, `TaskTest::AC-05-03` |
+| AC-05-04 | UC-05-A1 | 層1 | Must | `TaskConstraintTableTest::AC-05-04`, `TaskListTest::AC-05-04` |
+| AC-05-05 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-05`, `TaskListTest::AC-05-05` |
 | AC-05-06 | UC-05 | 層2（Integration） | Must | 未実装 |
-| AC-05-07 | UC-05 | 層1 | Must | 未実装 |
+| AC-05-07 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-07`, `TaskListTest::AC-05-07` |
 | AC-05-08 | UC-05 | 層2（Integration） | Must | 未実装 |
-| AC-06-01 | UC-06 | 層1 | Must | 未実装 |
-| AC-06-02 | UC-06 | 層1 | Must | 未実装 |
-| AC-06-03 | UC-06-A1 | 層1 / 層2（Integration） | Must | 未実装 |
+| AC-06-01 | UC-06 | 層1 | Must | `TaskConstraintTableTest::AC-06-01`, `TaskListTest::AC-06-01` |
+| AC-06-02 | UC-06 | 層1 | Must | `TaskConstraintTableTest::AC-06-02`, `TaskListTest::AC-06-02` |
+| AC-06-03 | UC-06-A1 | 層1 / 層2（Integration） | Must | 層1: `TaskConstraintTableTest::AC-06-03`、層2: 未実装 |
 | AC-06-04 | UC-06 | 層2（Integration） | Must | 未実装 |
 | AC-06-05 | UC-06 | 層2（E2E） | Must | 未実装 |
 | AC-06-06 | UC-06 | 層2（Integration） | Must | 未実装 |
 
-AC-02-06 は使わない。03.md が、旧サンプルの AC-02-06 に触れているためである。
+AC-02-06 は使わない。旧サンプルが使っていた番号で、03.md が旧サンプルの AC-02-06 に触れているためである。
 
 「未実装」は、テストをこれから書くことを表す。実装待ちを `@pending` で除外しない。理由は [03 §3.4.2](../../../../docs/testing/03-trs-guideline.md#342-各検査の詳細) の ③ にある。テストが無い間は、トレーサビリティ検査が失敗する。
 
@@ -1214,24 +1214,24 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 
 ### 7. トレーサビリティ
 
-テストはまだ無い。実装と同じ PR でテストを足し、この表を更新する。
+層1のテストは実装済みである。層2（Integration / E2E）のテストは、永続化・HTTP・画面の実装と同じ PR で足し、この表を更新する。
 
 | AC ID | 層1（型/Unit/PBT） | 層2（Integration/E2E） | 層3（探索） | 状態 |
 |---|---|---|---|---|
-| AC-01-01 | 未実装 | — | — | 未着手 |
-| AC-01-02 | 未実装 | — | — | 未着手 |
-| AC-01-03 | 未実装 | — | — | 未着手 |
-| AC-01-04 | 未実装 | — | — | 未着手 |
-| AC-01-05 | 未実装 | — | — | 未着手 |
-| AC-01-06 | 未実装 | — | — | 未着手 |
-| AC-01-07 | 未実装 | — | — | 未着手 |
-| AC-01-08 | 未実装 | — | — | 未着手 |
-| AC-01-09 | 未実装 | — | — | 未着手 |
-| AC-01-10 | 未実装 | — | — | 未着手 |
-| AC-01-11 | 未実装 | — | — | 未着手 |
-| AC-01-12 | 未実装 | — | — | 未着手 |
+| AC-01-01 | `TaskConstraintTableTest::AC-01-01`, `TaskTitleTest::AC-01-01` | — | — | 実装済 |
+| AC-01-02 | `TaskConstraintTableTest::AC-01-02`, `TaskTitleTest::AC-01-02` | — | — | 実装済 |
+| AC-01-03 | `TaskConstraintTableTest::AC-01-03` | — | — | 実装済 |
+| AC-01-04 | `TaskConstraintTableTest::AC-01-04`, `TaskTitleTest::AC-01-04` | — | — | 実装済 |
+| AC-01-05 | `TaskConstraintTableTest::AC-01-05`, `TaskTitleTest::AC-01-05` | — | — | 実装済 |
+| AC-01-06 | `TaskConstraintTableTest::AC-01-06` | — | — | 実装済 |
+| AC-01-07 | `TaskConstraintTableTest::AC-01-07`, `TaskTitleTest::AC-01-07` | — | — | 実装済 |
+| AC-01-08 | `TaskConstraintTableTest::AC-01-08` | — | — | 実装済 |
+| AC-01-09 | `TaskTest::AC-01-09` | — | — | 実装済 |
+| AC-01-10 | `TaskTest::AC-01-10` | — | — | 実装済 |
+| AC-01-11 | `TaskTest::AC-01-11` | — | — | 実装済 |
+| AC-01-12 | `TaskTest::AC-01-12` | — | — | 実装済 |
 | AC-01-13 | — | 未実装 | — | 未着手 |
-| AC-01-14 | 未実装 | — | — | 未着手 |
+| AC-01-14 | `DueDateTest::AC-01-14`, `TaskConstraintTableTest::AC-01-14` | — | — | 実装済 |
 | AC-01-15 | — | 未実装 | — | 未着手 |
 | AC-01-16 | — | 未実装 | — | 未着手 |
 | AC-01-17 | — | 未実装 | — | 未着手 |
@@ -1242,41 +1242,41 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 | AC-01-22 | — | 未実装（E2E） | 探索対象 | 未着手 |
 | AC-01-23 | — | 未実装（E2E） | 探索対象 | 未着手 |
 | AC-01-24 | — | 未実装 | — | 未着手 |
-| AC-01-25 | 未実装 | — | — | 未着手 |
-| AC-01-26 | 未実装 | — | — | 未着手 |
+| AC-01-25 | `TaskConstraintTableTest::AC-01-25`, `TaskTitleTest::AC-01-25` | — | — | 実装済 |
+| AC-01-26 | `DueDateTest::AC-01-26`, `TaskConstraintTableTest::AC-01-26` | — | — | 実装済 |
 | AC-01-27 | — | 未実装 | — | 未着手 |
 | AC-01-28 | — | 未実装 | — | 未着手 |
-| AC-02-01 | 未実装 | — | — | 未着手 |
+| AC-02-01 | `TaskConstraintTableTest::AC-02-01`, `TaskTest::AC-02-01` | — | — | 実装済 |
 | AC-02-02 | — | 未実装 | — | 未着手 |
 | AC-02-03 | — | 未実装 | — | 未着手 |
 | AC-02-04 | — | 未実装 | — | 未着手 |
 | AC-02-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
 | AC-02-07 | — | 未実装 | — | 未着手 |
-| AC-02-08 | 未実装 | — | — | 未着手 |
-| AC-03-01 | 未実装 | — | — | 未着手 |
+| AC-02-08 | `TaskConstraintTableTest::AC-02-08`, `TaskTest::AC-02-08` | — | — | 実装済 |
+| AC-03-01 | `TaskConstraintTableTest::AC-03-01`, `TaskTest::AC-03-01` | — | — | 実装済 |
 | AC-03-02 | — | 未実装 | — | 未着手 |
 | AC-03-03 | — | 未実装 | — | 未着手 |
 | AC-03-04 | — | 未実装 | — | 未着手 |
 | AC-03-05 | — | 未実装 | — | 未着手 |
-| AC-03-06 | 未実装 | — | — | 未着手 |
+| AC-03-06 | `TaskConstraintTableTest::AC-03-06`, `TaskTest::AC-03-06` | — | — | 実装済 |
 | AC-03-07 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-04-01 | 未実装 | — | — | 未着手 |
-| AC-04-02 | 未実装 | — | — | 未着手 |
+| AC-04-01 | `TaskCategoryTest::AC-04-01` | — | — | 実装済 |
+| AC-04-02 | `TaskCategoryTest::AC-04-02` | — | — | 実装済 |
 | AC-04-03 | — | 未実装 | — | 未着手 |
-| AC-04-04 | 未実装 | 未実装 | — | 未着手 |
+| AC-04-04 | `TaskCategoryTest::AC-04-04` | 未実装 | — | 層1のみ実装済（層2 は未着手） |
 | AC-04-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
 | AC-04-06 | — | 未実装 | — | 未着手 |
-| AC-05-01 | 未実装 | — | — | 未着手 |
-| AC-05-02 | 未実装 | — | — | 未着手 |
-| AC-05-03 | 未実装 | — | — | 未着手 |
-| AC-05-04 | 未実装 | — | — | 未着手 |
-| AC-05-05 | 未実装 | — | — | 未着手 |
+| AC-05-01 | `TaskConstraintTableTest::AC-05-01`, `TaskListTest::AC-05-01` | — | — | 実装済 |
+| AC-05-02 | `TaskConstraintTableTest::AC-05-02`, `TaskListTest::AC-05-02` | — | — | 実装済 |
+| AC-05-03 | `TaskConstraintTableTest::AC-05-03`, `TaskListTest::AC-05-03`, `TaskTest::AC-05-03` | — | — | 実装済 |
+| AC-05-04 | `TaskConstraintTableTest::AC-05-04`, `TaskListTest::AC-05-04` | — | — | 実装済 |
+| AC-05-05 | `TaskConstraintTableTest::AC-05-05`, `TaskListTest::AC-05-05` | — | — | 実装済 |
 | AC-05-06 | — | 未実装 | — | 未着手 |
-| AC-05-07 | 未実装 | — | — | 未着手 |
+| AC-05-07 | `TaskConstraintTableTest::AC-05-07`, `TaskListTest::AC-05-07` | — | — | 実装済 |
 | AC-05-08 | — | 未実装 | — | 未着手 |
-| AC-06-01 | 未実装 | — | — | 未着手 |
-| AC-06-02 | 未実装 | — | — | 未着手 |
-| AC-06-03 | 未実装 | 未実装 | — | 未着手 |
+| AC-06-01 | `TaskConstraintTableTest::AC-06-01`, `TaskListTest::AC-06-01` | — | — | 実装済 |
+| AC-06-02 | `TaskConstraintTableTest::AC-06-02`, `TaskListTest::AC-06-02` | — | — | 実装済 |
+| AC-06-03 | `TaskConstraintTableTest::AC-06-03` | 未実装 | — | 層1のみ実装済（層2 は未着手） |
 | AC-06-04 | — | 未実装 | — | 未着手 |
 | AC-06-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
 | AC-06-06 | — | 未実装 | — | 未着手 |
@@ -1296,6 +1296,7 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 | 2026-11-01 | 0.1 | AI | 初版の案を、要件定義書 TODO-001 から起草。Open Issues OI-001〜010 を起票 | 未承認 |
 | 2026-11-01 | 0.2 | AI | OI-001〜010 のオーナーの決定を反映。`@pending` を外し、Then を書いた。AC を 6 本足した | 未承認 |
 | 2026-11-01 | 1.0 | AI | AC の合意の際の 2 点を OI-011 に記録し、AC-01-15・AC-01-28 などを直した。OI-012 を起票した | オーナー |
+| 2026-11-01 | 1.1 | AI | ドメイン層（層1）の実装に合わせて、紐づくテストとトレーサビリティの表を更新した。AC の内容は変えていない | — |
 
 ---
 

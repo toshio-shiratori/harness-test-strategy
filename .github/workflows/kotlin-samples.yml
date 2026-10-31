@@ -27,7 +27,7 @@ jobs:
       - run: ./gradlew detekt ktlintCheck test
       # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体。
       # 全体（ALL）のときは、層1の全対象に加えて、ドメイン層だけの実行も走らせる。差分実行のときも、変更クラスにドメイン層
-      # （com.example.order.domain / com.example.payment.domain）のクラスが含まれれば、そのクラスだけをドメイン層のテストで実行する
+      # （com.example.todo.domain）のクラスが含まれれば、そのクラスだけをドメイン層のテストで実行する
       # （サンプルの examples/kotlin-spring/docs/02b.md §4.4）。ドメイン層のクラスだけを渡す絞り込みは、ここ（シェル）で行う
       # どちらかが失敗しても、もう一方の結果を得るため両方を実行して、最後にまとめて失敗にする
       - name: pitest
@@ -51,7 +51,7 @@ jobs:
           else
             status=0
             ./gradlew pitest "-Ppitest.targetClasses=$targets" || status=1
-            domain_targets="$(tr ',' '\n' <<<"$targets" | grep -E '^com\.example\.(order|payment)\.domain\.' | paste -sd, - || true)"
+            domain_targets="$(tr ',' '\n' <<<"$targets" | grep -E '^com\.example\.todo\.domain\.' | paste -sd, - || true)"
             if [ -n "$domain_targets" ]; then
               echo "ドメイン層だけの実行: $domain_targets"
               ./gradlew pitest -Ppitest.domainOnly=true "-Ppitest.targetClasses=$domain_targets" || status=1

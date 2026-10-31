@@ -20,7 +20,7 @@ class DomainArchitectureTest : StringSpec({
     }
 
     "ドメイン層のプロパティにプリミティブ型が露出していない" {
-        // 例外: value class が内部に保持する値（Quantity の value: Int 等）と const 定数。
+        // 例外: value class が内部に保持する値（TaskTitle の value: String 等）と const 定数。
         // value class はまさにプリミティブを包んでドメイン型にするための仕組みで、内部保持は避けられない。
         domain
             .flatMap { it.properties(includeNested = true) }
