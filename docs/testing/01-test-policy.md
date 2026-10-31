@@ -168,7 +168,7 @@ G0 の対象範囲は、導入先では [05 の適合度診断](./05-adoption-gu
 | G0 | 文書の構文と図のレンダリング | 構文検査の指摘が 1 件でもある、または図が 1 つでもレンダリングできない | 例: markdownlint-cli2（構文）、mermaid-cli（図） |
 | G1 | 型チェックと Lint | 型エラーまたは Lint のエラーが 1 件でもある | |
 | G2 | 層1のテスト（Unit・PBT） | 1 件でもテストが失敗する | |
-| G3 | 変更ファイルの Mutation Score | Mutation Score が閾値（02b §4.1）を下回る | 例: PIT（JVM）、Stryker（JS/TS） |
+| G3 | 変更ファイルの Mutation Score | Mutation Score が閾値（02b §4.1）を下回る | 例: JVM の PIT、JS/TS の Stryker |
 | G4 | 層2のテスト（Integration・E2E） | 1 件でもテストが失敗する | 例: Testcontainers（実 DB）、Playwright（実ブラウザ） |
 | G5 | TRS の AC とテストの紐づけ | pending でない AC に対応するテストが無いとき、CI を**失敗**させる。除外は `@pending:<OI-ID>` だけである。`@pending` が要るのに無いとき、または書ける範囲に反するときも失敗する | TRS の AC とテストを突き合わせるテストまたはスクリプト（[03 §3.4](./03-trs-guideline.md#34-トレーサビリティ)） |
 

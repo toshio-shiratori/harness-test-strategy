@@ -31,8 +31,8 @@
 | 生成時に検証する値の型（ドメイン型）を作れる、静的型付けの言語 | §1.1、§1.2 |
 | 状態を閉じた型で表し、分岐の網羅性をコンパイラが検査できること | §1.3 |
 | 警告をエラーとして扱う設定（非網羅の分岐や冗長な既定分岐をビルドエラーにする） | §1.3 規則4 |
-| 型・null 安全・警告の検査を迂回する構文を検出する静的解析（例: detekt(Kotlin)、ESLint(TypeScript)） | §1.1 規則4 |
-| ジェネレータ、入力の縮小、失敗時のシード出力と再現ができる PBT ライブラリ（例: Kotest property(Kotlin)、fast-check(TypeScript)） | §2 |
+| 型・null 安全・警告の検査を迂回する構文を検出する静的解析（例: Kotlin の detekt、TypeScript の ESLint） | §1.1 規則4 |
+| ジェネレータ、入力の縮小、失敗時のシード出力と再現ができる PBT ライブラリ（例: Kotlin の Kotest property、TypeScript の fast-check） | §2 |
 
 ---
 
