@@ -169,7 +169,11 @@ Feature: 注文キャンセル
 
 **状態の凡例**: `Open` / `In Discussion` / `Resolved` / `Superseded`（置換先 ID を記載）/ `Won't Fix`（理由必須）。遷移は 03 §4.2
 
-**機械検査のルール**: 区分は `Blocking` / `Non-blocking`、状態は上の5値のどれかにする（装飾や表記ゆれは検査が失敗する）。未解決（`Open` / `In Discussion`）の `Blocking` は、関連列に指す AC（`AC-01-05` または範囲 `AC-01-05〜06`）を書き、その AC の Gherkin のタグ行に `@pending:<OI-ID>` を付ける（03 §3.4）。関連列に AC が無い、範囲として読めない `〜` が残る、関連列の AC が AC 表に無い、のいずれも検査が失敗する。この3つの検査の対象は、未解決の `Blocking` の行だけである。逆に、`@pending:<ID>` に書けるのはこの表の未解決の `Blocking` な OI-ID だけで、`ISSUE-n`・表に無い ID・`Resolved` 等の OI-ID は検査が失敗する。`@pending:<OI-ID>` を付けられるのは、その OI の関連列に含まれる AC だけで、含まれない AC に付けると検査が失敗する。実装待ちは Issue / PR で管理する。
+**機械検査のルール**（失敗条件の全体は 03 §3.4）
+
+- 区分は `Blocking` / `Non-blocking`、状態は上の5値のどれかにする（装飾や表記ゆれは検査が失敗する）。
+- 未解決（`Open` / `In Discussion`）の `Blocking` は、関連列に指す AC を書く。書き方は `AC-01-05` または範囲 `AC-01-05〜06`。その AC の Gherkin のタグ行に `@pending:<OI-ID>` を付ける。
+- `@pending:<OI-ID>` に書けるのは、この表の未解決の `Blocking` な OI-ID だけである。付けられるのは、その OI の関連列にある AC だけである。実装待ちは Issue / PR で管理し、`@pending:ISSUE-n` は使わない。
 
 **記入例（解決後）**
 
