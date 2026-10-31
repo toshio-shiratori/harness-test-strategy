@@ -35,7 +35,7 @@ hooks:
 - `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`
 - `examples/kotlin-spring/config/detekt/detekt.yml`
 - `.markdownlint-cli2.jsonc`
-- `scripts/check-portable.mjs`(`lint:portable` の禁止語・許可リスト・自己テスト)と、`package.json` の `lint` から `lint:portable` を外す変更
+- `scripts/` の検査スクリプト(`lint:portable` の禁止語・許可リスト・自己テスト、`lint:mermaid` の幅の閾値など)と、`package.json` の `lint` から `lint:portable` を外す変更
 - `examples/kotlin-spring/docs/`(実装例の文書。`src/` との同期が要る)と `docs/records/`(記録)。`.github/CODEOWNERS` 対象
 - `.github/`(CI、CODEOWNERS、テンプレートを含む)
 - テストの無効化(`@Disabled`、`xdescribe` 等。意図的な無効化は `04` §3.4.1 の手順を踏んでいるか)

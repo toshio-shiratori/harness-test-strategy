@@ -33,7 +33,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 ## 書き方の規約
 
-- 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。幅が 900px を超える図があると `lint:mermaid` が失敗し、CI の `lint` ジョブが落ちる(高さには機械的な閾値がなく、縦に極端に長くならないよう自分で判断する)。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さ・縦横比を測って確かめられる(引数を省略するとリポジトリの全 Markdown が対象で、`--png` を付けると画像も確認できる。閾値と測り方は `lint:mermaid` と同じ)。手元の描画は GitHub の表示と一致しないため、mermaid の図と Markdown の表を追加・変更した PR は、マージ前に GitHub 上の表示も確かめる(手順は「サブエージェントチーム」の 6)。
+- 図は ASCII ではなく **Mermaid** を使う。図は本文の幅(約 900px)に収める。`LR` で横に一列に並べて長くなるときは、`TB` にする・段に分けるなど向きや配置を変え、1 つのノードに文字を詰め込まない。幅が 900px を超える図があると `lint:mermaid` が失敗し、CI の `lint` ジョブが落ちる(高さには機械的な閾値がなく、縦に極端に長くならないよう自分で判断する)。GitHub 上ではノードの 1 行に全角約 7 字(半角は約 0.5 字)しか入らず、8 字目で語の途中で折れるので、7 字以内で語の切れ目に `<br/>` を入れる(8 字の語を含む図は `classDef default font-size:14px` にすると収まる)。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅・高さ・縦横比を測って確かめられる(引数を省略するとリポジトリの全 Markdown が対象で、`--png` を付けると画像も確認できる。閾値と測り方は `lint:mermaid` と同じ)。手元の描画は GitHub の表示と一致しないため、mermaid の図と Markdown の表を追加・変更した PR は、マージ前に GitHub 上の表示も確かめる(手順は「サブエージェントチーム」の 6)。
 - サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
@@ -55,7 +55,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 特に、ゲートを通すために次を弱めない。
 
 - `examples/kotlin-spring/src/test/kotlin/com/example/architecture/`(Konsist による検査・テスト保護)
-- `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`、`examples/kotlin-spring/config/detekt/detekt.yml`、`.markdownlint-cli2.jsonc`、`scripts/check-portable.mjs`(`lint:portable` の禁止語・許可リスト)と `package.json` の `lint` からの `lint:portable` の除外、`examples/kotlin-spring/docs/`・`docs/records/`、`.github/`
+- `examples/kotlin-spring/build.gradle.kts` の pitest 閾値・`excludedClasses`、`examples/kotlin-spring/config/detekt/detekt.yml`、`.markdownlint-cli2.jsonc`、`scripts/`(`lint:portable` の禁止語・許可リスト、`lint:mermaid` の幅の閾値など)と `package.json` の `lint` からの `lint:portable` の除外、`examples/kotlin-spring/docs/`・`docs/records/`、`.github/`
 - テストの無効化(`@Disabled`、`xdescribe` 等)。意図的な無効化の手順は `04` §3.4.1
 
 ## サブエージェントチーム(リーダー向けの運用)
@@ -76,7 +76,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 3. 保護対象(下記「変更してはいけないもの」)に触れる作業の後は、`gate-guard` を必ず起動する。`tools` は書き込めるパスの制限ではない。読み取り専用のレビュー役(`spec-reviewer` / `gate-guard`)にだけ、frontmatter の PreToolUse フック(`.claude/hooks/readonly-bash.sh`、書き込み系 Bash の拒否リスト)を足す。書き込み可の役割にはフックを足さない。フックが動く前提は、信頼済みのフォルダであること、対話セッションであること(`-p` では登録されない)、Claude Code v2.1.295 以上であることである。検出は `gate-guard` の独立レビューと、PR の段階の CODEOWNERS 承認でも行う。
 4. `gate-guard` が「ゲート弱体化: あり」を返したら、リーダーは作成側に戻して直させる。「承認: 要」を返したら、リーダーは PR 本文に該当ファイルと理由を書き、単独でマージしない。
 5. 定義の反映は即時とは限らない。`subagent_type` が解決しないときはセッションを再起動する。
-6. mermaid の図か Markdown の表を追加・変更した PR は、マージ前に、リーダー(主セッション)が PR のブランチのファイル表示(`https://github.com/<owner>/<repo>/blob/<branch>/<path>`)を Chrome で開き、変更した図・表をスクリーンショットで確かめて、所見を PR 本文に書く(必須。それ以外の PR は不要)。理由は、GitHub の Mermaid は手元の `mmdc` より字幅が広く折り返し位置が変わること、図の右下に拡大縮小ボタンが重なること、表も GitHub 上で列幅・折り返しが崩れうることである。手元の `measure:mermaid` の結果は GitHub の表示と一致しないので代わりにならない。作成側(`doc-author`)は手元の描画で確かめ、報告に変更した図・表の一覧を書く。レビュー役(`spec-reviewer`)はブラウザを使わず、折り返しの最終確認をこの確認に委ねる。Chrome が使えないときは、その旨を PR 本文に書き、オーナーに確認を委ねる。
+6. mermaid の図か Markdown の表を追加・変更した PR は、マージ前に、リーダー(主セッション)が PR のブランチのファイル表示(`https://github.com/<owner>/<repo>/blob/<branch>/<path>`)を Chrome で開き、変更した図・表をスクリーンショットで確かめて、所見を PR 本文に書く(必須。それ以外の PR は不要)。理由は、GitHub の Mermaid は手元の `mmdc` より字幅が広く折り返し位置が変わること、図の右下に拡大縮小ボタンが重なること、表も GitHub 上で列幅・折り返しが崩れうることである。手元の `measure:mermaid` の結果は GitHub の表示と一致しないので代わりにならない。作成側(`doc-author` / `kotlin-sample-engineer`)は手元の描画で確かめ、報告に変更した図・表の一覧を書く。レビュー役(`spec-reviewer`)はブラウザを使わず、折り返しの最終確認をこの確認に委ねる。Chrome が使えないときは、その旨を PR 本文に書き、オーナーに確認を委ねる。
 
 ## Kizuna (Long-term Memory)
 
