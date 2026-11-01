@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "explored": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "classification": {
+            "type": "string",
+            "enum": ["contradicts_ac", "spec_gap", "ux_concern"]
+          },
+          "related": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "spec_excerpt": { "type": "string" },
+          "steps": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "observed": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["title", "classification", "related", "spec_excerpt", "steps", "observed", "evidence"]
+      }
+    }
+  },
+  "required": ["explored", "findings"]
+}
