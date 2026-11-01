@@ -173,6 +173,11 @@ function gh(args) {
   return execFileSync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
 }
 const execFileAsync = promisify(execFile);
+// 例外の理由を 1 行にする。gh の失敗は message の 1 行目が「Command failed: gh ...」だけなので、標準エラーの 1 行目を優先する
+export function errorLine(e) {
+  const first = (x) => String(x ?? "").trim().split("\n")[0].trim();
+  return first(e?.stderr) || first(e?.message ?? e);
+}
 const ghAsync = async (args) => (await execFileAsync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 })).stdout;
 const api = async (path) => JSON.parse(await ghAsync(["api", path]));
 
@@ -235,7 +240,7 @@ async function collectRuns(repo, wf, fromMs, toMs, { withLogs }) {
         try {
           run.mutation = parseMutationLog(await ghAsync(["api", `repos/${repo}/actions/jobs/${pit.id}/logs`]));
         } catch (e) {
-          run.mutation = { error: String(e.message).split("\n")[0] };
+          run.mutation = { error: errorLine(e) };
         }
       }
     }
@@ -296,7 +301,7 @@ function readE2eSources() {
 
 // ---------- 本文 ----------
 
-const FAIL = (name, e) => `取得できず（${name}: ${String(e?.message ?? e).split("\n")[0]}）`;
+const FAIL = (name, e) => `取得できず（${name}: ${errorLine(e)}）`;
 const section = async (name, fn) => {
   try {
     return await fn();
@@ -322,6 +327,8 @@ function nightlySection(runs, win) {
     "|---|---|---|---|---|---|",
     ...(rows.length ? rows : ["| （対象期間に夜間の実行なし） | | | | | |"]),
   ];
+  const errs = week.filter((r) => r.mutation?.error);
+  if (errs.length) lines.push("", `Mutation Score を取得できなかった実行: ${errs.length} 回。最初の 1 件（run ${errs[0].id}）の理由: ${errs[0].mutation.error}`);
   if (thr !== undefined) lines.push("", `夜間の閾値（ログの \`-Ppitest.threshold\`）: ${thr}%`);
   return { text: lines.join("\n"), week, failed, thr };
 }
@@ -637,6 +644,21 @@ function selfTest() {
   eq("ログ（全体）", parseMutationLog(log).full, { total: 82, killed: 71, pct: 87, threshold: 70 });
   eq("ログ（ドメイン層）", parseMutationLog(log).domain, { total: 38, killed: 34, pct: 89, threshold: 70 });
   eq("ログ（無い場合）", parseMutationLog("なし"), { full: null, domain: null });
+
+  // 例外の理由: gh の失敗は標準エラーの 1 行目、無ければ message の 1 行目
+  eq("例外の理由（標準エラー）", errorLine({ message: "Command failed: gh api x\nHTTP 403", stderr: "\ngh: HTTP 403: Forbidden\nmore" }), "gh: HTTP 403: Forbidden");
+  eq("例外の理由（標準エラーなし）", errorLine(new Error("boom\nstack")), "boom");
+  // 夜間の節: 取得できなかった実行の数と、最初の 1 件の理由を表の外に書く
+  const nWin = reportWindow(utc("2026-11-02T00:00:00Z"));
+  const nRun = (id, createdAt, mutation) => ({ id, createdAt, event: "schedule", conclusion: "success", jobs: [], mutation });
+  const nText = nightlySection([
+    nRun(10, "2026-10-26T18:00:00Z", { error: "gh: HTTP 403: Forbidden" }),
+    nRun(11, "2026-10-27T18:00:00Z", { error: "gh: HTTP 404: Not Found" }),
+    nRun(12, "2026-10-28T18:00:00Z", parseMutationLog(log)),
+  ], nWin).text;
+  eq("夜間の節（理由）", nText.includes("Mutation Score を取得できなかった実行: 2 回。最初の 1 件（run 10）の理由: gh: HTTP 403: Forbidden"), true);
+  eq("夜間の節（取れた値）", nText.includes("| 87% (71/82) | 89% (34/38) |"), true);
+  eq("夜間の節（全部取れたら理由を書かない）", nightlySection([nRun(12, "2026-10-28T18:00:00Z", parseMutationLog(log))], nWin).text.includes("取得できなかった"), false);
 
   // flaky の候補: 前の試行で失敗し、最新の試行で成功した同名のジョブだけ
   const j = (name, conclusion) => ({ name, conclusion, steps: [] });
