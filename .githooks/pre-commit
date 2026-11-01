@@ -1,0 +1,17 @@
+#!/bin/sh
+# pre-commit: Kotlin サンプルに関わる変更をコミットする前に、静的検査(G1)と層1テスト(G2)を流す。
+# 01 §5 の G1・G2 の実行タイミング(pre-commit)と、02b §3.1 の実行順序に対応する。
+# 有効にする(クローンごとに 1 度): git config core.hooksPath .githooks
+# 一時的に省く: git commit --no-verify(PR の CI では省けない)
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+
+# 影響範囲: Kotlin サンプル、または層1の入力になる TRS と要件定義書のテンプレートが、ステージされているときだけ流す。
+# 層1は全件を流す。Gradle には変更に影響するテストだけを選ぶ仕組みが無く、全件でも数秒で終わるため。
+# 方針書(docs/testing/)の変更などでは流さない。それは npm run lint の担当である。
+if git diff --cached --name-only | grep -q -E '^(examples/kotlin-spring/|docs/testing/trs/_template\.md$|docs/testing/templates/requirements\.md$)'; then
+  cd "$root/examples/kotlin-spring"
+  echo "pre-commit: ./gradlew detekt ktlintCheck test"
+  ./gradlew --console=plain detekt ktlintCheck test
+fi
