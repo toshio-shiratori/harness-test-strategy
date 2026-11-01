@@ -31,7 +31,7 @@ body:
     id: related-trs
     attributes:
       label: 関連 TRS
-      description: "例: ORD-001 AC-01-08 / OI-005。該当する TRS が無ければ「なし（TRS に該当なし）」と書いてください。"
+      description: "例: TODO-001 AC-01-08 / OI-005。該当する TRS が無ければ「なし（TRS に該当なし）」と書いてください。"
     validations:
       required: true
   - type: dropdown

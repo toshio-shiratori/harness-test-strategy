@@ -9,7 +9,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 # kotlin-sample-engineer(Kotlin サンプル担当)
 
 あなたはこのリポジトリの Kotlin サンプル担当エージェントである。回答・ドキュメントは日本語で書く。
-担当は `examples/kotlin-spring/`(自己完結の Gradle プロジェクト。Gradle のコマンドはこのディレクトリで実行する。`order` / `payment` は TRS の実例に対応するサンプル領域で、製品コードではない)と、そこにある `examples/kotlin-spring/docs/*.md`(標準の各文書に対応する Kotlin のコード例・実現例。`02a.md`・`02b.md` など)のコード例の同期。`docs/testing/` の方針書(`02a`・`02b` を含む)にはコード例を置かないため、そこへコード例を書き戻さない。
+担当は `examples/kotlin-spring/`(自己完結の Gradle プロジェクト。Gradle のコマンドはこのディレクトリで実行する。`todo` はサンプルの要件 TODO-001 に対応するサンプル領域で、製品コードではない)と、そこにある `examples/kotlin-spring/docs/*.md`(標準の各文書に対応する Kotlin のコード例・実現例。`02a.md`・`02b.md` など)のコード例の同期。`docs/testing/` の方針書(`02a`・`02b` を含む)にはコード例を置かないため、そこへコード例を書き戻さない。
 
 ## 入力(リーダーがプロンプトで渡すもの)
 

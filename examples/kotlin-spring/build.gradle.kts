@@ -1,6 +1,6 @@
 // docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
 plugins {
-    kotlin("jvm") version "2.4.21" // Spring Boot 4.1.1 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
+    kotlin("jvm") version "2.4.21" // Spring Boot 4.1.2 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
     kotlin("plugin.spring") version "2.4.21"
     id("org.springframework.boot") version "4.1.2"
     id("info.solidsoft.pitest") version "1.19.0"
@@ -27,7 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    // 永続化 Adapter（payment.adapter.persistence）: MyBatis + Flyway + MySQL。
+    // 永続化 Adapter（adapter.persistence）: MyBatis + Flyway + MySQL。
     // mybatis-spring-boot-starter 4.1.0 は Spring Boot 4.1.0 でビルドされた版（Maven Central の pom で確認）。BOM の管理外なのでバージョンを明示する
     implementation("org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
@@ -114,7 +114,7 @@ tasks.named<Test>("e2eTest") {
 // レポートは別ディレクトリに出す（同じ場所だと後の実行が先の結果を上書きする）。targetClasses・targetTests・reportDir が
 // 通常の実行と異なるため、Gradle は同じ呼び出しの 2 回目を up-to-date 扱いにしない。
 val pitestDomainOnly = providers.gradleProperty("pitest.domainOnly").map { it.toBoolean() }.orElse(false)
-val domainPackages = listOf("com.example.order.domain", "com.example.payment.domain")
+val domainPackages = listOf("com.example.todo.domain")
 
 pitest {
     junit5PluginVersion.set("1.2.3")
@@ -148,15 +148,12 @@ pitest {
     )
     // value class / data class のコンパイラ生成アクセサは、Kotlin からはフィールド直接参照になりテストから呼ばれない
     // （NO_COVERAGE のノイズ）。名前ベースの excludedMethods は全クラスに効いて将来のロジックを黙って見逃すため、
-    // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（Quantity$Companion 等）にある。
+    // アクセサ以外にメンバを持たないクラスだけをクラス単位で除外する。検証ロジックは別クラスの companion（TaskTitle$Companion 等）にある。
     // 除外の追加・変更は人間の承認が必要（このファイルは CODEOWNERS 対象）。
     excludedClasses.set(
         listOf(
-            "com.example.order.domain.Quantity",
-            "com.example.order.domain.UserId",
-            "com.example.order.domain.OrderId",
-            "com.example.order.domain.Sku",
-            "com.example.order.domain.Validated\$Invalid",
+            "com.example.todo.domain.TaskId",
+            "com.example.todo.domain.TaskTitle",
         ),
     )
     // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02b §4.1
@@ -180,9 +177,11 @@ tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIn
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    // TraceabilityTest が TRS を読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
+    // TraceabilityTest が TRS・要件定義書とそれぞれのテンプレートを読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
     inputs.dir("docs/trs")
+    inputs.dir("docs/requirements")
     inputs.file("../../docs/testing/trs/_template.md")
+    inputs.file("../../docs/testing/templates/requirements.md")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する
     inputs.file("build.gradle.kts")
     // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02a §2.3）。未指定なら Kotest の既定（1000）。

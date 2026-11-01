@@ -6,7 +6,7 @@
 
 | パス | 位置づけ | 配布 |
 |---|---|---|
-| `docs/testing/` | **配布物**。標準の本体(方針書 01〜05、TRS テンプレート、バグ報告・バグ修正 PR の雛形)。言語やライブラリによらず導入できるよう、言語中立で自己完結させている。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクしない。中立性は `npm run lint` の `lint:portable` が検査する | する |
+| `docs/testing/` | **配布物**。標準の本体(方針書 01〜05、TRS テンプレート、要件定義書・バグ報告・バグ修正 PR の雛形)。言語やライブラリによらず導入できるよう、言語中立で自己完結させている。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクしない。中立性は `npm run lint` の `lint:portable` が検査する | する |
 | `examples/kotlin-spring/` | **実装例**。標準を Kotlin + Spring Boot に導入した一例で、コンパイルしてテストを通す検証用プロジェクト。標準の各文書に対応するコード例・実現例・実測(`docs/<文書番号>.md`)とサンプルの TRS(`docs/trs/`)もここにある | しない |
 | `docs/records/` | **記録**。このリポジトリ自身の運用やパイロットの記録 | しない |
 
@@ -28,7 +28,7 @@ npm run measure:mermaid -- docs/testing/01-test-policy.md
 
 手元の描画は GitHub 上の表示と一致しません(Mermaid の字幅が GitHub のほうが広く、折り返し位置が変わります)。mermaid の図や Markdown の表を追加・変更した PR は、マージ前に、PR のブランチのファイル表示を GitHub 上で開いて、変更した図・表の見え方をスクリーンショットで確かめ、所見を PR 本文に書きます。
 
-サンプルコード(静的解析、テスト、ミューテーションテスト、E2E)の確認は、`examples/kotlin-spring/` で Gradle を実行します。コマンドとセットアップは [examples/kotlin-spring/README.md](examples/kotlin-spring/README.md) にあります。
+サンプルコード(静的解析、テスト、ミューテーションテスト、E2E)の確認は、`examples/kotlin-spring/` で Gradle を実行します。コマンドとセットアップは [examples/kotlin-spring/README.md](examples/kotlin-spring/README.md) にあります。コミットの前に静的検査と層1テストを流すフック(`.githooks/pre-commit`)の有効化の手順も、そこにあります。
 
 ## コントリビュートの流れ
 
