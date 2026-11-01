@@ -1,7 +1,7 @@
 # TRS-TODO-001: タスク管理（登録・完了・一覧と期限）
 
 > この TRS は、合意済みの[要件定義書](../requirements/TODO-001-task-management.md)を入力に、AI が起草した。オーナーが 2026-11-01 に AC に合意し、承認した。手順は [03 §5](../../../../docs/testing/03-trs-guideline.md#5-策定フロー) の 1 から 3 に当たる。
-> Open Issues（OI-001〜011）は、2026-11-01 にオーナーがすべて決めた。サンプルなので、一般的なやり方を選んでよいと指示を受けた。決定を AC に反映した。
+> Open Issues（OI-001〜011、OI-013）は、2026-11-01 にオーナーがすべて決めた。サンプルなので、一般的なやり方を選んでよいと指示を受けた。決定を AC に反映した。OI-013 は、永続化・HTTP の実装の際に起票し、同日に決めた。
 > Non-blocking の OI-012 は Open のままである。
 > 期待値の出所は、要件定義書の要件と、OI の決定である。要件から導けない値は、決定が出るまで AC に書かなかった。
 > 起草と同時に課題化した。`@pending` に OI-ID が要るためである。決定が出たので、`@pending` はすべて外した。
@@ -61,6 +61,7 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 | UC-01-A1 | 手順3 | タイトルが空、空白だけ、または 50 字を超えるとき、保存せず、400 と理由コード（`TITLE_BLANK`、`TITLE_TOO_LONG`）を返し、画面に理由を示す |
 | UC-01-A2 | 手順3 | 期限が `YYYY-MM-DD` として読めない、または実在しない日のとき、保存せず、400 と `DUE_DATE_INVALID` を返す |
 | UC-01-A3 | 手順2 | 本文が JSON として読めないとき `MALFORMED_REQUEST`、タイトルが無いとき `TITLE_BLANK` で、保存せず 400 を返す |
+| UC-01-A4 | 手順2 | 本文の型や形が定義と違うとき（タイトルが文字列でない、期限が文字列でないなど）、保存せず、400 と `MALFORMED_REQUEST` を返す。定義にない項目は無視する |
 
 #### UC-02: タスクを完了にする
 
@@ -175,6 +176,7 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 | ID | 分岐点 | 内容 |
 |---|---|---|
 | UC-06-A1 | 手順4 | 保存された選択が無い（初めて開いた）とき、完了済みを表示する |
+| UC-06-A2 | 手順1 | 選択に未知の値が送られたとき、選択を変えず、400 と `MALFORMED_REQUEST` を返す |
 
 ### 3. 受入条件（AC / Gherkin）
 
@@ -218,60 +220,63 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 | AC-01-10 | UC-01 | 層1 | Must | `TaskTest::AC-01-10` |
 | AC-01-11 | UC-01 | 層1 | Must | `TaskTest::AC-01-11` |
 | AC-01-12 | UC-01 | 層1 | Must | `TaskTest::AC-01-12` |
-| AC-01-13 | UC-01 | 層2（Integration） | Must | 未実装 |
+| AC-01-13 | UC-01 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-13` |
 | AC-01-14 | UC-01-A2 | 層1 | Must | `DueDateTest::AC-01-14`, `TaskConstraintTableTest::AC-01-14` |
-| AC-01-15 | UC-01 | 層2（Integration） | Must | 未実装 |
-| AC-01-16 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
-| AC-01-17 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
-| AC-01-18 | UC-01-A3 | 層2（Integration） | Must | 未実装 |
-| AC-01-19 | UC-01-A3 | 層2（Integration） | Must | 未実装 |
-| AC-01-20 | UC-01 | 層2（E2E） | Must | 未実装 |
-| AC-01-21 | UC-01 | 層2（E2E） | Must | 未実装 |
-| AC-01-22 | UC-01-A1 | 層2（E2E） | Must | 未実装 |
-| AC-01-23 | UC-01 | 層2（E2E） | Must | 未実装 |
-| AC-01-24 | UC-01-A3 | 層2（Integration） | Must | 未実装 |
+| AC-01-15 | UC-01 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-15` |
+| AC-01-16 | UC-01-A1 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-16` |
+| AC-01-17 | UC-01-A1 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-17` |
+| AC-01-18 | UC-01-A3 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-18` |
+| AC-01-19 | UC-01-A3 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-19` |
+| AC-01-20 | UC-01 | 層2（E2E） | Must | `TaskListE2eTest::AC-01-20` |
+| AC-01-21 | UC-01 | 層2（E2E） | Must | `TaskListE2eTest::AC-01-21` |
+| AC-01-22 | UC-01-A1 | 層2（E2E） | Must | `TaskListE2eTest::AC-01-22` |
+| AC-01-23 | UC-01 | 層2（E2E） | Must | `TaskListE2eTest::AC-01-23` |
+| AC-01-24 | UC-01-A3 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-24` |
 | AC-01-25 | UC-01-A1 | 層1 | Must | `TaskConstraintTableTest::AC-01-25`, `TaskTitleTest::AC-01-25` |
 | AC-01-26 | UC-01 | 層1 | Must | `DueDateTest::AC-01-26`, `TaskConstraintTableTest::AC-01-26` |
-| AC-01-27 | UC-01-A2 | 層2（Integration） | Must | 未実装 |
-| AC-01-28 | UC-01-A1 | 層2（Integration） | Must | 未実装 |
+| AC-01-27 | UC-01-A2 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-27` |
+| AC-01-28 | UC-01-A1 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-28` |
+| AC-01-29 | UC-01-A4 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-29` |
+| AC-01-30 | UC-01-A4 | 層2（Integration） | Must | `TaskApiHttpTest::AC-01-30` |
 | AC-02-01 | UC-02 | 層1 | Must | `TaskConstraintTableTest::AC-02-01`, `TaskTest::AC-02-01` |
-| AC-02-02 | UC-02-A2 | 層2（Integration） | Must | 未実装 |
-| AC-02-03 | UC-02-A1 | 層2（Integration） | Must | 未実装 |
-| AC-02-04 | UC-02 | 層2（Integration） | Must | 未実装 |
-| AC-02-05 | UC-02 | 層2（E2E） | Must | 未実装 |
-| AC-02-07 | UC-02-A2 | 層2（Integration） | Must | 未実装 |
+| AC-02-02 | UC-02-A2 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-02-02` |
+| AC-02-03 | UC-02-A1 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-02-03` |
+| AC-02-04 | UC-02 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-02-04` |
+| AC-02-05 | UC-02 | 層2（E2E） | Must | `TaskListE2eTest::AC-02-05` |
+| AC-02-07 | UC-02-A2 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-02-07` |
 | AC-02-08 | UC-02-A2 | 層1 | Must | `TaskConstraintTableTest::AC-02-08`, `TaskTest::AC-02-08` |
 | AC-03-01 | UC-03 | 層1 | Must | `TaskConstraintTableTest::AC-03-01`, `TaskTest::AC-03-01` |
-| AC-03-02 | UC-03-A2 | 層2（Integration） | Must | 未実装 |
-| AC-03-03 | UC-03-A1 | 層2（Integration） | Must | 未実装 |
-| AC-03-04 | UC-03 | 層2（Integration） | Must | 未実装 |
-| AC-03-05 | UC-03-A2 | 層2（Integration） | Must | 未実装 |
+| AC-03-02 | UC-03-A2 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-03-02` |
+| AC-03-03 | UC-03-A1 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-03-03` |
+| AC-03-04 | UC-03 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-03-04` |
+| AC-03-05 | UC-03-A2 | 層2（Integration） | Must | `TaskOperationHttpTest::AC-03-05` |
 | AC-03-06 | UC-03-A2 | 層1 | Must | `TaskConstraintTableTest::AC-03-06`, `TaskTest::AC-03-06` |
-| AC-03-07 | UC-03 | 層2（E2E） | Must | 未実装 |
+| AC-03-07 | UC-03 | 層2（E2E） | Must | `TaskListE2eTest::AC-03-07` |
 | AC-04-01 | UC-04 | 層1 | Must | `TaskCategoryTest::AC-04-01` |
 | AC-04-02 | UC-04 | 層1 | Must | `TaskCategoryTest::AC-04-02` |
-| AC-04-03 | UC-04 | 層2（Integration） | Must | 未実装 |
-| AC-04-04 | UC-04 | 層1 / 層2（Integration） | Must | 層1: `TaskCategoryTest::AC-04-04`、層2: 未実装 |
-| AC-04-05 | UC-04 | 層2（E2E） | Must | 未実装 |
-| AC-04-06 | UC-04-A1 | 層2（Integration） | Must | 未実装 |
+| AC-04-03 | UC-04 | 層2（Integration） | Must | `TaskListHttpTest::AC-04-03` |
+| AC-04-04 | UC-04 | 層1 / 層2（Integration） | Must | 層1: `TaskCategoryTest::AC-04-04`、層2: `TaskListHttpTest::AC-04-04` |
+| AC-04-05 | UC-04 | 層2（E2E） | Must | `TaskListE2eTest::AC-04-05` |
+| AC-04-06 | UC-04-A1 | 層2（Integration） | Must | `TaskListHttpTest::AC-04-06` |
 | AC-05-01 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-01`, `TaskListTest::AC-05-01` |
 | AC-05-02 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-02`, `TaskListTest::AC-05-02` |
 | AC-05-03 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-03`, `TaskListTest::AC-05-03`, `TaskTest::AC-05-03` |
 | AC-05-04 | UC-05-A1 | 層1 | Must | `TaskConstraintTableTest::AC-05-04`, `TaskListTest::AC-05-04` |
 | AC-05-05 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-05`, `TaskListTest::AC-05-05` |
-| AC-05-06 | UC-05 | 層2（Integration） | Must | 未実装 |
+| AC-05-06 | UC-05 | 層2（Integration） | Must | `TaskListHttpTest::AC-05-06` |
 | AC-05-07 | UC-05 | 層1 | Must | `TaskConstraintTableTest::AC-05-07`, `TaskListTest::AC-05-07` |
-| AC-05-08 | UC-05 | 層2（Integration） | Must | 未実装 |
+| AC-05-08 | UC-05 | 層2（Integration） | Must | `TaskListHttpTest::AC-05-08` |
 | AC-06-01 | UC-06 | 層1 | Must | `TaskConstraintTableTest::AC-06-01`, `TaskListTest::AC-06-01` |
 | AC-06-02 | UC-06 | 層1 | Must | `TaskConstraintTableTest::AC-06-02`, `TaskListTest::AC-06-02` |
-| AC-06-03 | UC-06-A1 | 層1 / 層2（Integration） | Must | 層1: `TaskConstraintTableTest::AC-06-03`、層2: 未実装 |
-| AC-06-04 | UC-06 | 層2（Integration） | Must | 未実装 |
-| AC-06-05 | UC-06 | 層2（E2E） | Must | 未実装 |
-| AC-06-06 | UC-06 | 層2（Integration） | Must | 未実装 |
+| AC-06-03 | UC-06-A1 | 層1 / 層2（Integration） | Must | 層1: `TaskConstraintTableTest::AC-06-03`、層2: `TaskListHttpTest::AC-06-03` |
+| AC-06-04 | UC-06 | 層2（Integration） | Must | `TaskListHttpTest::AC-06-04` |
+| AC-06-05 | UC-06 | 層2（E2E） | Must | `TaskListE2eTest::AC-06-05` |
+| AC-06-06 | UC-06 | 層2（Integration） | Must | `TaskListHttpTest::AC-06-06` |
+| AC-06-07 | UC-06-A2 | 層2（Integration） | Must | `TaskListHttpTest::AC-06-07` |
 
 AC-02-06 は使わない。旧サンプルが使っていた番号で、03.md が旧サンプルの AC-02-06 に触れているためである。
 
-「未実装」は、テストをこれから書くことを表す。実装待ちを `@pending` で除外しない。理由は [03 §3.4.2](../../../../docs/testing/03-trs-guideline.md#342-各検査の詳細) の ③ にある。テストが無い間は、トレーサビリティ検査が失敗する。
+テストをこれから書く AC は「未実装」と書く。実装待ちを `@pending` で除外しない。理由は [03 §3.4.2](../../../../docs/testing/03-trs-guideline.md#342-各検査の詳細) の ③ にある。テストが無い間は、トレーサビリティ検査が失敗する。
 
 **記法**: Examples の `[半角空白]`（U+0020）、`[全角空白]`（U+3000）、`[タブ]`（U+0009）、`[改行]`（U+000A）、`[U+XXXX]`（そのコードポイント）は、その文字 1 個を表す。
 「あ×50」は、「あ」を 50 個並べた文字列を表す。時刻は Asia/Tokyo（+09:00）か UTC（`Z`）で書く。
@@ -607,6 +612,34 @@ Feature: タスク管理（登録・完了・一覧と期限）
     And   本文の codes は ["TITLE_BLANK", "DUE_DATE_INVALID"] である
     And   一覧を取り直すと、タスクは 0 件のままである
 
+  @AC-01-29 @layer:2 @integration
+  Scenario Outline: 型や形が定義と違う本文は、400 と MALFORMED_REQUEST で拒否され、登録されない
+    Given 登録済みのタスクが 0 件である
+    And   登録の要求の本文が <body> である
+    When  タスクの登録を要求する
+    Then  応答のステータスは 400 である
+    And   本文は ProblemDetail で、status は 400 である
+    And   本文の codes は ["MALFORMED_REQUEST"] である
+    And   一覧を取り直すと、タスクは 0 件のままである
+
+    Examples:
+      | body                                             |
+      | タイトルが数値                                   |
+      | タイトルが真偽値                                 |
+      | タイトルが配列                                   |
+      | タイトルがオブジェクト                           |
+      | タイトルは文字列で、期限が数値                   |
+      | タイトルは文字列で、期限が真偽値                 |
+      | タイトルは文字列で、期限がオブジェクト           |
+
+  @AC-01-30 @layer:2 @integration
+  Scenario: 定義にない項目は無視されて登録される
+    Given 登録済みのタスクが 0 件である
+    And   登録の要求の本文が、タイトルと期限のほかに、定義にない項目を含む
+    When  タスクの登録を要求する
+    Then  応答のステータスは 2xx である
+    And   一覧を取り直すと、そのタイトルと期限のタスクが 1 件ある
+
   # ---- UC-02 タスクを完了にする ----
 
   @AC-02-01 @layer:1
@@ -936,6 +969,15 @@ Feature: タスク管理（登録・完了・一覧と期限）
     And   完了のタスクと、未完了のタスクがある
     When  一覧を取得する
     Then  一覧は、未完了のタスクだけである
+
+  @AC-06-07 @layer:2 @integration
+  Scenario: 完了済みの表示の選択に未知の値を送ると、400 と MALFORMED_REQUEST で拒否され、選択は変わらない
+    Given 完了済みを隠す選択に切り替えてある
+    When  選択に未知の値を送る
+    Then  応答のステータスは 400 である
+    And   本文は ProblemDetail で、status は 400 である
+    And   本文の codes は ["MALFORMED_REQUEST"] である
+    And   別の要求で選択を読み戻すと、選択は「隠す」のままである
 ```
 
 ---
@@ -1042,13 +1084,16 @@ Feature: タスク管理（登録・完了・一覧と期限）
 | C-56 | F2-L5、F2-L6 | 拒否。400 と `DUE_DATE_INVALID` | OI-005（AC-01-14、AC-01-27） |
 | C-57 | F1-L13 | 受理。そのまま保存 | OI-002（AC-01-25） |
 | C-58 | F2-L7 | 受理 | OI-005（AC-01-26） |
+| C-59 | 本文の型や形が定義と違う（タイトルが文字列でない、期限が文字列でない） | 拒否。400 と `MALFORMED_REQUEST`。型の自動変換はしない | OI-013（AC-01-29） |
+| C-60 | 本文に定義にない項目がある | 無視して、残りの項目で処理する | OI-013（AC-01-30） |
+| C-61 | 完了済みの表示の選択に未知の値 | 拒否。400 と `MALFORMED_REQUEST`。選択は変えない | OI-013（AC-06-07） |
 
 ### 6. Open Issues
 
 > **削除禁止。** 解決しても行を残し、状態を `Resolved` にして決定内容・決定者・決定日・反映先を記録する。
 > 解決（Resolved）にできるのは人間のみ。決定が覆った場合は旧行を `Superseded` にして新規行を追加する。ただし `Won't Fix` と `Superseded` の行は終端なので、覆すときは行を変えず新規行を追加する（03 §4.2）。
 > 区分 `Blocking` が未解決の AC に対するテストは、期待値を確定せず `pending` とする。今は未解決の Blocking が無い。
-> OI-001〜011 は 2026-11-01 にオーナーが決めた。オーナーは、サンプルなので一般的なやり方（ベストプラクティス）を選ぶと指示し、AI が示した案を了承した。
+> OI-001〜011 と OI-013 は 2026-11-01 にオーナーが決めた。オーナーは、サンプルなので一般的なやり方（ベストプラクティス）を選ぶと指示し、AI が示した案を了承した。
 > OI-001〜003 は、要件定義書の Q-19〜Q-21 を起票したものである。OI-004〜012 は、起草中や合意の際に見つけた、要件から導けない点である。
 > 決定で範囲が増えるときは、先に要件定義書へ要件を足し、その要件 ID を出典にする。根拠は [03 §2.1](../../../../docs/testing/03-trs-guideline.md#21-仕様レイヤー) の 2 である。
 > 各 OI の選択肢と AI の推奨は、表の後の 6.1 にある。推奨は決定ではない。決定は表の「決定内容」を正とする。
@@ -1067,6 +1112,7 @@ Feature: タスク管理（登録・完了・一覧と期限）
 | OI-010 | 2026-11-01 | AI | Blocking | AC-01-21, AC-01-23, AC-02-05, AC-03-07, AC-04-05 | 未完了・完了・期限切れを、画面にどう見せるか（手段と文言）。期限の日付を画面にどう見せるか。「完了」を文言として扱うか（REQ-TODO-23） | Resolved | 区分は、文言のラベル「未完了」「完了」「期限切れ」で表示する。期限は、一覧に `YYYY-MM-DD` の形で表示する | オーナー | 2026-11-01 | オーナーの決定。サンプルのため一般的なやり方を選んだ | AC-01-21, AC-01-23, AC-02-05, AC-03-07, AC-04-05 |
 | OI-011 | 2026-11-01 | AI | Blocking | AC-01-26, AC-01-28, F2-L7 | 複数の理由が同時にあるときの `codes` の中身と、0001-01-01・9999-12-31 の扱い | Resolved | 理由はすべて集めて `codes` に入れる。0001-01-01 と 9999-12-31 も、実在する暦日として受け付ける | オーナー | 2026-11-01 | AC の合意（2026-11-01）の際にオーナーが了承。#247 のコメント | AC-01-15, AC-01-26, AC-01-28, F2-L7 |
 | OI-012 | 2026-11-01 | AI | Non-blocking | UC-01, UC-02, UC-03 | 期限が空文字列のとき、存在しないタスクの識別子の形が不正なとき、0000 年の期限を受け付けるかを、どう扱うか。AC は足していない | Open | | | | | |
+| OI-013 | 2026-11-01 | AI | Blocking | AC-01-29, AC-01-30, AC-06-07 | JSON の型・形が定義と違う要求の扱い。タイトルに数値・真偽値・配列・オブジェクト、期限に数値などが来たとき、完了済みの表示の選択に未知の値が来たとき、定義にない項目が来たとき、どうなるか | Resolved | 型の自動変換はしない。タイトルに数値・真偽値・配列・オブジェクト、期限に数値などの、型や形が定義と違う本文は、400 で `codes` に `MALFORMED_REQUEST`（JSON として読めない本文と同じ扱い）。完了済みの表示の選択に未知の値は、400 で `MALFORMED_REQUEST`。定義にない項目は無視する | オーナー | 2026-11-01 | オーナーの決定。サンプルのため一般的なやり方を選んだ。要件 REQ-TODO-12・13（不正な入力は登録されず理由が表示される）の範囲内なので、要件定義書は変えない | AC-01-29, AC-01-30, AC-06-07, UC-01-A4, UC-06-A2, C-59〜C-61 |
 
 **状態の凡例**: `Open` / `In Discussion` / `Resolved` / `Superseded` / `Won't Fix`。`Superseded` は置換先 ID を記載し、`Won't Fix` は理由を必須とする。遷移は 03 §4.2
 
@@ -1197,6 +1243,10 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 | 複数の理由 | すべて集めて `codes` に入れる |
 | 暦日の両端 | 0001-01-01 と 9999-12-31 も、実在する暦日として受け付ける。受け付ける範囲の規則は書かない |
 
+**OI-013 JSON の型・形が定義と違う要求の扱い**
+
+永続化・HTTP の実装の際に、型の違う本文（タイトルが数値など）が、仕様にないまま登録される振る舞いに気づいて起票した。AI の案は添えず、オーナーが同日に決めた。決定は上の表の「決定内容」を正とする。
+
 **OI-012 空文字列の期限、識別子の形、0000 年の期限**
 
 | 論点 | 案 |
@@ -1214,7 +1264,7 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 
 ### 7. トレーサビリティ
 
-層1のテストは実装済みである。層2（Integration / E2E）のテストは、永続化・HTTP・画面の実装と同じ PR で足し、この表を更新する。
+すべての AC にテストが紐づいている。層1と層2（Integration / E2E）のテストは実装済みである。
 
 | AC ID | 層1（型/Unit/PBT） | 層2（Integration/E2E） | 層3（探索） | 状態 |
 |---|---|---|---|---|
@@ -1230,56 +1280,59 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 | AC-01-10 | `TaskTest::AC-01-10` | — | — | 実装済 |
 | AC-01-11 | `TaskTest::AC-01-11` | — | — | 実装済 |
 | AC-01-12 | `TaskTest::AC-01-12` | — | — | 実装済 |
-| AC-01-13 | — | 未実装 | — | 未着手 |
+| AC-01-13 | — | `TaskApiHttpTest::AC-01-13` | — | 実装済 |
 | AC-01-14 | `DueDateTest::AC-01-14`, `TaskConstraintTableTest::AC-01-14` | — | — | 実装済 |
-| AC-01-15 | — | 未実装 | — | 未着手 |
-| AC-01-16 | — | 未実装 | — | 未着手 |
-| AC-01-17 | — | 未実装 | — | 未着手 |
-| AC-01-18 | — | 未実装 | — | 未着手 |
-| AC-01-19 | — | 未実装 | — | 未着手 |
-| AC-01-20 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-01-21 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-01-22 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-01-23 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-01-24 | — | 未実装 | — | 未着手 |
+| AC-01-15 | — | `TaskApiHttpTest::AC-01-15` | — | 実装済 |
+| AC-01-16 | — | `TaskApiHttpTest::AC-01-16` | — | 実装済 |
+| AC-01-17 | — | `TaskApiHttpTest::AC-01-17` | — | 実装済 |
+| AC-01-18 | — | `TaskApiHttpTest::AC-01-18` | — | 実装済 |
+| AC-01-19 | — | `TaskApiHttpTest::AC-01-19` | — | 実装済 |
+| AC-01-20 | — | `TaskListE2eTest::AC-01-20` | 探索対象 | 実装済 |
+| AC-01-21 | — | `TaskListE2eTest::AC-01-21` | 探索対象 | 実装済 |
+| AC-01-22 | — | `TaskListE2eTest::AC-01-22` | 探索対象 | 実装済 |
+| AC-01-23 | — | `TaskListE2eTest::AC-01-23` | 探索対象 | 実装済 |
+| AC-01-24 | — | `TaskApiHttpTest::AC-01-24` | — | 実装済 |
 | AC-01-25 | `TaskConstraintTableTest::AC-01-25`, `TaskTitleTest::AC-01-25` | — | — | 実装済 |
 | AC-01-26 | `DueDateTest::AC-01-26`, `TaskConstraintTableTest::AC-01-26` | — | — | 実装済 |
-| AC-01-27 | — | 未実装 | — | 未着手 |
-| AC-01-28 | — | 未実装 | — | 未着手 |
+| AC-01-27 | — | `TaskApiHttpTest::AC-01-27` | — | 実装済 |
+| AC-01-28 | — | `TaskApiHttpTest::AC-01-28` | — | 実装済 |
+| AC-01-29 | — | `TaskApiHttpTest::AC-01-29` | — | 実装済 |
+| AC-01-30 | — | `TaskApiHttpTest::AC-01-30` | — | 実装済 |
 | AC-02-01 | `TaskConstraintTableTest::AC-02-01`, `TaskTest::AC-02-01` | — | — | 実装済 |
-| AC-02-02 | — | 未実装 | — | 未着手 |
-| AC-02-03 | — | 未実装 | — | 未着手 |
-| AC-02-04 | — | 未実装 | — | 未着手 |
-| AC-02-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-02-07 | — | 未実装 | — | 未着手 |
+| AC-02-02 | — | `TaskOperationHttpTest::AC-02-02` | — | 実装済 |
+| AC-02-03 | — | `TaskOperationHttpTest::AC-02-03` | — | 実装済 |
+| AC-02-04 | — | `TaskOperationHttpTest::AC-02-04` | — | 実装済 |
+| AC-02-05 | — | `TaskListE2eTest::AC-02-05` | 探索対象 | 実装済 |
+| AC-02-07 | — | `TaskOperationHttpTest::AC-02-07` | — | 実装済 |
 | AC-02-08 | `TaskConstraintTableTest::AC-02-08`, `TaskTest::AC-02-08` | — | — | 実装済 |
 | AC-03-01 | `TaskConstraintTableTest::AC-03-01`, `TaskTest::AC-03-01` | — | — | 実装済 |
-| AC-03-02 | — | 未実装 | — | 未着手 |
-| AC-03-03 | — | 未実装 | — | 未着手 |
-| AC-03-04 | — | 未実装 | — | 未着手 |
-| AC-03-05 | — | 未実装 | — | 未着手 |
+| AC-03-02 | — | `TaskOperationHttpTest::AC-03-02` | — | 実装済 |
+| AC-03-03 | — | `TaskOperationHttpTest::AC-03-03` | — | 実装済 |
+| AC-03-04 | — | `TaskOperationHttpTest::AC-03-04` | — | 実装済 |
+| AC-03-05 | — | `TaskOperationHttpTest::AC-03-05` | — | 実装済 |
 | AC-03-06 | `TaskConstraintTableTest::AC-03-06`, `TaskTest::AC-03-06` | — | — | 実装済 |
-| AC-03-07 | — | 未実装（E2E） | 探索対象 | 未着手 |
+| AC-03-07 | — | `TaskListE2eTest::AC-03-07` | 探索対象 | 実装済 |
 | AC-04-01 | `TaskCategoryTest::AC-04-01` | — | — | 実装済 |
 | AC-04-02 | `TaskCategoryTest::AC-04-02` | — | — | 実装済 |
-| AC-04-03 | — | 未実装 | — | 未着手 |
-| AC-04-04 | `TaskCategoryTest::AC-04-04` | 未実装 | — | 層1のみ実装済（層2 は未着手） |
-| AC-04-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-04-06 | — | 未実装 | — | 未着手 |
+| AC-04-03 | — | `TaskListHttpTest::AC-04-03` | — | 実装済 |
+| AC-04-04 | `TaskCategoryTest::AC-04-04` | `TaskListHttpTest::AC-04-04` | — | 実装済 |
+| AC-04-05 | — | `TaskListE2eTest::AC-04-05` | 探索対象 | 実装済 |
+| AC-04-06 | — | `TaskListHttpTest::AC-04-06` | — | 実装済 |
 | AC-05-01 | `TaskConstraintTableTest::AC-05-01`, `TaskListTest::AC-05-01` | — | — | 実装済 |
 | AC-05-02 | `TaskConstraintTableTest::AC-05-02`, `TaskListTest::AC-05-02` | — | — | 実装済 |
 | AC-05-03 | `TaskConstraintTableTest::AC-05-03`, `TaskListTest::AC-05-03`, `TaskTest::AC-05-03` | — | — | 実装済 |
 | AC-05-04 | `TaskConstraintTableTest::AC-05-04`, `TaskListTest::AC-05-04` | — | — | 実装済 |
 | AC-05-05 | `TaskConstraintTableTest::AC-05-05`, `TaskListTest::AC-05-05` | — | — | 実装済 |
-| AC-05-06 | — | 未実装 | — | 未着手 |
+| AC-05-06 | — | `TaskListHttpTest::AC-05-06` | — | 実装済 |
 | AC-05-07 | `TaskConstraintTableTest::AC-05-07`, `TaskListTest::AC-05-07` | — | — | 実装済 |
-| AC-05-08 | — | 未実装 | — | 未着手 |
+| AC-05-08 | — | `TaskListHttpTest::AC-05-08` | — | 実装済 |
 | AC-06-01 | `TaskConstraintTableTest::AC-06-01`, `TaskListTest::AC-06-01` | — | — | 実装済 |
 | AC-06-02 | `TaskConstraintTableTest::AC-06-02`, `TaskListTest::AC-06-02` | — | — | 実装済 |
-| AC-06-03 | `TaskConstraintTableTest::AC-06-03` | 未実装 | — | 層1のみ実装済（層2 は未着手） |
-| AC-06-04 | — | 未実装 | — | 未着手 |
-| AC-06-05 | — | 未実装（E2E） | 探索対象 | 未着手 |
-| AC-06-06 | — | 未実装 | — | 未着手 |
+| AC-06-03 | `TaskConstraintTableTest::AC-06-03` | `TaskListHttpTest::AC-06-03` | — | 実装済 |
+| AC-06-04 | — | `TaskListHttpTest::AC-06-04` | — | 実装済 |
+| AC-06-05 | — | `TaskListE2eTest::AC-06-05` | 探索対象 | 実装済 |
+| AC-06-06 | — | `TaskListHttpTest::AC-06-06` | — | 実装済 |
+| AC-06-07 | — | `TaskListHttpTest::AC-06-07` | — | 実装済 |
 
 ### 8. 不具合還元履歴
 
@@ -1297,6 +1350,8 @@ AC の合意の際に、AC-01-28 と AC-01-26 を確かめ、オーナーが了�
 | 2026-11-01 | 0.2 | AI | OI-001〜010 のオーナーの決定を反映。`@pending` を外し、Then を書いた。AC を 6 本足した | 未承認 |
 | 2026-11-01 | 1.0 | AI | AC の合意の際の 2 点を OI-011 に記録し、AC-01-15・AC-01-28 などを直した。OI-012 を起票した | オーナー |
 | 2026-11-01 | 1.1 | AI | ドメイン層（層1）の実装に合わせて、紐づくテストとトレーサビリティの表を更新した。AC の内容は変えていない | — |
+| 2026-11-01 | 1.2 | AI | 永続化・HTTP・画面の実装に合わせて、層2（Integration / E2E）の紐づくテストとトレーサビリティの表を更新した。AC の内容は変えていない | — |
+| 2026-11-01 | 1.3 | AI | OI-013（JSON の型・形が定義と違う要求の扱い）を起票し、オーナーの決定を反映した。UC-01-A4・UC-06-A2、AC-01-29・AC-01-30・AC-06-07、C-59〜C-61 を足した。既存の AC は変えていない。AC の追加はオーナーが OI-013 の決定とあわせて了承した(2026-11-01、#249 のコメント) | オーナー |
 
 ---
 
