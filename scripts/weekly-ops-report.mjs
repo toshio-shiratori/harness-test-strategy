@@ -180,6 +180,15 @@ export function errorLine(e) {
 }
 const ghAsync = async (args) => (await execFileAsync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 })).stdout;
 const api = async (path) => JSON.parse(await ghAsync(["api", path]));
+// ジョブのログは色付けの制御文字（ESC）を含む。新しい gh の api は、制御文字を含む応答を既定で出力せずに失敗する
+// （「the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway」）。
+// ログは端末に出さず parseMutationLog で数値だけを取り出すので、このオプションを付ける。古い gh には無いので、ヘルプで有無を確かめる
+let escapeFlag;
+const allowEscapeArgs = () => {
+  escapeFlag ??= gh(["api", "--help"]).includes("--allow-escape-sequences") ? ["--allow-escape-sequences"] : [];
+  return escapeFlag;
+};
+const jobLog = (repo, jobId) => ghAsync(["api", ...allowEscapeArgs(), `repos/${repo}/actions/jobs/${jobId}/logs`]);
 
 // 実行ごとの取得が数百件に及ぶので、同時に GH_CONCURRENCY 件まで並行して取る
 const GH_CONCURRENCY = 8;
@@ -238,7 +247,7 @@ async function collectRuns(repo, wf, fromMs, toMs, { withLogs }) {
       const pit = jobsRaw.find((j) => j.name === "pitest" && (j.conclusion === "success" || j.conclusion === "failure"));
       if (pit) {
         try {
-          run.mutation = parseMutationLog(await ghAsync(["api", `repos/${repo}/actions/jobs/${pit.id}/logs`]));
+          run.mutation = parseMutationLog(await jobLog(repo, pit.id));
         } catch (e) {
           run.mutation = { error: errorLine(e) };
         }
