@@ -1,0 +1,60 @@
+name: Weekly Ops Report
+
+# 04 §3・§5 の運用の指標のうち、機械で集められるものを週に 1 度集め、1 つの Issue にまとめて起票する。
+# 人が見るのはこの Issue だけ（運用の形は examples/kotlin-spring/docs/04.md §5）。
+# 同じ週の Issue は、題の週の鍵（例: 週次運用レポート 2026-W44）で判定して重複して作らない。
+# 手で起動して確かめるときは dry_run を true にすると、起票せずに本文をジョブのサマリに出す。
+# 起票するには、ラベル ops:weekly があらかじめ存在していること。
+on:
+  schedule:
+    - cron: "17 0 * * 1" # 毎週月曜 09:17 JST（毎時 0 分の混雑を避ける）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true なら起票せず、本文をジョブのサマリに出すだけ"
+        type: boolean
+        default: false
+
+# schedule と手動の起動が重なっても、二重に起票しない
+concurrency:
+  group: weekly-ops-report
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 読むのは、実行履歴（actions）、PR（pull-requests）、リポジトリのソース（contents）。書くのは Issue だけ
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      # 集計と本文の生成を、固定データで確かめてから本番のデータを集める
+      - run: node scripts/weekly-ops-report.mjs --self-test
+      - name: 指標を集めて起票
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            node scripts/weekly-ops-report.mjs --out "$RUNNER_TEMP/report.md"
+          else
+            node scripts/weekly-ops-report.mjs --create --out "$RUNNER_TEMP/report.md"
+          fi
+      - name: 本文をサマリに出す
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/report.md" ]; then
+            cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
