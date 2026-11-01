@@ -133,7 +133,7 @@ curl -i -X POST http://localhost:8080/tasks \
 | `docs/02c.md` | 02c E2E 最小化原則の実例(タスク管理画面の E2E) |
 | `docs/03.md` | 03 TRS ガイドラインのサンプルでの実現 |
 | `docs/04.md` | 04 リグレッション運用規程のサンプルでの実装 |
-| `exploration/` | 層3の AI 探索の指示・報告の型・補助スクリプト。手で起動するジョブは `.github/workflows/ai-exploration.yml`(手順書は `docs/02b.md` の §3.1) |
+| `exploration/` | 層3の AI 探索の指示・報告の型・実行スクリプト。手元で動かすスキルは `.claude/skills/ai-exploration/`(手順書は `docs/02b.md` の §3.1) |
 | `docs/requirements/` | サンプルの要件定義書(TODO-001)。TRS の入力で、`TraceabilityTest` が要件 ID と US/UC の出典の対応を検査する |
 | `docs/trs/` | サンプルの TRS(TODO-001)。`TraceabilityTest` が読む |
 | `config/` | detekt の設定と、Konsist の検査を確かめる違反例 |
