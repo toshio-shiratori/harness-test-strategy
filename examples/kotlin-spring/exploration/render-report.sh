@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# `claude -p --output-format json` の出力を、ジョブのサマリ用の Markdown に整形して標準出力に出す
+# `claude -p --output-format json` の出力を、報告用の Markdown に整形して標準出力に出す
 # (examples/kotlin-spring/docs/02b.md §3.1)。
 # 使い方: render-report.sh <claude の JSON 出力> <claude の終了コード> <所要時間(秒)> <モデル ID>
-# 数値は、claude が返した total_cost_usd と session_id、ジョブ側で測った所要時間だけを使う。
+# 数値は、claude が返した total_cost_usd と session_id、呼び出し側で測った所要時間だけを使う。
 set -euo pipefail
 
 out="${1:?claude の JSON 出力のパス}"
@@ -25,16 +25,16 @@ fi
 if [ ! -s "$out" ] || ! jq -e . "$out" >/dev/null 2>&1; then
   echo "| 費用(推定) | 不明 |"
   echo
-  echo "claude の出力が空か、JSON として読めません。成果物の \`claude-stderr.log\` を確認してください。"
+  echo "claude の出力が空か、JSON として読めません。出力先の \`claude-stderr.log\` を確認してください。"
   exit 0
 fi
 
-jq -r '"| 費用(推定。請求額とは異なりうる) | " + (if .total_cost_usd == null then "不明" else "\(.total_cost_usd) USD" end) + " |",
+jq -r '"| 費用(推定。ログイン認証では請求額と一致しない) | " + (if .total_cost_usd == null then "不明" else "\((.total_cost_usd * 10000 | round) / 10000) USD" end) + " |",
        "| セッション ID | `" + (.session_id // "不明") + "` |"' "$out"
 echo
 
 if ! jq -e '.structured_output | type == "object"' "$out" >/dev/null 2>&1; then
-  echo "構造化された報告(\`structured_output\`)が返りませんでした。予算かターン数の上限に達した可能性があります。成果物の \`claude-output.json\` を確認してください。"
+  echo "構造化された報告(\`structured_output\`)が返りませんでした。ターン数か時間の上限に達した可能性があります。出力先の \`claude-output.json\` を確認してください。"
   exit 0
 fi
 
