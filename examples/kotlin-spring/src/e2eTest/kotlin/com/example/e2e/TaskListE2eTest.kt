@@ -46,7 +46,7 @@ import java.time.ZoneId
  * 各テストの前に、タスクと完了済みの表示の選択を DB から消す（テスト間の干渉を防ぐ）。
  *
  * 想定実行時間の固定費: Spring と MySQL コンテナの起動、ブラウザの起動はクラスで 1 回かかる。
- * ローカルのウォーム実行（macOS arm64、MySQL イメージと Chromium は取得済み）の実測で、クラス全体は 9〜10 秒、各テストは 0.13〜0.78 秒。
+ * ローカルのウォーム実行（macOS arm64、MySQL イメージと Chromium は取得済み）の実測で、クラス全体は 9.4 秒、各テストは 0.12〜0.68 秒。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(E2eMySqlContainerConfiguration::class)
@@ -228,6 +228,46 @@ class TaskListE2eTest {
         register("牛乳を買う")
 
         assertThat(label("牛乳を買う")).hasText("未完了")
+    }
+
+    /**
+     * 表示: 登録に成功すると、前の拒否の理由の表示が消える。
+     *
+     * - 領域: 表示（`@e2e:display`）。成功のあとに、前の拒否の理由の `<li>` を描画から取り除くこと（TRS の OI-014）。
+     * - 下層で代替できない理由: 理由の `<li>` を消すのは画面のスクリプトで、DOM のあるブラウザでしか検証できない。
+     *   登録の成否と理由コードは下層が確かめ済み。
+     * - AC: AC-01-31
+     * - 想定実行時間: 1 秒未満。不安定要因への対策: 理由が表示された後に成功の登録をする。消えるまで `hasCount` の自動再試行で待つ。
+     */
+    @Test
+    fun `AC-01-31 登録に成功すると、前の拒否の理由の表示が消える`() {
+        openPage()
+        register("")
+        assertThat(page.getByTestId("errors").locator("li")).hasText("タイトルを入力してください")
+
+        register("牛乳を買う")
+
+        assertThat(page.getByTestId("errors").locator("li")).hasCount(0)
+    }
+
+    /**
+     * 表示: 登録に成功すると、タイトルと期限の入力欄が空に戻る。
+     *
+     * - 領域: 表示（`@e2e:display`）。成功のあとに、入力欄をリセットすること（TRS の OI-014）。
+     * - 下層で代替できない理由: 入力欄の値は画面のスクリプトが戻すもので、ブラウザでしか検証できない。
+     * - AC: AC-01-32
+     * - 想定実行時間: 1 秒未満。不安定要因への対策: 入力欄が空になるまで `hasValue` の自動再試行で待つ。
+     */
+    @Test
+    fun `AC-01-32 登録に成功すると、入力欄が空に戻る`() {
+        openPage()
+        titleInput().fill("牛乳を買う")
+        page.getByTestId("due-date-input").fill(pastDate())
+
+        page.getByTestId("register-button").click()
+
+        assertThat(titleInput()).hasValue("")
+        assertThat(page.getByTestId("due-date-input")).hasValue("")
     }
 
     /**

@@ -1,6 +1,6 @@
 // docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
 plugins {
-    kotlin("jvm") version "2.4.21" // Spring Boot 4.1.1 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
+    kotlin("jvm") version "2.4.21" // Spring Boot 4.1.2 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
     kotlin("plugin.spring") version "2.4.21"
     id("org.springframework.boot") version "4.1.2"
     id("info.solidsoft.pitest") version "1.19.0"

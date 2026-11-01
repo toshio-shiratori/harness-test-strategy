@@ -60,11 +60,10 @@ val arbStatus: Arb<TaskStatus> = Arb.element(TaskStatus.Open, TaskStatus.Done)
 /** 登録時刻が重なりやすい時刻（0〜3 秒）。 */
 val arbNearCreatedAt: Arb<Instant> = Arb.int(0..3).map { Instant.EPOCH.plusSeconds(it.toLong()) }
 
+/** 1 件のタスク。状態は未完了か完了。期限と登録時刻は重なりやすい。 */
+val arbTask: Arb<Task> = Arb.bind(arbTaskId, arbTitle, arbNearDueDate.orNull(0.4), arbStatus, arbNearCreatedAt, ::Task)
+
 /** 識別子が重ならないタスクの一覧。期限と登録時刻は重なりやすい。 */
-val arbTasks: Arb<List<Task>> =
-    Arb.list(
-        Arb.bind(arbTaskId, arbTitle, arbNearDueDate.orNull(0.4), arbStatus, arbNearCreatedAt, ::Task),
-        0..12,
-    ).map { tasks -> tasks.distinctBy { it.id } }
+val arbTasks: Arb<List<Task>> = Arb.list(arbTask, 0..12).map { tasks -> tasks.distinctBy { it.id } }
 
 val arbVisibility: Arb<CompletedVisibility> = Arb.element(CompletedVisibility.entries)

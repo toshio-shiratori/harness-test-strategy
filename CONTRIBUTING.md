@@ -28,7 +28,7 @@ npm run measure:mermaid -- docs/testing/01-test-policy.md
 
 手元の描画は GitHub 上の表示と一致しません(Mermaid の字幅が GitHub のほうが広く、折り返し位置が変わります)。mermaid の図や Markdown の表を追加・変更した PR は、マージ前に、PR のブランチのファイル表示を GitHub 上で開いて、変更した図・表の見え方をスクリーンショットで確かめ、所見を PR 本文に書きます。
 
-サンプルコード(静的解析、テスト、ミューテーションテスト、E2E)の確認は、`examples/kotlin-spring/` で Gradle を実行します。コマンドとセットアップは [examples/kotlin-spring/README.md](examples/kotlin-spring/README.md) にあります。
+サンプルコード(静的解析、テスト、ミューテーションテスト、E2E)の確認は、`examples/kotlin-spring/` で Gradle を実行します。コマンドとセットアップは [examples/kotlin-spring/README.md](examples/kotlin-spring/README.md) にあります。コミットの前に静的検査と層1テストを流すフック(`.githooks/pre-commit`)の有効化の手順も、そこにあります。
 
 ## コントリビュートの流れ
 

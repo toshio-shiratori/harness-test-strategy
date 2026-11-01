@@ -30,6 +30,21 @@ cd examples/kotlin-spring
 
 CI は `.github/workflows/` で、同じコマンドを実行します(`e2eTest` は `kotlin-samples.yml` の `e2e` ジョブで、PR で実行します)。ドキュメントの検査(`npm run lint`)はリポジトリ直下で実行します。[CONTRIBUTING.md](../../CONTRIBUTING.md) を参照してください。
 
+## pre-commit フック
+
+コミットの前に静的検査と層1テストを流すフックを、リポジトリ直下の `.githooks/pre-commit` で管理しています。クローンごとに 1 度、リポジトリ直下で次を実行すると有効になります。
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- 対象は、`examples/kotlin-spring/` と、`test` の入力になる 2 つのテンプレート(`docs/testing/trs/_template.md`、`docs/testing/templates/requirements.md`)です。ステージした変更に対象が含まれるときだけ、`./gradlew detekt ktlintCheck test` を実行します。
+- 層1のテストは全件を流します。Gradle には変更に影響するテストだけを選ぶ仕組みが無く、全件でも数秒で終わるためです。
+- それ以外の変更(`docs/testing/` の方針書など)では何もしません。Markdown の検査は `npm run lint` の担当です。
+- 一時的に省くときは `git commit --no-verify` を使います。PR の CI では省けません。
+- 実行するのはワーキングツリーの内容で、ステージした内容だけではありません。
+- `integrationTest`・`e2eTest`・`pitest` は、時間がかかるので含めません。PR の CI で実行します。
+
 ## E2E のセットアップ
 
 E2E(`src/e2eTest`)は、Spring を起動して Testcontainers の MySQL につなぎ、Playwright for Java(Chromium、ヘッドレス)で `static/index.html` のタスク管理画面を操作します。`test`・`integrationTest`・`check` には含まれず、`./gradlew e2eTest` で明示的に実行します。
@@ -119,6 +134,7 @@ curl -i -X POST http://localhost:8080/tasks \
 | `docs/03.md` | 03 TRS ガイドラインのサンプルでの実現 |
 | `docs/04.md` | 04 リグレッション運用規程のサンプルでの実装 |
 | `exploration/` | 層3の AI 探索の指示・報告の型・補助スクリプト。手で起動するジョブは `.github/workflows/ai-exploration.yml`(手順書は `docs/02b.md` の §3.1) |
+| `docs/requirements/` | サンプルの要件定義書(TODO-001)。TRS の入力で、`TraceabilityTest` が要件 ID と US/UC の出典の対応を検査する |
 | `docs/trs/` | サンプルの TRS(TODO-001)。`TraceabilityTest` が読む |
 | `config/` | detekt の設定と、Konsist の検査を確かめる違反例 |
 | `build.gradle.kts` | ビルドと、PIT・detekt の設定 |

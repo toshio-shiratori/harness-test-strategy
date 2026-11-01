@@ -105,7 +105,7 @@ flowchart TB
 
 ## 実装例
 
-[examples/kotlin-spring/](examples/kotlin-spring/README.md) に、標準を Kotlin + Spring Boot に導入した一例があります。コンパイルしてテストを通す検証用プロジェクトです。標準の各文書に対応するコード例・実現例・実測と、サンプルの TRS があります(TRS は [ORD-001](examples/kotlin-spring/docs/trs/ORD-001-add-item.md) / [PAY-001](examples/kotlin-spring/docs/trs/PAY-001-payment-state-transition.md) / [PAY-002](examples/kotlin-spring/docs/trs/PAY-002-payment-persistence.md))。標準を理解する助けとして公開していますが、標準の要求ではなく、導入先がコピーするものでもありません。技術構成と動かし方は、実装例の README にあります。
+[examples/kotlin-spring/](examples/kotlin-spring/README.md) に、標準を Kotlin + Spring Boot に導入した一例があります。コンパイルしてテストを通す検証用プロジェクトです。標準の各文書に対応するコード例・実現例・実測があります。サンプルの要件定義書と TRS もあります(要件定義書は [TODO-001](examples/kotlin-spring/docs/requirements/TODO-001-task-management.md)、TRS は [TODO-001](examples/kotlin-spring/docs/trs/TODO-001-task-management.md))。標準を理解する助けとして公開していますが、標準の要求ではなく、導入先がコピーするものでもありません。技術構成と動かし方は、実装例の README にあります。
 
 ## コントリビュート
 
