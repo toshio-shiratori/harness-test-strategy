@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>タスク管理</title>
+</head>
+<body>
+  <h1>タスク管理</h1>
+  <!--
+    サンプル用の最小 UI。ブラウザ側の検証は付けず(novalidate、required や maxlength なし)、検証は API(TaskController)に任せて理由を表示する。
+    区分のラベルと期限の日付は、サーバーが返した値をそのまま表示する。ブラウザの Date で判定しない(ブラウザのタイムゾーンに依存させない)。
+  -->
+  <form id="task-form" data-testid="task-form" novalidate>
+    <p>
+      <label for="title">タイトル</label>
+      <input id="title" name="title" type="text" data-testid="title-input" autocomplete="off">
+    </p>
+    <p>
+      <label for="due-date">期限</label>
+      <input id="due-date" name="dueDate" type="date" data-testid="due-date-input">
+    </p>
+    <button id="register" type="submit" data-testid="register-button">登録</button>
+  </form>
+
+  <ul id="errors" data-testid="errors" aria-live="polite"></ul>
+
+  <p>
+    <label>
+      <input id="hide-completed" type="checkbox" data-testid="hide-completed-toggle">
+      完了済みを隠す
+    </label>
+  </p>
+
+  <ul id="task-list" data-testid="task-list"></ul>
+
+  <script>
+    const form = document.getElementById("task-form");
+    const errors = document.getElementById("errors");
+    const hideCompleted = document.getElementById("hide-completed");
+    const taskList = document.getElementById("task-list");
+
+    // 理由コードごとの文言(TRS TODO-001 の OI-007)。未知のコードは汎用の文言にする
+    const MESSAGES = {
+      TITLE_BLANK: "タイトルを入力してください",
+      TITLE_TOO_LONG: "タイトルは 50 文字以内で入力してください",
+      DUE_DATE_INVALID: "期限の日付が正しくありません",
+    };
+    const FALLBACK_MESSAGE = "登録に失敗しました";
+
+    // 区分のラベル(OI-010)。区分の判定はサーバーが行う
+    const LABELS = { OPEN: "未完了", DONE: "完了", OVERDUE: "期限切れ" };
+
+    function showErrors(codes) {
+      errors.replaceChildren(...codes.map((code) => {
+        const item = document.createElement("li");
+        item.dataset.code = code;
+        item.textContent = MESSAGES[code] || FALLBACK_MESSAGE;
+        return item;
+      }));
+    }
+
+    function element(tag, testId, text) {
+      const node = document.createElement(tag);
+      node.dataset.testid = testId;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function renderTask(task) {
+      const item = element("li", "task");
+      item.dataset.title = task.title;
+      item.append(element("span", "task-title", task.title), " ");
+      // 期限は YYYY-MM-DD のまま表示する(Date に変換しない)。期限が無ければ空
+      item.append(element("span", "task-due", task.dueDate || ""), " ");
+      const label = element("span", "task-label", LABELS[task.category]);
+      label.dataset.category = task.category;
+      item.append(label, " ");
+      const done = task.status === "DONE";
+      const button = element("button", done ? "reopen-button" : "complete-button", done ? "未完了に戻す" : "完了にする");
+      button.type = "button";
+      button.addEventListener("click", async () => {
+        await fetch("/tasks/" + task.id + (done ? "/reopen" : "/complete"), { method: "POST" });
+        await loadTasks();
+      });
+      item.append(button);
+      return item;
+    }
+
+    async function loadTasks() {
+      const response = await fetch("/tasks");
+      const tasks = await response.json();
+      taskList.replaceChildren(...tasks.map(renderTask));
+    }
+
+    async function loadVisibility() {
+      const response = await fetch("/settings/completed-visibility");
+      const body = await response.json();
+      hideCompleted.checked = body.visibility === "HIDE";
+    }
+
+    // 完了済みの表示の選択はサーバーに保存する。一覧の絞り込みもサーバーが行う
+    hideCompleted.addEventListener("change", async () => {
+      await fetch("/settings/completed-visibility", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: hideCompleted.checked ? "HIDE" : "SHOW" }),
+      });
+      await loadTasks();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      // 期限を選ばなかったときは、項目ごと送らない
+      const request = { title: form.elements.title.value };
+      if (form.elements.dueDate.value !== "") request.dueDate = form.elements.dueDate.value;
+      const response = await fetch("/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+      if (response.ok) {
+        form.reset();
+        showErrors([]);
+        await loadTasks();
+        return;
+      }
+      const problem = await response.json().catch(() => ({}));
+      showErrors(problem.codes && problem.codes.length > 0 ? problem.codes : ["REGISTER_FAILED"]);
+    });
+
+    loadVisibility().then(loadTasks);
+  </script>
+</body>
+</html>

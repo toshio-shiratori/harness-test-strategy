@@ -193,13 +193,13 @@ class TraceabilityTest : StringSpec({
     "統合テスト（src/integrationTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
         // 層2（Integration）の AC は src/integrationTest のテストに紐づく。ここが検査範囲から外れると、移した AC が「テスト無し」と誤判定される
         Konsist.scopeFromTest().files.any { "/src/integrationTest/" in it.path } shouldBe true
-        testSources.contains("class OrderControllerHttpTest") shouldBe true // src/integrationTest のテスト本文が照合対象に入っている
+        testSources.contains("class TaskApiHttpTest") shouldBe true // src/integrationTest のテスト本文が照合対象に入っている
     }
 
     "E2E（src/e2eTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
         // E2E のテストが検査範囲から外れると、E2E にだけ紐づく AC が「テスト無し」と誤判定される（逆に、E2E の AC 名が検査されなくなる）
         Konsist.scopeFromTest().files.any { "/src/e2eTest/" in it.path } shouldBe true
-        testSources.contains("class OrderFormE2eTest") shouldBe true // src/e2eTest のテスト本文が照合対象に入っている
+        testSources.contains("class TaskListE2eTest") shouldBe true // src/e2eTest のテスト本文が照合対象に入っている
     }
 
     "TRS が1つ以上存在する（ディレクトリの移動で素通りしない）" {
