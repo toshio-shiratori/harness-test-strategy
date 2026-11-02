@@ -173,8 +173,27 @@ function gh(args) {
   return execFileSync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
 }
 const execFileAsync = promisify(execFile);
+// 例外の理由を 1 行にする。gh の失敗は message の 1 行目が「Command failed: gh ...」だけなので、標準エラーの 1 行目を優先する
+export function errorLine(e) {
+  // 理由は本文に載るので、端末の制御文字は取り除く
+  const first = (x) => String(x ?? "").trim().split("\n")[0].replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "").trim();
+  return first(e?.stderr) || first(e?.message ?? e);
+}
 const ghAsync = async (args) => (await execFileAsync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 })).stdout;
 const api = async (path) => JSON.parse(await ghAsync(["api", path]));
+// ジョブのログは、色付けの制御文字（ESC）を含む。
+// 新しい gh の api は、制御文字を含む応答を既定では出力せず、失敗する。
+// そのときのメッセージは「the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway」。
+// ログは端末に出さず、parseMutationLog で数値だけを取り出す。そのため、このオプションを付けてよい。
+// gh 2.93.0 にはこのオプションが無いので、gh api のヘルプで有無を確かめる。
+// 検出が外れたら、夜間の節の理由の行に、gh の拒否のメッセージが出る。
+export const escapeArgsFor = (helpText) => (String(helpText).includes("--allow-escape-sequences") ? ["--allow-escape-sequences"] : []);
+let escapeFlag;
+const allowEscapeArgs = () => {
+  escapeFlag ??= escapeArgsFor(gh(["api", "--help"]));
+  return escapeFlag;
+};
+const jobLog = (repo, jobId) => ghAsync(["api", ...allowEscapeArgs(), `repos/${repo}/actions/jobs/${jobId}/logs`]);
 
 // 実行ごとの取得が数百件に及ぶので、同時に GH_CONCURRENCY 件まで並行して取る
 const GH_CONCURRENCY = 8;
@@ -233,9 +252,9 @@ async function collectRuns(repo, wf, fromMs, toMs, { withLogs }) {
       const pit = jobsRaw.find((j) => j.name === "pitest" && (j.conclusion === "success" || j.conclusion === "failure"));
       if (pit) {
         try {
-          run.mutation = parseMutationLog(await ghAsync(["api", `repos/${repo}/actions/jobs/${pit.id}/logs`]));
+          run.mutation = parseMutationLog(await jobLog(repo, pit.id));
         } catch (e) {
-          run.mutation = { error: String(e.message).split("\n")[0] };
+          run.mutation = { error: errorLine(e) };
         }
       }
     }
@@ -296,7 +315,7 @@ function readE2eSources() {
 
 // ---------- 本文 ----------
 
-const FAIL = (name, e) => `取得できず（${name}: ${String(e?.message ?? e).split("\n")[0]}）`;
+const FAIL = (name, e) => `取得できず（${name}: ${errorLine(e)}）`;
 const section = async (name, fn) => {
   try {
     return await fn();
@@ -322,6 +341,8 @@ function nightlySection(runs, win) {
     "|---|---|---|---|---|---|",
     ...(rows.length ? rows : ["| （対象期間に夜間の実行なし） | | | | | |"]),
   ];
+  const errs = week.filter((r) => r.mutation?.error);
+  if (errs.length) lines.push("", `Mutation Score を取得できなかった実行: ${errs.length} 回。最初の 1 件（run ${errs[0].id}）の理由: ${errs[0].mutation.error}`);
   if (thr !== undefined) lines.push("", `夜間の閾値（ログの \`-Ppitest.threshold\`）: ${thr}%`);
   return { text: lines.join("\n"), week, failed, thr };
 }
@@ -628,7 +649,7 @@ function selfTest() {
     "##[group]Run actions/checkout@abc",
     "##[group]Run ./gradlew pitest -Ppitest.threshold=70",
     ">> Generated 4 Killed 4 (100%)",
-    ">> Generated 82 mutations Killed 71 (87%)",
+    "\x1b[32m>> Generated 82 mutations Killed 71 (87%)\x1b[0m",
     "##[group]Run ./gradlew pitest -Ppitest.domainOnly=true -Ppitest.threshold=70",
     ">> Generated 38 mutations Killed 34 (89%)",
     "##[group]Run python3 - >> $GITHUB_STEP_SUMMARY",
@@ -637,6 +658,27 @@ function selfTest() {
   eq("ログ（全体）", parseMutationLog(log).full, { total: 82, killed: 71, pct: 87, threshold: 70 });
   eq("ログ（ドメイン層）", parseMutationLog(log).domain, { total: 38, killed: 34, pct: 89, threshold: 70 });
   eq("ログ（無い場合）", parseMutationLog("なし"), { full: null, domain: null });
+
+  // 例外の理由: gh の失敗は標準エラーの 1 行目、無ければ message の 1 行目
+  eq("例外の理由（標準エラー）", errorLine({ message: "Command failed: gh api x\nHTTP 403", stderr: "\ngh: HTTP 403: Forbidden\nmore" }), "gh: HTTP 403: Forbidden");
+  eq("例外の理由（標準エラーなし）", errorLine(new Error("boom\nstack")), "boom");
+  eq("例外の理由（制御文字を除く）", errorLine({ stderr: "\x1b[31mgh: HTTP 403\x07\n" }), "[31mgh: HTTP 403");
+  const ghErr = Object.assign(new Error("Command failed: gh api x\ngh: HTTP 403: Forbidden"), { stderr: "gh: HTTP 403: Forbidden\n" });
+  eq("取得できず（標準エラーの理由）", FAIL("x", ghErr), "取得できず（x: gh: HTTP 403: Forbidden）");
+  // ログの取得に付けるオプション: ヘルプに有れば付け、無ければ付けない
+  eq("オプション（ヘルプにあり）", escapeArgsFor("FLAGS\n      --allow-escape-sequences   Output escape sequences\n"), ["--allow-escape-sequences"]);
+  eq("オプション（ヘルプになし。gh 2.93.0）", escapeArgsFor("FLAGS\n  -H, --header key:value\n"), []);
+  // 夜間の節: 取得できなかった実行の数と、最初の 1 件の理由を表の外に書く
+  const nWin = reportWindow(utc("2026-11-02T00:00:00Z"));
+  const nRun = (id, createdAt, mutation) => ({ id, createdAt, event: "schedule", conclusion: "success", jobs: [], mutation });
+  const nText = nightlySection([
+    nRun(10, "2026-10-26T18:00:00Z", { error: "gh: HTTP 403: Forbidden" }),
+    nRun(11, "2026-10-27T18:00:00Z", { error: "gh: HTTP 404: Not Found" }),
+    nRun(12, "2026-10-28T18:00:00Z", parseMutationLog(log)),
+  ], nWin).text;
+  eq("夜間の節（理由）", nText.includes("Mutation Score を取得できなかった実行: 2 回。最初の 1 件（run 10）の理由: gh: HTTP 403: Forbidden"), true);
+  eq("夜間の節（取れた値）", nText.includes("| 87% (71/82) | 89% (34/38) |"), true);
+  eq("夜間の節（全部取れたら理由を書かない）", nightlySection([nRun(12, "2026-10-28T18:00:00Z", parseMutationLog(log))], nWin).text.includes("取得できなかった"), false);
 
   // flaky の候補: 前の試行で失敗し、最新の試行で成功した同名のジョブだけ
   const j = (name, conclusion) => ({ name, conclusion, steps: [] });
