@@ -19,6 +19,8 @@ fun title(raw: String): TaskTitle = (TaskTitle.of(raw) as Validated.Valid).value
 
 fun due(raw: String): DueDate = (DueDate.of(raw) as Validated.Valid).value
 
+fun due(date: LocalDate): DueDate = (DueDate.of(date) as Validated.Valid).value
+
 /** 連結しても隣と結合しない、見た目 1 文字の単位。結合文字つき・国旗（地域指示子 2 個）・絵文字を含む。 */
 val titleUnits: List<String> = listOf("a", "Z", "あ", "牛", "e\u0301", "🇯🇵", "🇺🇸", "😀")
 
@@ -46,14 +48,14 @@ private val lastDay = LocalDate.of(9999, 12, 31).toEpochDay()
 val arbCalendarDate: Arb<LocalDate> = Arb.long(firstDay..lastDay).map(LocalDate::ofEpochDay)
 
 /** 実在する暦日の期限。 */
-val arbDueDate: Arb<DueDate> = arbCalendarDate.map { DueDate.of(it) }
+val arbDueDate: Arb<DueDate> = arbCalendarDate.map(::due)
 
 /** Asia/Tokyo の規則が一定の期間（1952〜2100 年）の期限。+09:00 のオラクルで検証できる。 */
 val arbModernDueDate: Arb<DueDate> =
-    Arb.long(LocalDate.of(1952, 1, 1).toEpochDay()..LocalDate.of(2100, 12, 31).toEpochDay()).map { DueDate.of(LocalDate.ofEpochDay(it)) }
+    Arb.long(LocalDate.of(1952, 1, 1).toEpochDay()..LocalDate.of(2100, 12, 31).toEpochDay()).map { due(LocalDate.ofEpochDay(it)) }
 
 /** 同じ期限が重なりやすい期限（2026-11-01 から 10 日間）。並び順の同順位を起こす。 */
-val arbNearDueDate: Arb<DueDate> = Arb.int(0..9).map { DueDate.of(LocalDate.of(2026, 11, 1).plusDays(it.toLong())) }
+val arbNearDueDate: Arb<DueDate> = Arb.int(0..9).map { due(LocalDate.of(2026, 11, 1).plusDays(it.toLong())) }
 
 val arbStatus: Arb<TaskStatus> = Arb.element(TaskStatus.Open, TaskStatus.Done)
 

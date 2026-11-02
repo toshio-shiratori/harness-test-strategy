@@ -135,6 +135,24 @@ class TaskConstraintTableTest : FunSpec({
         ) { it.verify() }
     }
 
+    context("AC-01-33 空文字列の期限は拒否される（C-62）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(DueCase("C-62", "F2-L8 空文字列", "", accepted = false)),
+        ) { it.verify() }
+    }
+
+    context("AC-01-36 0000 年の暦日は、下限より前なので期限として拒否される（C-63）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                DueCase("C-63", "F2-L9 0000 年の元日", "0000-01-01", accepted = false),
+                DueCase("C-63", "F2-L9 0000 年の閏日（先発グレゴリオ暦で 0 年は閏年）", "0000-02-29", accepted = false),
+                DueCase("C-63", "F2-L9 0000 年の大晦日", "0000-12-31", accepted = false),
+            ),
+        ) { it.verify() }
+    }
+
     // 別のタスクが変わらないことは、Task が不変の値なので層1では自明である。保存した一覧で確かめる部分は Integration に委ねる
     context("AC-02-01 AC-02-08 AC-03-01 AC-03-06 完了にする・未完了に戻す操作は、結果の状態を決め、タイトルと期限を変えない（C-20〜C-23）") {
         withData(

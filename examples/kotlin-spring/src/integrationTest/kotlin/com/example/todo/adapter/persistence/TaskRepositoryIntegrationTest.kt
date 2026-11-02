@@ -53,6 +53,8 @@ class TaskRepositoryIntegrationTest {
 
     private fun title(raw: String): TaskTitle = (TaskTitle.of(raw) as Validated.Valid).value
 
+    private fun dueOf(date: LocalDate): DueDate = (DueDate.of(date) as Validated.Valid).value
+
     private fun task(id: TaskId, due: DueDate? = null, status: TaskStatus = TaskStatus.Open, createdAt: Instant = micros) =
         Task(id, title("牛乳を買う"), due, status, createdAt)
 
@@ -74,7 +76,7 @@ class TaskRepositoryIntegrationTest {
 
     @Test
     fun `保存したタスクを読み戻すと、期限あり・なし、未完了・完了のどれも同じである`() {
-        val due = DueDate.of(LocalDate.of(2026, 11, 30))
+        val due = dueOf(LocalDate.of(2026, 11, 30))
         val cases = listOf(
             task(tasks.nextId(), due = due, status = TaskStatus.Open),
             task(tasks.nextId(), due = null, status = TaskStatus.Open),
@@ -105,7 +107,7 @@ class TaskRepositoryIntegrationTest {
                 TimeZone.setDefault(TimeZone.getTimeZone(zone))
                 // 両端と、グレゴリオ暦の採用の境目（ユリウス暦の 1582-10-04 の翌日が 10-15）
                 listOf("0001-01-01", "1582-10-04", "1582-10-15", "2026-11-01", "9999-12-31").forEach { date ->
-                    val saved = task(tasks.nextId(), due = DueDate.of(LocalDate.parse(date)))
+                    val saved = task(tasks.nextId(), due = dueOf(LocalDate.parse(date)))
 
                     tasks.save(saved)
 

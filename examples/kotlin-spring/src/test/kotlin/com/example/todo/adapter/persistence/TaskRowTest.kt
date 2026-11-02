@@ -60,6 +60,12 @@ class TaskRowTest : StringSpec({
         }
     }
 
+    "期限が下限（0001-01-01）より前の行は、例外で拒否される" {
+        listOf(LocalDate.of(0, 1, 1), LocalDate.of(0, 12, 31)).forEach { date ->
+            shouldThrowAny { TaskRow(1, "a", date, "OPEN").toTask() }
+        }
+    }
+
     "既定の行は、MyBatis が引数なしで生成できる" {
         TaskRow() shouldBe TaskRow(0, "", null, "", LocalDateTime.of(1970, 1, 1, 0, 0, 0))
     }

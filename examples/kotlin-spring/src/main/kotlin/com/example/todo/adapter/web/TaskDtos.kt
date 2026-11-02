@@ -28,7 +28,7 @@ internal data class Registration(val title: TaskTitle, val dueDate: DueDate?)
 
 /**
  * 登録の要求をドメイン型に変換する（Parse, don't validate）。失敗は、同時に成立している理由をすべて集めて返す（OI-011）。
- * 期限の項目が無い・null なら期限なし。空文字列を含む値は [DueDate.of] に渡す。空文字列の扱いは OI-012（Open）で未決で、これは今の実装の説明であり、仕様ではない。
+ * 期限の項目が無い・null なら期限なし。空文字列は期限なしにせず、[DueDate.of] に渡して `DUE_DATE_INVALID` にする（OI-012）。
  */
 internal fun RegisterTaskRequest.parse(): Validated<Registration, List<ErrorCode>> {
     val parsedTitle = TaskTitle.of(title.orEmpty())
