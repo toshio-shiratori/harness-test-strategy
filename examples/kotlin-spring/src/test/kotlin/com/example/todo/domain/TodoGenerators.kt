@@ -34,6 +34,33 @@ val whiteSpaceChars: List<Char> =
 /** 空白の並び（1〜5 文字）。 */
 val arbWhiteSpace: Arb<String> = Arb.list(Arb.element(whiteSpaceChars), 1..5).map { it.joinToString("") }
 
+/**
+ * Default_Ignorable_Code_Point 属性を持つ範囲。Unicode の DerivedCoreProperties.txt（15.0.0 と 18.0.0 で同じ）の行を、そのまま写した。
+ * 実装の定数とは別に、出典から手で写した独立のオラクルである。
+ */
+private val defaultIgnorableLines: List<String> = listOf(
+    "00AD", "034F", "061C", "115F..1160", "17B4..17B5", "180B..180D", "180E", "180F", "200B..200F", "202A..202E",
+    "2060..2064", "2065", "2066..206F", "3164", "FE00..FE0F", "FEFF", "FFA0", "FFF0..FFF8", "1BCA0..1BCA3", "1D173..1D17A",
+    "E0000", "E0001", "E0002..E001F", "E0020..E007F", "E0080..E00FF", "E0100..E01EF", "E01F0..E0FFF",
+)
+
+/** Default_Ignorable_Code_Point 属性を持つコードポイント（昇順）。Unicode の一覧の合計は 4174 個。 */
+val defaultIgnorableCodePoints: List<Int> = defaultIgnorableLines.flatMap { line ->
+    val bounds = line.split("..").map { it.toInt(16) }
+    (bounds.first()..bounds.last()).toList()
+}
+
+private fun codePointString(codePoint: Int): String = String(Character.toChars(codePoint))
+
+/** 表示されない文字の並び（1〜5 個）。補助面（U+E0000〜E0FFF など）のコードポイントを含む。 */
+val arbInvisible: Arb<String> =
+    Arb.list(Arb.element(defaultIgnorableCodePoints), 1..5).map { list -> list.joinToString("") { codePointString(it) } }
+
+/** 空白と表示されない文字だけの並び（1〜8 個）。 */
+val arbBlankOrInvisible: Arb<String> =
+    Arb.list(Arb.element(whiteSpaceChars.map { it.code } + defaultIgnorableCodePoints), 1..8)
+        .map { list -> list.joinToString("") { codePointString(it) } }
+
 /** 単位を [count] 個並べた文字列の生成器。見た目の長さは必ず単位の数になる。 */
 fun arbUnits(count: IntRange): Arb<List<String>> = Arb.list(Arb.element(titleUnits), count)
 

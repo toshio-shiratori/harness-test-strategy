@@ -2,18 +2,14 @@ package com.example.todo.domain
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.property.Arb
-import io.kotest.property.arbitrary.element
 import io.kotest.property.checkAll
 
 /**
- * タイトルの Property。制約表（C-50〜C-57）の各行の例は [TaskConstraintTableTest] にある。
+ * タイトルの Property。制約表（C-50〜C-57、C-65）の各行の例は [TaskConstraintTableTest] にある。
  * 期待値は TRS TODO-001 の AC と制約表を正とする（実装から逆生成しない）。
- * 空白の範囲は OI-002、書記素の数えは OI-008、50 字の数えと空白の除去の順は OI-004 の決定。
+ * 空白と表示されない文字の範囲は OI-016（OI-002 を置換）、書記素の数えは OI-008、50 字の数えと空白の除去の順は OI-004 の決定。
  */
 class TaskTitleTest : StringSpec({
-    val bmp = (Char.MIN_VALUE..Char.MAX_VALUE).toList()
-
     fun saved(raw: String): String? = (TaskTitle.of(raw) as? Validated.Valid)?.value?.value
 
     // 分類: 不変量（受理した値は不変条件を満たす。長さは単位の数になる）
@@ -32,19 +28,35 @@ class TaskTitleTest : StringSpec({
         }
     }
 
-    // 分類: 不変量（空白だけのタイトルは必ず拒否される）
-    "AC-01-04 AC-01-05 White_Space 属性を持つ文字だけで、任意の長さの並びは BLANK で拒否される" {
-        checkAll(Arb.element(whiteSpaceChars), arbWhiteSpace) { first, rest ->
-            TaskTitle.of(first + rest) shouldBe Validated.Invalid(TitleError.BLANK)
+    // 分類: 不変量（空白と表示されない文字だけのタイトルは必ず拒否される）
+    "AC-01-04 AC-01-05 AC-01-38 White_Space 属性を持つ文字と表示されない文字だけの、任意の並びは BLANK で拒否される" {
+        checkAll(arbBlankOrInvisible, arbWhiteSpace, arbInvisible) { blank, space, invisible ->
+            TaskTitle.of(blank) shouldBe Validated.Invalid(TitleError.BLANK)
+            TaskTitle.of(space) shouldBe Validated.Invalid(TitleError.BLANK)
+            TaskTitle.of(space + invisible) shouldBe Validated.Invalid(TitleError.BLANK)
+            TaskTitle.of(invisible + space + invisible) shouldBe Validated.Invalid(TitleError.BLANK)
         }
     }
 
-    // 分類: オラクル（独立のオラクルは、Unicode の一覧から手で並べた whiteSpaceChars。正規表現の \p{IsWhite_Space} は補助）
-    "AC-01-05 AC-01-25 BMP の全文字のうち、Unicode の White_Space の 25 文字だけが空白として扱われる" {
+    // 分類: オラクル（独立のオラクルは、Unicode の一覧から手で写した whiteSpaceChars と defaultIgnorableCodePoints。正規表現の \p{IsWhite_Space} は補助）
+    "AC-01-05 AC-01-38 全コードポイントのうち、White_Space の 25 文字と Default_Ignorable_Code_Point の 4174 個だけが、1 文字で BLANK になる" {
+        val allCodePoints = (Character.MIN_CODE_POINT..Character.MAX_CODE_POINT).toList()
+        val rejected = allCodePoints.filter { TaskTitle.of(String(Character.toChars(it))) == Validated.Invalid(TitleError.BLANK) }
+        defaultIgnorableCodePoints.size shouldBe 4174
+        rejected shouldBe (whiteSpaceChars.map { it.code } + defaultIgnorableCodePoints).sorted()
+
         val property = Regex("""\p{IsWhite_Space}""")
-        val rejected = bmp.filter { TaskTitle.of(it.toString()) == Validated.Invalid(TitleError.BLANK) }
-        rejected shouldBe whiteSpaceChars
-        rejected shouldBe bmp.filter { property.matches(it.toString()) }
+        val whiteSpaceOnly = rejected - defaultIgnorableCodePoints.toSet()
+        whiteSpaceOnly shouldBe allCodePoints.filter { property.matches(String(Character.toChars(it))) }
+    }
+
+    // 分類: 不変量（表示される文字があれば、表示されない文字は前後でも除かれない。除くのは前後の空白だけ）
+    "AC-01-25 表示される文字があるタイトルの、前後の表示されない文字は除かれず、その外側の空白だけが除かれる" {
+        checkAll(arbUnits(1..22), arbInvisible, arbInvisible, arbWhiteSpace, arbWhiteSpace) { units, before, after, spaceBefore, spaceAfter ->
+            val core = before + units.joinToString("") + after
+            saved(core) shouldBe core
+            saved(spaceBefore + core + spaceAfter) shouldBe core
+        }
     }
 
     // 分類: 不変量（前後の空白は除かれ、タイトルは変わらない）
