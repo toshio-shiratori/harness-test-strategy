@@ -2,9 +2,13 @@ package com.example.todo.domain
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.long
+import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
+import java.time.LocalDate
 
-/** 期限の Property。制約表（C-56、C-58）の各行の例は [TaskConstraintTableTest] にある。入力形式と範囲は OI-005 の決定。 */
+/** 期限の Property。制約表（C-56、C-58、C-62、C-63）の各行の例は [TaskConstraintTableTest] にある。入力形式と範囲は OI-005、空文字列は OI-012、0000 年（下限）は OI-015 の決定。 */
 class DueDateTest : StringSpec({
     val rejected = Validated.Invalid(DueDateError.INVALID)
 
@@ -39,4 +43,19 @@ class DueDateTest : StringSpec({
             DueDate.of("%04d-%02d-%02d".format(date.year, date.monthValue, days + 1)) shouldBe rejected
         }
     }
+
+    // 分類: 境界（下限 0001-01-01 の外側。0000 年の暦日は、1 年分すべてが拒否される）
+    "AC-01-36 0000 年の任意の暦日は拒否される" {
+        checkAll(arbDayOfYearZero) { date ->
+            DueDate.of(date.toString()) shouldBe rejected
+            DueDate.of(date) shouldBe rejected
+        }
+    }
+
+    "AC-01-33 空文字列は拒否される" {
+        DueDate.of("") shouldBe rejected
+    }
 })
+
+private val arbDayOfYearZero: Arb<LocalDate> =
+    Arb.long(LocalDate.of(0, 1, 1).toEpochDay()..LocalDate.of(0, 12, 31).toEpochDay()).map(LocalDate::ofEpochDay)

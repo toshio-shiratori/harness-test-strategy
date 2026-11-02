@@ -1,6 +1,8 @@
 package com.example.todo.adapter.web
 
 import com.example.todo.application.TaskService
+import com.example.todo.domain.TaskId
+import com.example.todo.domain.TaskStatus
 import com.example.todo.support.InMemoryRepositories
 import com.example.todo.support.SteppingClock
 import io.kotest.core.spec.style.StringSpec
@@ -77,7 +79,7 @@ class TaskControllerTest : StringSpec({
     "期限の不備は 400 で、DUE_DATE_INVALID だけが付き、保存されない" {
         val f = Fixture()
 
-        listOf("2026-11-30T10:00:00", "2026/11/30", "2026-02-30").forEach { due ->
+        listOf("2026-11-30T10:00:00", "2026/11/30", "2026-02-30", "", "0000-12-31").forEach { due ->
             val response = f.controller.register(RegisterTaskRequest("牛乳を買う", due))
 
             response.statusCode shouldBe HttpStatus.BAD_REQUEST
@@ -100,7 +102,7 @@ class TaskControllerTest : StringSpec({
         f.controller.register(RegisterTaskRequest("牛乳を買う", "2026-11-30"))
 
         repeat(2) {
-            val response = f.controller.complete(1)
+            val response = f.controller.complete("1")
 
             response.statusCode.is2xxSuccessful shouldBe true
             taskOf(response) shouldBe TaskResponse(1, "牛乳を買う", "2026-11-30", "DONE", "DONE")
@@ -110,10 +112,10 @@ class TaskControllerTest : StringSpec({
     "未完了に戻すと成功(2xx)で未完了のタスクが返り、再実行しても同じ" {
         val f = Fixture()
         f.controller.register(RegisterTaskRequest("牛乳を買う", null))
-        f.controller.complete(1)
+        f.controller.complete("1")
 
         repeat(2) {
-            val response = f.controller.reopen(1)
+            val response = f.controller.reopen("1")
 
             response.statusCode.is2xxSuccessful shouldBe true
             taskOf(response) shouldBe TaskResponse(1, "牛乳を買う", null, "OPEN", "OPEN")
@@ -123,11 +125,37 @@ class TaskControllerTest : StringSpec({
     "存在しないタスクの完了と未完了に戻す操作は 404 で、codes は TASK_NOT_FOUND だけ" {
         val f = Fixture()
 
-        listOf(f.controller.complete(99), f.controller.reopen(99)).forEach { response ->
+        listOf(f.controller.complete("99"), f.controller.reopen("99")).forEach { response ->
             response.statusCode shouldBe HttpStatus.NOT_FOUND
             (response.body as ProblemDetail).status shouldBe 404
             codesOf(response) shouldBe setOf("TASK_NOT_FOUND")
         }
+    }
+
+    "形が不正な識別子の完了と未完了に戻す操作も、存在しないタスクと同じ 404 で、codes は TASK_NOT_FOUND だけ。既存のタスクは変わらない" {
+        val f = Fixture()
+        f.controller.register(RegisterTaskRequest("牛乳を買う", null))
+        val invalidIds = listOf("abc", "1.5", "+1", "-1", " 1", "1 ", "１", "0x1", "1a", "01", "007", "00", "99999999999999999999", "9223372036854775808")
+
+        invalidIds.forEach { id ->
+            listOf(f.controller.complete(id), f.controller.reopen(id)).forEach { response ->
+                response.statusCode shouldBe HttpStatus.NOT_FOUND
+                (response.body as ProblemDetail).status shouldBe 404
+                codesOf(response) shouldBe setOf("TASK_NOT_FOUND")
+            }
+        }
+        f.repositories.findAll().single().status shouldBe TaskStatus.Open
+    }
+
+    "識別子は先頭にゼロを置かない ASCII の 10 進数字の並びで、Long に収まる値だけが TaskId になる" {
+        parseTaskId("1") shouldBe TaskId(1)
+        parseTaskId("0") shouldBe TaskId(0)
+        parseTaskId("10") shouldBe TaskId(10)
+        parseTaskId("007") shouldBe null
+        parseTaskId("01") shouldBe null
+        parseTaskId("9223372036854775807") shouldBe TaskId(Long.MAX_VALUE)
+        parseTaskId("9223372036854775808") shouldBe null
+        parseTaskId("") shouldBe null
     }
 
     "一覧は、保存された選択に従って絞り込まれ、期限が近い順に並ぶ" {
@@ -135,7 +163,7 @@ class TaskControllerTest : StringSpec({
         f.controller.register(RegisterTaskRequest("late", "2026-12-01"))
         f.controller.register(RegisterTaskRequest("early", "2026-11-10"))
         f.controller.register(RegisterTaskRequest("done", null))
-        f.controller.complete(3)
+        f.controller.complete("3")
 
         f.controller.list().map { it.title } shouldBe listOf("early", "late", "done")
 

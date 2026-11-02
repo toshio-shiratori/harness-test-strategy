@@ -111,6 +111,36 @@ class TaskApiHttpTest : TaskApiTestBase() {
     }
 
     @Test
+    fun `AC-01-34 期限が空文字列の要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
+        postRegister(registerBody(milk, "")).expectProblem(400, "DUE_DATE_INVALID")
+
+        list().shouldBeEmpty()
+    }
+
+    @Test
+    fun `AC-01-35 期限の項目を省く、または null の要求は、期限なしで登録される`() {
+        listOf("""{"title":"$milk"}""", """{"title":"$milk","dueDate":null}""").forEach { body ->
+            resetState()
+
+            postRegister(body).expectStatus().is2xxSuccessful
+
+            val tasks = list()
+            tasks shouldHaveSize 1
+            tasks.single().title shouldBe milk
+            tasks.single().dueDate shouldBe null
+        }
+    }
+
+    @Test
+    fun `AC-01-37 0000 年の期限の要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
+        listOf("0000-01-01", "0000-02-29", "0000-12-31").forEach { due ->
+            postRegister(registerBody(milk, due)).expectProblem(400, "DUE_DATE_INVALID")
+
+            list().shouldBeEmpty()
+        }
+    }
+
+    @Test
     fun `AC-01-28 タイトルと期限が同時に不正な要求は、codes に両方の理由コードを含めて拒否される`() {
         postRegister(registerBody("", "2026-02-30")).expectProblem(400, "TITLE_BLANK", "DUE_DATE_INVALID")
 

@@ -110,6 +110,10 @@ abstract class TaskApiTestBase {
 
     protected fun reopen(id: Long): RestTestClient.ResponseSpec = client.post().uri("/tasks/$id/reopen").exchange()
 
+    /** パスの識別子を文字列のまま送る。形が不正な識別子を送るために使う。[operation] は `complete` か `reopen`。 */
+    protected fun operate(rawId: String, operation: String): RestTestClient.ResponseSpec =
+        client.post().uri("/tasks/{id}/{operation}", rawId, operation).exchange()
+
     /** 一覧を取り直す（保存された「完了済みの表示」の選択に従う）。 */
     protected fun list(): List<TaskJson> {
         val result = client.get().uri("/tasks").exchange()

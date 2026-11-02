@@ -46,7 +46,7 @@ internal fun Task.toRow(): TaskRow =
     )
 
 /**
- * 行 → タスク。未知の status と、タイトルの規則に合わない行は例外で拒否する（外部の文字列を閉じた型へ。02a §1.3 規則 5）。
+ * 行 → タスク。未知の status と、タイトル・期限の規則に合わない行は例外で拒否する（外部の文字列を閉じた型へ。02a §1.3 規則 5）。
  * 例外の型は契約にしない。
  */
 internal fun TaskRow.toTask(): Task {
@@ -56,7 +56,7 @@ internal fun TaskRow.toTask(): Task {
     return Task(
         id = TaskId(id),
         title = validTitle.value,
-        dueDate = dueDate?.let(DueDate::of),
+        dueDate = dueDate?.toDueDate(id),
         status = when (column) {
             TaskStatusColumn.OPEN -> TaskStatus.Open
             TaskStatusColumn.DONE -> TaskStatus.Done
@@ -64,3 +64,9 @@ internal fun TaskRow.toTask(): Task {
         createdAt = createdAt.toInstant(),
     )
 }
+
+private fun LocalDate.toDueDate(id: Long): DueDate =
+    when (val due = DueDate.of(this)) {
+        is Validated.Valid -> due.value
+        is Validated.Invalid -> throw IllegalArgumentException("期限が規則に合わない行: id=$id")
+    }
