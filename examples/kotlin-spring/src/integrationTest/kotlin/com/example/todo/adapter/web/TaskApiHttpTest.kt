@@ -62,7 +62,7 @@ class TaskApiHttpTest : TaskApiTestBase() {
 
     @Test
     fun `AC-01-16 不正なタイトルでは登録されない`() {
-        listOf("", " ", "あ".repeat(51)).forEach { title ->
+        listOf("", " ", "\u200B", "あ".repeat(51)).forEach { title ->
             postRegister(registerBody(title, null)).expectStatus().isBadRequest
 
             list().shouldBeEmpty()
@@ -74,6 +74,7 @@ class TaskApiHttpTest : TaskApiTestBase() {
         val cases = listOf(
             "" to "TITLE_BLANK",
             " " to "TITLE_BLANK",
+            "\u200B" to "TITLE_BLANK",
             "あ".repeat(51) to "TITLE_TOO_LONG",
             " " + "あ".repeat(51) + " " to "TITLE_TOO_LONG",
         )

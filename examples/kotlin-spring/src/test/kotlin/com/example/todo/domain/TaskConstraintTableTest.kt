@@ -95,14 +95,37 @@ class TaskConstraintTableTest : FunSpec({
         ) { it.verify() }
     }
 
-    context("AC-01-25 White_Space 属性を持たない文字は、空白として扱わず、そのまま保存される（C-57）") {
+    context("AC-01-25 表示される文字があれば、前後や途中の表示されない文字は、除かず、そのまま保存される（C-57）") {
+        val zwjEmoji = "👨‍👩‍👧"
         withData(
             nameFn = { "${it.id} ${it.label}" },
             ts = listOf(
-                TitleCase("C-57", "F1-L13 U+200B だけ", "​", saved = "​"),
-                TitleCase("C-57", "F1-L13 U+FEFF だけ", "﻿", saved = "﻿"),
                 TitleCase("C-57", "F1-L13 先頭に U+200B", "​$milk", saved = "​$milk"),
                 TitleCase("C-57", "F1-L13 末尾に U+FEFF", "$milk﻿", saved = "$milk﻿"),
+                TitleCase("C-57", "F1-L13 前後に U+2060", "⁠$milk⁠", saved = "⁠$milk⁠"),
+                TitleCase("C-57", "F1-L13 前後の空白は除き、その内側の U+200B は残る", " ​$milk​ ", saved = "​$milk​"),
+                TitleCase("C-57", "F1-L13 途中に U+200D（絵文字の組み立て）", zwjEmoji, saved = zwjEmoji),
+                TitleCase("C-57", "F1-L13 途中に U+FE0F", "a️b", saved = "a️b"),
+                TitleCase("C-57", "F1-L13 補助面の U+E0001 が前にある", "󠀁$milk", saved = "󠀁$milk"),
+            ),
+        ) { it.verify() }
+    }
+
+    context("AC-01-38 空白と表示されない文字だけのタイトルは BLANK で拒否される（C-65）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                TitleCase("C-65", "F1-L14 U+200B だけ", "​", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+FEFF だけ", "﻿", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+2060 だけ", "⁠", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+FE0F だけ", "️", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200D だけ", "‍", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 補助面の U+E0001 だけ", "󠀁", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 補助面の U+E0100 だけ", "󠄀", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 表示されない文字の並び", "​‍﻿⁠", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 前後の空白に挟まれた U+200B", " ​ ", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 空白と U+200B が交互に並ぶ", "​ ​", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200B を 51 個（TOO_LONG ではなく BLANK）", "​".repeat(51), error = TitleError.BLANK),
             ),
         ) { it.verify() }
     }
