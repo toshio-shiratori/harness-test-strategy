@@ -175,17 +175,22 @@ function gh(args) {
 const execFileAsync = promisify(execFile);
 // 例外の理由を 1 行にする。gh の失敗は message の 1 行目が「Command failed: gh ...」だけなので、標準エラーの 1 行目を優先する
 export function errorLine(e) {
-  const first = (x) => String(x ?? "").trim().split("\n")[0].trim();
+  // 理由は本文に載るので、端末の制御文字は取り除く
+  const first = (x) => String(x ?? "").trim().split("\n")[0].replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "").trim();
   return first(e?.stderr) || first(e?.message ?? e);
 }
 const ghAsync = async (args) => (await execFileAsync("gh", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 })).stdout;
 const api = async (path) => JSON.parse(await ghAsync(["api", path]));
-// ジョブのログは色付けの制御文字（ESC）を含む。新しい gh の api は、制御文字を含む応答を既定で出力せずに失敗する
-// （「the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway」）。
-// ログは端末に出さず parseMutationLog で数値だけを取り出すので、このオプションを付ける。古い gh には無いので、ヘルプで有無を確かめる
+// ジョブのログは、色付けの制御文字（ESC）を含む。
+// 新しい gh の api は、制御文字を含む応答を既定では出力せず、失敗する。
+// そのときのメッセージは「the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway」。
+// ログは端末に出さず、parseMutationLog で数値だけを取り出す。そのため、このオプションを付けてよい。
+// gh 2.93.0 にはこのオプションが無いので、gh api のヘルプで有無を確かめる。
+// 検出が外れたら、夜間の節の理由の行に、gh の拒否のメッセージが出る。
+export const escapeArgsFor = (helpText) => (String(helpText).includes("--allow-escape-sequences") ? ["--allow-escape-sequences"] : []);
 let escapeFlag;
 const allowEscapeArgs = () => {
-  escapeFlag ??= gh(["api", "--help"]).includes("--allow-escape-sequences") ? ["--allow-escape-sequences"] : [];
+  escapeFlag ??= escapeArgsFor(gh(["api", "--help"]));
   return escapeFlag;
 };
 const jobLog = (repo, jobId) => ghAsync(["api", ...allowEscapeArgs(), `repos/${repo}/actions/jobs/${jobId}/logs`]);
@@ -644,7 +649,7 @@ function selfTest() {
     "##[group]Run actions/checkout@abc",
     "##[group]Run ./gradlew pitest -Ppitest.threshold=70",
     ">> Generated 4 Killed 4 (100%)",
-    ">> Generated 82 mutations Killed 71 (87%)",
+    "\x1b[32m>> Generated 82 mutations Killed 71 (87%)\x1b[0m",
     "##[group]Run ./gradlew pitest -Ppitest.domainOnly=true -Ppitest.threshold=70",
     ">> Generated 38 mutations Killed 34 (89%)",
     "##[group]Run python3 - >> $GITHUB_STEP_SUMMARY",
@@ -657,6 +662,12 @@ function selfTest() {
   // 例外の理由: gh の失敗は標準エラーの 1 行目、無ければ message の 1 行目
   eq("例外の理由（標準エラー）", errorLine({ message: "Command failed: gh api x\nHTTP 403", stderr: "\ngh: HTTP 403: Forbidden\nmore" }), "gh: HTTP 403: Forbidden");
   eq("例外の理由（標準エラーなし）", errorLine(new Error("boom\nstack")), "boom");
+  eq("例外の理由（制御文字を除く）", errorLine({ stderr: "\x1b[31mgh: HTTP 403\x07\n" }), "[31mgh: HTTP 403");
+  const ghErr = Object.assign(new Error("Command failed: gh api x\ngh: HTTP 403: Forbidden"), { stderr: "gh: HTTP 403: Forbidden\n" });
+  eq("取得できず（標準エラーの理由）", FAIL("x", ghErr), "取得できず（x: gh: HTTP 403: Forbidden）");
+  // ログの取得に付けるオプション: ヘルプに有れば付け、無ければ付けない
+  eq("オプション（ヘルプにあり）", escapeArgsFor("FLAGS\n      --allow-escape-sequences   Output escape sequences\n"), ["--allow-escape-sequences"]);
+  eq("オプション（ヘルプになし。gh 2.93.0）", escapeArgsFor("FLAGS\n  -H, --header key:value\n"), []);
   // 夜間の節: 取得できなかった実行の数と、最初の 1 件の理由を表の外に書く
   const nWin = reportWindow(utc("2026-11-02T00:00:00Z"));
   const nRun = (id, createdAt, mutation) => ({ id, createdAt, event: "schedule", conclusion: "success", jobs: [], mutation });
