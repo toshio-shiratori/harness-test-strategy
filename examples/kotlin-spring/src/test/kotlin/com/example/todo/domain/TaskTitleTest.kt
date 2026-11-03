@@ -5,9 +5,9 @@ import io.kotest.matchers.shouldBe
 import io.kotest.property.checkAll
 
 /**
- * タイトルの Property。制約表（C-50〜C-57、C-65）の各行の例は [TaskConstraintTableTest] にある。
+ * タイトルの Property。制約表（C-50〜C-57、C-65〜C-68）の各行の例は [TaskConstraintTableTest] にある。
  * 期待値は TRS TODO-001 の AC と制約表を正とする（実装から逆生成しない）。
- * 空白と表示されない文字の範囲は OI-016（OI-002 を置換）、書記素の数えは OI-008、50 字の数えと空白の除去の順は OI-004 の決定。
+ * 空白と表示されない文字の範囲は OI-016、両端から除くものは OI-017（OI-016 の保存する値を改めた）、書記素の数えは OI-008、50 字の数えと除去の順は OI-004 の決定。
  */
 class TaskTitleTest : StringSpec({
     fun saved(raw: String): String? = (TaskTitle.of(raw) as? Validated.Valid)?.value?.value
@@ -50,12 +50,57 @@ class TaskTitleTest : StringSpec({
         whiteSpaceOnly shouldBe allCodePoints.filter { property.matches(String(Character.toChars(it))) }
     }
 
-    // 分類: 不変量（表示される文字があれば、表示されない文字は前後でも除かれない。除くのは前後の空白だけ）
-    "AC-01-25 表示される文字があるタイトルの、前後の表示されない文字は除かれず、その外側の空白だけが除かれる" {
-        checkAll(arbUnits(1..22), arbInvisible, arbInvisible, arbWhiteSpace, arbWhiteSpace) { units, before, after, spaceBefore, spaceAfter ->
-            val core = before + units.joinToString("") + after
-            saved(core) shouldBe core
-            saved(spaceBefore + core + spaceAfter) shouldBe core
+    // 分類: 不変量（途中の表示されない文字は、どの文字でも除かれない。両端は表示される文字なので、前後の除去の対象外）
+    "AC-01-25 表示される文字に挟まれた、表示されない文字は、除かれずそのまま残る" {
+        checkAll(arbUnits(1..22), arbInvisibleMixed, arbUnits(1..22)) { head, middle, tail ->
+            val raw = head.joinToString("") + middle + tail.joinToString("")
+            saved(raw) shouldBe raw
+        }
+    }
+
+    // 分類: 不変量（先頭は最初の表示される文字より前をすべて除く。末尾は、最後の表示される文字より後ろを除く）
+    "AC-01-39 前後の空白と表示されない文字の並びは、除かれる" {
+        checkAll(arbUnits(1..22), arbRemovedAtStart, arbRemovedAtEdge) { units, before, after ->
+            val core = units.joinToString("")
+            saved(before + core + after) shouldBe core
+            saved(before + core) shouldBe core
+            saved(core + after) shouldBe core
+        }
+    }
+
+    // 分類: 不変量（組になる文字は、表示される文字の直後に続くときだけ残る。その後ろは除かれる。先頭や、除く文字の後ろのものは除かれる）
+    "AC-01-40 表示される文字の直後の異体字セレクタとタグ文字は残り、それ以外の位置のものは除かれる" {
+        checkAll(arbUnits(1..22), arbKeptAtEdge, arbRemovedAtStart, arbRemovedAfterKept) { units, kept, before, after ->
+            val core = units.joinToString("")
+            saved(core + kept) shouldBe core + kept
+            saved(before + core + kept) shouldBe core + kept
+            saved(before + core + kept + after) shouldBe core + kept
+            // 先頭や、除く文字の後ろにある組になる文字は、相手が無いので除かれる
+            saved(kept + core) shouldBe core
+            saved(core + after) shouldBe core
+        }
+    }
+
+    // 分類: 不変量（字数は両端を除いた後で数える。除く前は 51 字以上でも、除いた後が 50 字なら受理される）
+    "AC-01-41 前後の表示されない文字を除いた後の字数で、受理と TOO_LONG が決まる" {
+        checkAll(arbUnits(TaskTitle.MAX_LENGTH..TaskTitle.MAX_LENGTH), arbRemovedAtStart, arbRemovedAtEdge) { units, before, after ->
+            val core = units.joinToString("")
+            saved(before + core + after) shouldBe core
+            TaskTitle.of(before + core + "あ" + after) shouldBe Validated.Invalid(TitleError.TOO_LONG)
+        }
+    }
+
+    // 分類: オラクル（全ての表示されない文字について、表示される文字の直後・先頭・空白の後ろで、残るか除かれるかを、手で写した範囲と照合する）
+    "AC-01-39 AC-01-40 Default_Ignorable_Code_Point の 4174 個は、表示される文字の直後では 356 個だけが残り、先頭と空白の後ろでは全部除かれる" {
+        keptAtEdgeCodePoints.size shouldBe 356
+        val kept = keptAtEdgeCodePoints.toSet()
+        defaultIgnorableCodePoints.forEach { codePoint ->
+            val invisible = String(Character.toChars(codePoint))
+            saved("牛$invisible") shouldBe if (codePoint in kept) "牛$invisible" else "牛"
+            saved("${invisible}牛") shouldBe "牛"
+            saved("牛 $invisible") shouldBe "牛"
+            saved("牛\u200B$invisible") shouldBe "牛"
+            saved("牛$invisible\u200B") shouldBe if (codePoint in kept) "牛$invisible" else "牛"
         }
     }
 
