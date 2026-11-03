@@ -44,6 +44,7 @@ class TaskApiHttpTest : TaskApiTestBase() {
             Triple(milk, milk, "9999-12-31"),
             Triple(milk, milk, null),
             Triple(" $milk ", milk, null),
+            Triple("\u200B $milk\u200B", milk, null),
             Triple(combining50, combining50, null),
             Triple(flags50, flags50, null),
         )

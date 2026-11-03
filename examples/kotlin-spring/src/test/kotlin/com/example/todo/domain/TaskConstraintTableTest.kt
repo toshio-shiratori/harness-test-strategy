@@ -19,6 +19,11 @@ class TaskConstraintTableTest : FunSpec({
     val milk = "牛乳を買う"
     val combining = "é"
     val flag = "🇯🇵"
+    val zwsp = "\u200B"
+    val selector = "\uFE0F"
+    val heart = "\u2764\uFE0F"
+    val england = String(Character.toChars(0x1F3F4)) + listOf(0xE0067, 0xE0062, 0xE0065, 0xE006E, 0xE0067, 0xE007F)
+        .joinToString("") { String(Character.toChars(it)) }
 
     context("AC-01-01 1〜50 字のタイトルは受理され、見た目の 1 文字を 1 字と数えた長さになる（C-50）") {
         withData(
@@ -42,6 +47,8 @@ class TaskConstraintTableTest : FunSpec({
                 TitleCase("C-51", "F1-L11 結合文字 51 個", combining.repeat(51), error = TitleError.TOO_LONG),
                 TitleCase("C-51", "F1-L11 国旗 51 個", flag.repeat(51), error = TitleError.TOO_LONG),
                 TitleCase("C-51", "F1-L12 前後の空白を除いても 51 字", " " + "あ".repeat(51) + " ", error = TitleError.TOO_LONG),
+                TitleCase("C-51", "F1-L4 末尾の U+200B を除いても 51 字", "あ".repeat(51) + zwsp, error = TitleError.TOO_LONG),
+                TitleCase("C-51", "F1-L4 先頭の U+200B を除いても 51 字", zwsp + "あ".repeat(51), error = TitleError.TOO_LONG),
             ),
         ) { it.verify() }
     }
@@ -74,7 +81,7 @@ class TaskConstraintTableTest : FunSpec({
         withData(nameFn = { "${it.id} ${it.label}" }, ts = only + around) { it.verify() }
     }
 
-    context("AC-01-07 前後の空白だけを除いて保存される（C-54）") {
+    context("AC-01-07 前後の空白を除いて保存される。途中の空白は残る（C-54）") {
         withData(
             nameFn = { "${it.id} ${it.label}" },
             ts = listOf(
@@ -95,18 +102,69 @@ class TaskConstraintTableTest : FunSpec({
         ) { it.verify() }
     }
 
-    context("AC-01-25 表示される文字があれば、前後や途中の表示されない文字は、除かず、そのまま保存される（C-57）") {
-        val zwjEmoji = "👨‍👩‍👧"
+    context("AC-01-25 表示される文字があれば、途中の表示されない文字は、除かず、そのまま保存される（C-57）") {
+        val zwjEmoji = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67"
         withData(
             nameFn = { "${it.id} ${it.label}" },
             ts = listOf(
-                TitleCase("C-57", "F1-L13 先頭に U+200B", "​$milk", saved = "​$milk"),
-                TitleCase("C-57", "F1-L13 末尾に U+FEFF", "$milk﻿", saved = "$milk﻿"),
-                TitleCase("C-57", "F1-L13 前後に U+2060", "⁠$milk⁠", saved = "⁠$milk⁠"),
-                TitleCase("C-57", "F1-L13 前後の空白は除き、その内側の U+200B は残る", " ​$milk​ ", saved = "​$milk​"),
+                TitleCase("C-57", "F1-L13 途中に U+200B", "牛乳$zwsp" + "を買う", saved = "牛乳$zwsp" + "を買う"),
                 TitleCase("C-57", "F1-L13 途中に U+200D（絵文字の組み立て）", zwjEmoji, saved = zwjEmoji),
-                TitleCase("C-57", "F1-L13 途中に U+FE0F", "a️b", saved = "a️b"),
-                TitleCase("C-57", "F1-L13 補助面の U+E0001 が前にある", "󠀁$milk", saved = "󠀁$milk"),
+                TitleCase("C-57", "F1-L13 途中に U+FE0F", "a${selector}b", saved = "a${selector}b"),
+                TitleCase("C-57", "F1-L13 途中の補助面の U+E0001", "a\uDB40\uDC01b", saved = "a\uDB40\uDC01b"),
+                TitleCase("C-57", "F1-L13 両端を除いた後も、途中の U+200B は残る", " $zwsp" + "a${zwsp}b$zwsp ", saved = "a${zwsp}b"),
+            ),
+        ) { it.verify() }
+    }
+
+    context("AC-01-39 前後の空白と、表示されない文字は、除いて保存される（C-66）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                TitleCase("C-66", "F1-L15 先頭に U+200B", zwsp + milk, saved = milk),
+                TitleCase("C-66", "F1-L15 末尾に U+FEFF", milk + "\uFEFF", saved = milk),
+                TitleCase("C-66", "F1-L15 前後に U+2060", "\u2060$milk\u2060", saved = milk),
+                TitleCase("C-66", "F1-L15 先頭の U+200B の後ろの空白も除く", "$zwsp $milk", saved = milk),
+                TitleCase("C-66", "F1-L15 前後の空白と U+200B が交互に並ぶ", " $zwsp $milk$zwsp ", saved = milk),
+                TitleCase("C-66", "F1-L15 前後の U+200D（絵文字の組み立てに使うが、両端では除く）", "\u200D$milk\u200D", saved = milk),
+                TitleCase("C-66", "F1-L15 先頭の補助面の U+E0001", String(Character.toChars(0xE0001)) + milk, saved = milk),
+                TitleCase("C-66", "F1-L15 末尾の補助面の U+E0001", milk + String(Character.toChars(0xE0001)), saved = milk),
+            ),
+        ) { it.verify() }
+    }
+
+    context("AC-01-40 表示される文字の直後の異体字セレクタとタグ文字は残り、それ以外の位置のものは除かれる（C-67）") {
+        val variation = "\u845B" + String(Character.toChars(0xE0100))
+        val ah = "あ".repeat(50)
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                TitleCase("C-67", "F1-L16 末尾の U+FE0F（❤️）", heart, saved = heart),
+                TitleCase("C-67", "F1-L16 ❤️ の後ろの U+200B だけを除く", heart + zwsp, saved = heart),
+                TitleCase("C-67", "F1-L16 末尾の異体字セレクタ補助（U+E0100）", variation, saved = variation),
+                TitleCase("C-67", "F1-L16 末尾のタグ文字（地域の旗の絵文字）", england, saved = england),
+                TitleCase("C-67", "F1-L16 地域の旗の後ろの空白と U+200B を除く", "$england $zwsp", saved = england),
+                TitleCase("C-67", "F1-L16 モンゴル文字の自由異体字セレクタ（U+180B）", milk + "\u180B", saved = milk + "\u180B"),
+                TitleCase("C-67", "F1-L16 連なる異体字セレクタは全部残る", milk + selector + "\uFE0E", saved = milk + selector + "\uFE0E"),
+                TitleCase("C-67", "F1-L16 U+FE0F は残る。50 字のままで受理", ah + selector, saved = ah + selector, length = 50),
+                TitleCase("C-67", "F1-L16 残す文字の連なりの後ろの U+200B と、その後ろの U+FE0F は除く", milk + selector + zwsp + selector, saved = milk + selector),
+                TitleCase("C-66", "F1-L15 先頭の U+FE0F は相手が無いので除く", selector + milk, saved = milk),
+                TitleCase("C-66", "F1-L15 先頭の U+FE0F と、その後ろの空白を除く", "$selector $milk", saved = milk),
+                TitleCase("C-66", "F1-L15 先頭の U+180B を除く", "\u180B$milk", saved = milk),
+                TitleCase("C-66", "F1-L15 U+200B の後ろの U+FE0F は相手が無いので除く", milk + zwsp + selector + zwsp, saved = milk),
+            ),
+        ) { it.verify() }
+    }
+
+    context("AC-01-41 前後の表示されない文字を除いた後の字数を数える（C-68）") {
+        val ah = "あ".repeat(50)
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                TitleCase("C-68", "F1-L17 50 字の末尾に U+200B", ah + zwsp, saved = ah, length = 50),
+                TitleCase("C-68", "F1-L17 50 字の先頭に U+200B", zwsp + ah, saved = ah, length = 50),
+                TitleCase("C-68", "F1-L17 50 字の前後に空白と U+200B", " $zwsp" + ah + "$zwsp ", saved = ah, length = 50),
+                TitleCase("C-68", "F1-L17 50 字の先頭に U+FE0F（実測で除く前は 51 字）", selector + ah, saved = ah, length = 50),
+                TitleCase("C-68", "F1-L17 50 字の末尾に空白と U+FE0F（実測で除く前は 51 字）", "$ah $selector", saved = ah, length = 50),
             ),
         ) { it.verify() }
     }
@@ -115,17 +173,20 @@ class TaskConstraintTableTest : FunSpec({
         withData(
             nameFn = { "${it.id} ${it.label}" },
             ts = listOf(
-                TitleCase("C-65", "F1-L14 U+200B だけ", "​", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 U+FEFF だけ", "﻿", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 U+2060 だけ", "⁠", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 U+FE0F だけ", "️", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 U+200D だけ", "‍", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 補助面の U+E0001 だけ", "󠀁", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 補助面の U+E0100 だけ", "󠄀", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 表示されない文字の並び", "​‍﻿⁠", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 前後の空白に挟まれた U+200B", " ​ ", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 空白と U+200B が交互に並ぶ", "​ ​", error = TitleError.BLANK),
-                TitleCase("C-65", "F1-L14 U+200B を 51 個（TOO_LONG ではなく BLANK）", "​".repeat(51), error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200B だけ", zwsp, error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+FEFF だけ", "\uFEFF", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+2060 だけ", "\u2060", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+FE0F だけ（組になる文字）", selector, error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200D だけ", "\u200D", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 補助面の U+E0001 だけ", String(Character.toChars(0xE0001)), error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 補助面の U+E0100 だけ（組になる文字）", String(Character.toChars(0xE0100)), error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 モンゴル文字の自由異体字セレクタ U+180B だけ", "\u180B", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 表示されない文字の並び", "\u200B\u200D\uFEFF\u2060", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 前後の空白に挟まれた U+200B", " $zwsp ", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 空白と U+200B が交互に並ぶ", "$zwsp $zwsp", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200B の後ろに U+FE0F", zwsp + selector, error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+FE0F の後ろに空白", "$selector ", error = TitleError.BLANK),
+                TitleCase("C-65", "F1-L14 U+200B を 51 個（TOO_LONG ではなく BLANK）", zwsp.repeat(51), error = TitleError.BLANK),
             ),
         ) { it.verify() }
     }

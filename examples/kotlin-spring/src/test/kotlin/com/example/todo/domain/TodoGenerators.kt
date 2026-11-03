@@ -2,6 +2,7 @@ package com.example.todo.domain
 
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.bind
+import io.kotest.property.arbitrary.choice
 import io.kotest.property.arbitrary.element
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
@@ -55,6 +56,66 @@ private fun codePointString(codePoint: Int): String = String(Character.toChars(c
 /** 表示されない文字の並び（1〜5 個）。補助面（U+E0000〜E0FFF など）のコードポイントを含む。 */
 val arbInvisible: Arb<String> =
     Arb.list(Arb.element(defaultIgnorableCodePoints), 1..5).map { list -> list.joinToString("") { codePointString(it) } }
+
+/**
+ * 表示される文字の直後なら残す、表示されない文字。Unicode の Variation_Selector 属性を持つ 260 個（PropList.txt の
+ * 180B..180D、180F、FE00..FE0F、E0100..E01EF）と、タグ文字 U+E0020〜E007F の 96 個。合計は 356 個。
+ * 実装の定数とは別に、出典から手で写した独立のオラクルである。
+ */
+val keptAtEdgeCodePoints: List<Int> =
+    (0x180B..0x180D).toList() + 0x180F + (0xFE00..0xFE0F).toList() + (0xE0100..0xE01EF).toList() + (0xE0020..0xE007F).toList()
+
+/** 組になる文字を除いた、表示されない文字。Default_Ignorable_Code_Point から、残す文字を引いたもの。 */
+val removedAtEdgeInvisibleCodePoints: List<Int> = defaultIgnorableCodePoints - keptAtEdgeCodePoints.toSet()
+
+/**
+ * 基本多言語面（U+FFFF 以下）と補助面を半々で選ぶ。一様に選ぶと、基本多言語面の文字がほとんど出ない
+ * （表示されない文字 4174 個のうち 66 個）。
+ */
+private fun arbHalfBmp(codePoints: List<Int>): Arb<Int> =
+    Arb.choice(
+        Arb.element(codePoints.filter { it <= 0xFFFF }),
+        Arb.element(codePoints.filter { it > 0xFFFF }),
+    )
+
+/** 残す文字の並び（1〜5 個）。基本多言語面（20 個）と補助面を半々で選ぶ。 */
+val arbKeptAtEdge: Arb<String> =
+    Arb.list(arbHalfBmp(keptAtEdgeCodePoints), 1..5).map { list -> list.joinToString("") { codePointString(it) } }
+
+/**
+ * 除く文字の並び（1〜6 個）。残す文字は含まない。空白、基本多言語面の表示されない文字、補助面の表示されない文字を、
+ * 1 / 3 ずつ選ぶ。
+ */
+val arbRemovedAtEdge: Arb<String> =
+    Arb.list(
+        Arb.choice(
+            Arb.element(whiteSpaceChars.map { it.code }),
+            Arb.element(removedAtEdgeInvisibleCodePoints.filter { it <= 0xFFFF }),
+            Arb.element(removedAtEdgeInvisibleCodePoints.filter { it > 0xFFFF }),
+        ),
+        1..6,
+    ).map { list -> list.joinToString("") { codePointString(it) } }
+
+/**
+ * 先頭から除く文字の並び（1〜6 個）。先頭には組になる相手が無いので、残す文字も含む。空白、基本多言語面の表示されない文字、
+ * 補助面の表示されない文字を、1 / 3 ずつ選ぶ。
+ */
+val arbRemovedAtStart: Arb<String> =
+    Arb.list(
+        Arb.choice(
+            Arb.element(whiteSpaceChars.map { it.code }),
+            Arb.element(defaultIgnorableCodePoints.filter { it <= 0xFFFF }),
+            Arb.element(defaultIgnorableCodePoints.filter { it > 0xFFFF }),
+        ),
+        1..6,
+    ).map { list -> list.joinToString("") { codePointString(it) } }
+
+/** 最後の表示される文字と、残す文字の連なりの後ろから除く文字の並び。最初が除く文字で、その後ろに残す文字が続いてもよい。 */
+val arbRemovedAfterKept: Arb<String> = Arb.bind(arbRemovedAtEdge, arbRemovedAtStart) { head, tail -> head + tail }
+
+/** 表示されない文字の並び（1〜5 個）。例外の文字も含め、基本多言語面と補助面を半々で選ぶ。 */
+val arbInvisibleMixed: Arb<String> =
+    Arb.list(arbHalfBmp(defaultIgnorableCodePoints), 1..5).map { list -> list.joinToString("") { codePointString(it) } }
 
 /** 空白と表示されない文字だけの並び（1〜8 個）。 */
 val arbBlankOrInvisible: Arb<String> =
