@@ -1,9 +1,9 @@
 # 5. 因子制約ルール
 
-- 因子と水準は [factors.md](./factors.md) を指す。
+- 因子と水準は [c-factors.md](./c-factors.md) を指す。
 - 「拒否(400)」は、HTTP ステータス 400 で、本文が ProblemDetail(RFC 9457)に `codes` を足した形であることを指す。`codes` の順序は比べない(OI-001)。
 - 「成功」は、HTTP ステータスが 2xx であることを指す(OI-001)。
-- 期待結果が「未決」の行は、ケースを生成しない。[undecided.md](./undecided.md) の決定を待つ。
+- 期待結果が「未決」の行は、ケースを生成しない。[c-undecided.md](./c-undecided.md) の決定を待つ。
 - 例の「今日」は 2026-11-07(Asia/Tokyo)とする。
 
 ## 5.1 禁止(成立しない)組合せ

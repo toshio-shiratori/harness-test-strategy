@@ -1,6 +1,6 @@
 # 受入条件
 
-- 因子は [factors.md](./factors.md)、制約 `C-xx` は [constraints.md](./constraints.md) を指す。未決は [undecided.md](./undecided.md) を指す。
+- 因子は [c-factors.md](./c-factors.md)、制約 `C-xx` は [c-constraints.md](./c-constraints.md) を指す。未決は [c-undecided.md](./c-undecided.md) を指す。
 - 根拠の列は、値を定める `C-xx`、要件 ID、OI-ID の順に書く。OI-002 と OI-016 は Superseded なので使わない。
 - OI-006 と OI-015 が足したとする REQ-TODO-33、REQ-TODO-34 は入力の要件定義書に無いので、OI-ID を根拠にした(undecided.md の D-01)。
 - 期待結果が未決の組合せ(C-23、C-24、C-44、C-111、C-214、C-224、C-225)には、AC を作っていない。決定後に足す。

@@ -59,15 +59,20 @@
 
 ### 2.2 保存した生成物
 
-生成物と、B・C に固有の入力を、`trs-generation-trial/` に `.txt` で保存した。生成物は手を加えずに保存するので、文書としての書式の検査を掛けない。そのため `.md` にしなかった。A と C の入力の要件定義書、03、テンプレートは、上の版から復元できるので保存していない。
+生成物と、B・C に固有の入力を、[サンプルの `docs/trs-generation-trial/`](../../examples/kotlin-spring/docs/trs-generation-trial/) に保存した。内容がサンプル固有なので、この記録とは分けて置く。人が読むこともあるので `.md` にし、`lint:md` の対象とした。A と C の入力の要件定義書、03、テンプレートは、上の版から復元できるので保存していない。
 
 | 保存したファイル | 内容 |
 |---|---|
-| `a-factors.txt`、`a-open-issues.txt` | 生成 A の出力 |
-| `b-input-requirements-toc.txt` | 生成 B に渡した目次 |
-| `b-toc-check.txt`、`b-factors.txt`、`b-open-issues.txt` | 生成 B の出力 |
-| `c-input-decisions.txt` | 生成 C に渡した OI の決定の表 |
-| `c-factors.txt`、`c-constraints.txt`、`c-acceptance.txt`、`c-undecided.txt` | 生成 C の出力 |
+| `a-factors.md`、`a-open-issues.md` | 生成 A の出力 |
+| `b-input-requirements-toc.md` | 生成 B に渡した目次 |
+| `b-toc-check.md`、`b-factors.md`、`b-open-issues.md` | 生成 B の出力 |
+| `c-input-decisions.md` | 生成 C に渡した OI の決定の表 |
+| `c-factors.md`、`c-constraints.md`、`c-acceptance.md`、`c-undecided.md` | 生成 C の出力 |
+
+生成物の文面は、次の 2 点を除いて変えていない。
+
+- `b-factors.md` の見出しのレベルを 1 つ上げた。
+- ファイル名に A・B・C の接頭辞を付けたので、ファイル間のリンクを新しい名前に直した。
 
 ### 2.3 表記
 
