@@ -136,7 +136,7 @@ curl -i -X POST http://localhost:8080/tasks \
 | `exploration/` | 層3の AI 探索の指示・報告の型・実行スクリプト。手元で動かすスキルは `.claude/skills/ai-exploration/`(手順書は `docs/02b.md` の §3.1) |
 | `docs/requirements/` | サンプルの要件定義書(TODO-001)。TRS の入力で、`TraceabilityTest` が要件 ID と US/UC の出典の対応を検査する |
 | `docs/trs/` | サンプルの TRS(TODO-001)。`TraceabilityTest` が読む |
-| `docs/trs-generation-trial/` | 要件定義書から TRS を生成した試行の生成物。現行の仕様ではなく、検査も読まない。AC 番号は TRS と別物である。記録は [`docs/records/trs-generation-trial.md`](../../docs/records/trs-generation-trial.md) |
+| `docs/trs-generation-trial/` | 要件定義書から TRS を生成した試行の生成物。現行の仕様ではなく、検査も読まない。AC 番号は TRS と別物である。記録は [`docs/records/trs-generation-trial.md`](../../docs/records/trs-generation-trial.md)。接頭辞 `c2-` のファイルは 2 回目の生成で、記録は [`docs/records/trs-generation-trial-2.md`](../../docs/records/trs-generation-trial-2.md) |
 | `config/` | detekt の設定と、Konsist の検査を確かめる違反例 |
 | `build.gradle.kts` | ビルドと、PIT・detekt の設定 |
 
