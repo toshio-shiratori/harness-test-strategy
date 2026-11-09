@@ -45,7 +45,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
 - PBT が失敗したら `02a` §2.3.1 の手順（Kotlin の例は `examples/kotlin-spring/docs/02a.md`）に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
-- 期待値は仕様(TRS の AC)を正とする。既存コードの挙動から期待値を逆生成しない(`03`)。
+- 期待値の正は `03` §3.1 に従う。承認済みの仕様書(要件定義書・基本設計書・TRS の人が合意する節)、承認済みのデザインの順で、定めがなければ Open Issue として人間が決める。TRS の AC と期待結果は仕様書から生成した展開で、手で直さず、入力を直して再生成する。生成の誤りは、そのまま再生成する(`03` §5.4)。既存コードの挙動から期待値を逆生成しない(`03` §3.2)。
 - TRS の Open Issues は解決後も行を削除しない。AC / UC 番号は TRS 間で一意にする。
 
 ## バックログ(Issue)の運用
