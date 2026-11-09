@@ -25,7 +25,7 @@
 このサンプルは、他のシステムと連携しない。画面、サーバー、DB で構成する。
 
 ```mermaid
-flowchart LR
+flowchart TB
   U["利用者"] --> G["画面<br/>ブラウザ"]
   G -- "API" --> S["サーバー"]
   S --> D[("DB")]
