@@ -18,6 +18,7 @@
 
 ```bash
 # markdownlint、節番号参照とリンク、docs/testing の言語中立・自己完結、
+# 既存の ID の変化を列挙するスクリプト(lint:id-changes)の自己テスト、
 # Mermaid の構文検査と、幅が 900px を超える図の検出(超えると失敗。高さは検査しない)
 npm ci && npm run lint
 
@@ -35,3 +36,5 @@ npm run measure:mermaid -- docs/testing/01-test-policy.md
 - 方針・規程・期待値(`docs/testing/`)の変更は PR で行い、責任者(`.github/CODEOWNERS`)の承認を得ます。
 - 文章の書き方(図・表・簡潔さの原則)は、[CLAUDE.md](CLAUDE.md) の「書き方の規約」に従います。
 - バグ修正の PR は、タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作成します。
+- 生成物(`examples/kotlin-spring/docs/trs/generated/`)の既存の ID を変える PR は、理由を書きます。
+  PR 本文の `## 既存の ID の変化` に、ID ごとに書きます。足りないと `pr-id-changes-check.yml` が失敗します。

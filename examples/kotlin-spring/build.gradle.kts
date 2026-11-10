@@ -90,7 +90,7 @@ tasks.register<JavaExec>("playwrightInstall") {
     args("install", "chromium")
 }
 
-// ExecutionBoundaryTest / TestProtectionTest / TraceabilityTest / UnrunTestDetectionTest が src/integrationTest・src/e2eTest と
+// ExecutionBoundaryTest / TestProtectionTest / TraceabilityTest / TraceabilityMatrixTest / UnrunTestDetectionTest が src/integrationTest・src/e2eTest と
 // config/konsist-fixtures を読むため、変更時に層1が再実行されるよう入力に宣言する
 tasks.named<Test>("test") {
     inputs.dir("src/integrationTest")
