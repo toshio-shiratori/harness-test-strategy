@@ -6,7 +6,7 @@ import io.kotest.property.checkAll
 
 /**
  * タイトルの Property。制約表（C-50〜C-57、C-65〜C-68）の各行の例は [TaskConstraintTableTest] にある。
- * 期待値は TRS TODO-001 の AC と制約表を正とする（実装から逆生成しない）。
+ * 期待値は TRS TODO-001 の AC と制約表から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装から逆生成しない（03 §3.1）。
  * 空白と表示されない文字の範囲は OI-016、両端から除くものは OI-017（OI-016 の保存する値を改めた）、書記素の数えは OI-008、50 字の数えと除去の順は OI-004 の決定。
  */
 class TaskTitleTest : StringSpec({

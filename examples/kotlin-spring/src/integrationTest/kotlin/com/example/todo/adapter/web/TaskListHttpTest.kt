@@ -12,7 +12,7 @@ import java.util.TimeZone
  * 一覧（UC-04・UC-05・UC-06）の HTTP と DB の結合テスト（層2 Integration）。
  * 区分・並び順・絞り込みの規則そのものは層1（`TaskCategoryTest`・`TaskListTest`）が確かめている。
  * ここでは、DB を通した保存と読み戻し、保存された選択による絞り込み、サーバーの既定のタイムゾーンに依存しないことを見る。
- * 期待値は TRS TODO-001 の AC と制約表を正とする。
+ * 期待値は TRS TODO-001 の AC と制約表から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装から逆生成しない（03 §3.1）。
  */
 class TaskListHttpTest : TaskApiTestBase() {
     private fun registerDone(title: String, due: String? = null): TaskJson {

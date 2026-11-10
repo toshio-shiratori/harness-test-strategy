@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
  * 完了にする・未完了に戻す（UC-02・UC-03）の HTTP と DB の結合テスト（層2 Integration）。
  * 状態の変更は HTTP で操作し、保存された状態は HTTP で一覧を取り直して確かめる。
  * 層1（`TaskTest`・`TaskConstraintTableTest`）は、状態遷移の規則を DB なしで確かめている。
- * 期待値は TRS TODO-001 の AC と OI-006、OI-012 の決定を正とする。
+ * 期待値は TRS TODO-001 の AC と制約表、OI-006・OI-012 の決定から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装から逆生成しない（03 §3.1）。
  */
 class TaskOperationHttpTest : TaskApiTestBase() {
     private val milk = "牛乳を買う"

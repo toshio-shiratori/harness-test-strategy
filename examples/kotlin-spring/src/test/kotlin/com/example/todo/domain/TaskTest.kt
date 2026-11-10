@@ -16,7 +16,7 @@ import java.time.ZoneOffset
 
 /**
  * 登録と、完了・未完了の操作列の Property。制約表（C-20〜C-23）の各行の例は [TaskConstraintTableTest] にある。
- * 期待値は TRS TODO-001 の AC と制約表を正とする。時刻は注入した Clock の現在時刻。
+ * 期待値は TRS TODO-001 の AC と制約表から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装から逆生成しない（03 §3.1）。時刻は注入した Clock の現在時刻。
  */
 class TaskTest : StringSpec({
     val today = Clock.fixed(Instant.parse("2026-11-01T01:00:00Z"), ZoneOffset.UTC)

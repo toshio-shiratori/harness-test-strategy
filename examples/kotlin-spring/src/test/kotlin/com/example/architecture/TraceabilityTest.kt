@@ -5,12 +5,14 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import java.io.File
 
 /**
- * TRS の Open Issues 表（6. Open Issues）を読み、未解決の Blocking な Open Issue が指す AC に
+ * TRS ファイルの Open Issues 表（6. Open Issues）を読み、未解決の Blocking な Open Issue が指す AC に
  * `@pending:<OI-ID>` が付いているかを検査する（01 §5 の G5、03 §3.4）。
+ * AC の表と Gherkin のタグ行は、組になる生成物のファイルから読む（[violations] の第 2 引数）。
  *
  * - 区分は `Blocking` / `Non-blocking`、状態は 03 §4.2 の 5 値（`Open` / `In Discussion` / `Resolved` /
  *   `Superseded` / `Won't Fix`。後ろの 2 つは `（置換先・理由）` の接尾辞を付けてよい）に分類する。
@@ -19,7 +21,10 @@ import java.io.File
  * - 「指す AC」= 関連列の `AC-xx-yy`。範囲は `AC-03-01〜04` と `AC-03-01〜AC-03-04`（`〜` は `～` `~` も可）だけを展開する。
  *   範囲として読めない `〜` が残る場合は違反とする。関連列に AC が無い行は、指す先を決められないので違反とする。
  * - 該当 AC の Gherkin のタグ行に、その行の OI-ID と同じ `@pending:<OI-ID>` が無ければ違反。
- * - Open Issues 表に行が 1 つも無い TRS は、読み取りの空振りと区別できないので違反とする。
+ * - Open Issues 表に行が 1 つも無い TRS は、読み取りの空振りと区別できないので違反とする。見出し（ID・区分・関連・状態・反映先）が読めないときも違反とする。
+ * - 関連列の AC ID は、行の区分と状態によらず、生成物のファイルの AC の表と照合する（範囲表記は展開し、読めない表記は違反）。
+ *   照合から外すのは、未解決でない行の反映先に `AC-xx-yy 削除` と書いた AC だけである（[TrsSetCheck.exemptions]）。外すのは「AC の表にあるか」の照合だけで、
+ *   未解決の Blocking の `@pending` の要否には効かない。未解決の Blocking の関連列の AC がすべて外れているときは、違反とする。
  * - `@pending:<ID>` に書けるのは「その TRS の Open Issues 表にある、未解決（`Open` / `In Discussion`）の `Blocking` な OI-ID」だけ
  *   （03 §3.4 の「Blocking の Open Issue が未解決の AC」と一致させ、除外の抜け道を作らない）。次は違反とする。
  *   `OI-<数字>` の形でない値（`ISSUE-n` を含む。実装待ちは Issue / PR で管理する）、表に無い OI-ID、
@@ -33,16 +38,16 @@ internal object UnresolvedBlockingCheck {
     private val unresolvedStates = setOf("Open", "In Discussion")
     private val resolvedState = Regex("""^(Resolved|Superseded(?:[（(].+[）)])?|Won't Fix(?:[（(].+[）)])?)$""")
     private val kinds = setOf("Blocking", "Non-blocking")
-    private val acRange = Regex("""AC-(\d\d)-(\d\d)(?:[〜～~](?:AC-\1-)?(\d\d))?""")
-    private val rangeMark = Regex("""[〜～~]""")
-    private val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
     private val acId = Regex("""AC-\d\d-\d\d""")
     private val acTagTail = Regex("""@AC-\d\d-\d\d\b[^\n]*""")
     private val pendingTag = Regex("""@pending:([^\s`|]*)""")
     private val oiId = Regex("""^OI-\d+$""")
     private val issueRef = Regex("""^ISSUE-\d+$""")
 
-    class Row(val id: String, val kind: String, val state: String, val related: String) {
+    /** 状態が `Resolved` / `Superseded` / `Won't Fix` のどれかか（未解決でない行。接尾辞を含む） */
+    fun isResolvedState(state: String) = resolvedState.matches(state)
+
+    class Row(val id: String, val kind: String, val state: String, val related: String, val reflect: String) {
         val blocking get() = kind == "Blocking"
         val unresolved get() = state in unresolvedStates
     }
@@ -55,9 +60,9 @@ internal object UnresolvedBlockingCheck {
     fun parse(text: String): Pair<List<Row>, List<String>> {
         val lines = text.lines()
         val header = lines.indexOfFirst { l ->
-            l.startsWith("|") && cells(l).let { "ID" in it && "区分" in it && "状態" in it && "関連" in it }
+            l.startsWith("|") && cells(l).let { "ID" in it && "区分" in it && "状態" in it && "関連" in it && "反映先" in it }
         }
-        if (header < 0) return emptyList<Row>() to listOf("Open Issues 表の見出し（ID・区分・関連・状態）が見つからない")
+        if (header < 0) return emptyList<Row>() to listOf("Open Issues 表の見出し（ID・区分・関連・状態・反映先）が見つからない")
         val names = cells(lines[header])
         val body = lines.drop(header + 1).takeWhile { it.startsWith("|") }.filterNot(::isSeparator)
         val errors = mutableListOf<String>()
@@ -68,7 +73,7 @@ internal object UnresolvedBlockingCheck {
                 null
             } else {
                 fun col(name: String) = c[names.indexOf(name)]
-                Row(col("ID"), col("区分"), col("状態"), col("関連"))
+                Row(col("ID"), col("区分"), col("状態"), col("関連"), col("反映先"))
             }
         }
         return rows to errors
@@ -76,20 +81,13 @@ internal object UnresolvedBlockingCheck {
 
     /** 関連列が指す AC。範囲として読めない区切りが残る、または範囲が逆順のときは、第 2 要素に理由を返す */
     private fun targets(related: String): Pair<List<String>, String?> {
-        var reversed = false
-        val acs = acRange.findAll(related).flatMap { m ->
-            val (group, from, to) = m.destructured
-            val last = to.ifEmpty { from }.toInt()
-            if (last < from.toInt()) reversed = true
-            (from.toInt()..last).map { "AC-$group-%02d".format(it) }
-        }.toList()
-        val leftover = rangeMark.containsMatchIn(acRange.replace(related, ""))
-        val problem = when {
-            leftover -> "関連列の範囲表記を読めない（AC-xx-yy〜zz または AC-xx-yy〜AC-xx-zz の形にする）: $related"
-            reversed -> "関連列の範囲が逆順: $related"
-            else -> null
+        val expanded = AcRefs.expand(related)
+        val problem = when (expanded.problem) {
+            AcRefs.Problem.UNREADABLE -> "関連列の範囲表記を読めない（AC-xx-yy〜zz または AC-xx-yy〜AC-xx-zz の形にする）: $related"
+            AcRefs.Problem.REVERSED -> "関連列の範囲が逆順: $related"
+            null -> null
         }
-        return acs to problem
+        return expanded.ids to problem
     }
 
     /**
@@ -130,10 +128,17 @@ internal object UnresolvedBlockingCheck {
         else "@pending:${oi.id} を付けた $ac は ${oi.id} の関連列に含まれない（関連列: ${oi.related}。@pending は関連列にある AC にだけ付ける）"
     }
 
-    /** 違反の説明。空なら合格 */
-    fun violations(text: String): List<String> {
-        val (rows, errors) = parse(text)
-        val acs = acRow.findAll(text).map { it.groupValues[1] }.toSet()
+    /** 1 つのファイルに TRS の全節がある本文（テンプレートなど）の違反。[violations] を、同じ本文を両方に渡して呼ぶ */
+    fun violations(text: String): List<String> = violations(text, text)
+
+    /**
+     * 違反の説明。空なら合格。[trsText] は Open Issues 表を持つ TRS ファイル、[generatedText] は AC の表と Gherkin のタグ行を持つ生成物のファイル。
+     * `@pending` の検査は、生成物のファイルだけを見る（① で AC を紐づけ検査から除外する判定と同じ本文）。
+     */
+    fun violations(trsText: String, generatedText: String): List<String> {
+        val (rows, errors) = parse(trsText)
+        val acs = AcTable.read(generatedText).rows.map { it.id }.toSet()
+        val exempt = TrsSetCheck.exemptions(rows)
         val classification = rows.flatMap { oi ->
             listOfNotNull(
                 "${oi.id}: 区分を分類できない（Blocking / Non-blocking のどちらかにする）: ${oi.kind}".takeIf { oi.kind !in kinds },
@@ -142,28 +147,35 @@ internal object UnresolvedBlockingCheck {
             )
         }
         val emptyTable = if (rows.isEmpty() && errors.isEmpty()) listOf("Open Issues 表に行が 1 つも無い") else emptyList()
-        val found = rows.filter { it.blocking && it.unresolved }.flatMap { oi ->
+        val found = rows.flatMap { oi ->
             val (acList, problem) = targets(oi.related)
+            val needsPending = oi.blocking && oi.unresolved
             when {
                 problem != null -> listOf("${oi.id}: $problem")
-                acList.isEmpty() -> listOf("${oi.id}: 未解決の Blocking だが、関連列に AC が無い（指す AC を書く）")
+                acList.isEmpty() -> listOf("${oi.id}: 未解決の Blocking だが、関連列に AC が無い（指す AC を書く）").takeIf { needsPending }.orEmpty()
+                needsPending && acList.none { it in acs } && acList.all { it in exempt } ->
+                    listOf("${oi.id}: 未解決の Blocking の関連列の AC が、すべて照合から外れている（指す AC が AC の表に無い。削除の記録は、未解決の行の AC には使えない）")
                 else -> acList.mapNotNull { ac ->
                     when {
-                        ac !in acs -> "${oi.id}: 関連列の $ac が AC 表に無い"
-                        !Regex("""@$ac\b[^\n]*@pending:${Regex.escape(oi.id)}\b""").containsMatchIn(text) ->
+                        ac !in acs -> "${oi.id}: 関連列の $ac が AC 表に無い".takeIf { ac !in exempt }
+                        needsPending && !Regex("""@$ac\b[^\n]*@pending:${Regex.escape(oi.id)}\b""").containsMatchIn(generatedText) ->
                             "${oi.id}: 未解決の Blocking が指す $ac に @pending:${oi.id} が無い"
                         else -> null
                     }
                 }
             }
         }
-        return errors + emptyTable + classification + found + pendingViolations(text, rows)
+        return errors + emptyTable + classification + found + pendingViolations(generatedText, rows)
     }
 }
 
 /**
- * 03 §3.4 / 01 の G5: TRS の AC に紐づくテストが無ければ失敗させる。
- * テスト名は先頭に `AC-xx-yy` を置く（複数なら空白区切り）。
+ * 03 §3.4 / 01 の G5: TRS ファイル（`docs/trs/`）と、同じ名前の生成物のファイル（`docs/trs/generated/`）を組にして読み、失敗条件を検査する。
+ * 組にならないファイル、TRS ファイルにある US・UC・AC の表の行、生成物のファイルに無い US・UC・AC の表の行、生成物のファイルにある
+ * Open Issues・因子・水準・禁止組合せの表、組合せ別の期待結果（5.2）の書式、AC の表の根拠の実在、トレーサビリティ表（7）と Open Issues の
+ * 関連列の AC ID が AC の表に無いことは、[TrsSetCheck] が検査する（自己テストは [TrsSetCheckTest]）。
+ * AC に紐づくテストが無ければ失敗させる（①）。テスト名は先頭に `AC-xx-yy` を置く（複数なら空白区切り）。
+ * テスト名の先頭の AC ID が、どの TRS の AC の表にも無ければ失敗させる（⑦）。
  * AC ID は TRS 間で重複させない（別の TRS のテストで満たされたように見えるのを防ぐ。03 §3.4）。
  * Blocking の Open Issue により期待値が未確定の AC は、Gherkin のタグに `@pending:<OI-ID>` を付けて除外する。
  * 未解決の Blocking な Open Issue が指す AC に `@pending:<OI-ID>` が無ければ失敗させる（[UnresolvedBlockingCheck]）。
@@ -171,24 +183,27 @@ internal object UnresolvedBlockingCheck {
  * `@pending:<OI-ID>` を付けた AC が、その OI の関連列に含まれなくても失敗させる（同上。無関係な AC を除外する抜け道を塞ぐ）。
  * 要件定義書（`docs/requirements/`）の要件 ID が、どの TRS の US/UC の出典にも現れなければ失敗させる（03 §3.4.4 の ⑤）。
  * US/UC の出典が実在する要件 ID でなければ（空欄・`—`・OI-ID を含む）、また同じ要件 ID が複数の行にあれば失敗させる（同 ⑥）。
- * 要件定義書と TRS の書式が読めないとき（要件を読む表の外の要件 ID、要件 0 件、US/UC 0 件など）も失敗させる（[RequirementTraceCheck]）。
+ * US/UC は生成物のファイルから読む。要件定義書と TRS の書式が読めないとき（要件を読む表の外の要件 ID、要件 0 件、US/UC 0 件など）も失敗させる（[RequirementTraceCheck]）。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
 class TraceabilityTest : StringSpec({
-    val trsFiles = File("docs/trs").listFiles { f -> f.extension == "md" && !f.name.startsWith("_") }.orEmpty()
-    val requirementFiles = File("docs/requirements").listFiles { f -> f.extension == "md" }.orEmpty()
+    // `_` で始まるファイルを除くのは TRS ファイル（`_template.md` などの置き場の都合）だけ。要件定義書・生成物のファイルは拡張子だけで絞り、名前で検査から外さない
+    fun docs(dir: String, skipUnderscore: Boolean = false) =
+        File(dir).listFiles { f -> f.isFile && f.extension == "md" && !(skipUnderscore && f.name.startsWith("_")) }.orEmpty().sortedBy { it.name }
+            .associate { it.name to it.readText() }
+    val trsDocs = docs("docs/trs", skipUnderscore = true)
+    val generatedDocs = docs("docs/trs/generated")
+    val requirementDocs = docs("docs/requirements")
+    val designDocs = docs("docs/basic-design")
     val a = "REQ-TST-01"
     val b = "REQ-TST-02"
     val c = "REQ-TST-03"
     val d = "REQ-TST-04"
     val reqOk = mapOf("req.md" to reqDocRows(listOf("| $a | 説明 | |", "| $b | 説明 | |", "| $c | 説明 | |")))
     val trsOk = mapOf("trs.md" to trsDoc(listOf("$a, $b"), listOf("$b, $c")))
-    val acRow = Regex("""^\|\s*(AC-\d\d-\d\d)\s*\|""", RegexOption.MULTILINE)
-    val pendingTag = Regex("""@(AC-\d\d-\d\d)\b[^\n]*@pending:""") // UnresolvedBlockingCheck の @pending の検査と同じ範囲
 
-    // テスト名（Kotest の文字列名・JUnit のバッククォート名）の先頭に置かれた AC ID
-    val testSources = Konsist.scopeFromTest().files.filterNot { it.name == "TraceabilityTest" }.joinToString("\n") { it.text }
-    fun hasTest(ac: String) = Regex("""["`](?:AC-\d\d-\d\d )*$ac\b""").containsMatchIn(testSources)
+    // テスト名（Kotest の文字列名・JUnit のバッククォート名）の先頭に置かれた AC ID。自己テストの文字列は、テスト名ではないので除く
+    val testSources = Konsist.scopeFromTest().files.filterNot { it.name in selfTestFiles }.joinToString("\n") { it.text }
 
     "統合テスト（src/integrationTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
         // 層2（Integration）の AC は src/integrationTest のテストに紐づく。ここが検査範囲から外れると、移した AC が「テスト無し」と誤判定される
@@ -202,35 +217,35 @@ class TraceabilityTest : StringSpec({
         testSources.contains("class TaskListE2eTest") shouldBe true // src/e2eTest のテスト本文が照合対象に入っている
     }
 
-    "TRS が1つ以上存在する（ディレクトリの移動で素通りしない）" {
-        trsFiles.isNotEmpty() shouldBe true
+    "TRS ファイルと生成物のファイルが1つ以上存在する（ディレクトリの移動で素通りしない）" {
+        trsDocs.isNotEmpty() shouldBe true
+        generatedDocs.isNotEmpty() shouldBe true
     }
 
-    "AC ID が複数の TRS で重複していない（別機能のテストで AC が満たされたように見えるのを防ぐ）" {
-        val duplicated = trsFiles
-            .flatMap { trs -> acRow.findAll(trs.readText()).map { it.groupValues[1] to trs.name }.toSet() }
-            .groupBy({ it.first }, { it.second })
-            .filterValues { it.size > 1 }
-            .map { (ac, files) -> "$ac: ${files.joinToString()}" }
-        duplicated.shouldBeEmpty()
+    "基本設計書が1つ以上存在し、設計 ID を読めている（根拠の実在の検査が空の照合先で素通りしない）" {
+        designDocs.isNotEmpty() shouldBe true
+        designDocs.values.sumOf { DesignIds.read(it).size } shouldBeGreaterThan 0
     }
 
-    "pending でない全ての AC に、先頭に AC ID を持つテストが紐づいている" {
-        val missing = trsFiles.flatMap { trs ->
-            val text = trs.readText()
-            val pending = pendingTag.findAll(text).map { it.groupValues[1] }.toSet()
-            acRow.findAll(text).map { it.groupValues[1] }.toSet()
-                .filter { it !in pending && !hasTest(it) }
-                .map { "${trs.name}: $it" }
-        }
-        missing.shouldBeEmpty()
+    "TRS ファイルと生成物のファイルが組になり、03 §3.4 の失敗条件に当たらない（置き場・AC の表・期待結果・根拠の実在・照合）" {
+        val violations = TrsSetCheck.violations(trsDocs, generatedDocs, requirementDocs, designDocs)
+        withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() } // 違反の全件を失敗メッセージに出す
     }
 
-    "TRS の Open Issues 表を読めている（表の書式変更で検査が素通りしない）" {
-        trsFiles.forEach { trs ->
-            val text = trs.readText()
+    "pending でない全ての AC に、先頭に AC ID を持つテストが紐づいている（①）" {
+        val missing = TestNameCheck.untested(generatedDocs, testSources)
+        withClue(missing.joinToString("\n")) { missing.shouldBeEmpty() }
+    }
+
+    "テスト名の先頭の AC ID が、どれかの TRS の AC の表にある（⑦）" {
+        val unknown = TestNameCheck.unknown(generatedDocs, testSources)
+        withClue(unknown.joinToString("\n")) { unknown.shouldBeEmpty() }
+    }
+
+    "TRS ファイルの Open Issues 表を読めている（表の書式変更で検査が素通りしない）" {
+        trsDocs.forEach { (name, text) ->
             val (rows, errors) = UnresolvedBlockingCheck.parse(text)
-            errors.shouldBeEmpty()
+            withClue(name) { errors.shouldBeEmpty() }
             rows.isNotEmpty() shouldBe true
             rows.size shouldBe Regex("""^\|\s*OI-\d+\s*\|""", RegexOption.MULTILINE).findAll(text).count()
         }
@@ -240,15 +255,18 @@ class TraceabilityTest : StringSpec({
         UnresolvedBlockingCheck.violations(File("../../docs/testing/trs/_template.md").readText()).shouldBeEmpty()
     }
 
+    "TRS のテンプレートも、AC の表・組合せ別の期待結果・トレーサビリティ表の検査を通る（全節を 1 ファイルで示すので、置き場の検査と根拠の実在は除く）" {
+        val template = File("../../docs/testing/trs/_template.md").readText()
+        val violations = TrsSetCheck.contentViolations(template, template)
+        withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
+    }
+
     "要件定義書が1つ以上存在する（ディレクトリの移動で素通りしない）" {
-        requirementFiles.isNotEmpty() shouldBe true
+        requirementDocs.isNotEmpty() shouldBe true
     }
 
     "要件定義書の要件 ID と TRS の US/UC の出典が対応している（⑤ 全 ID が出典に現れる、⑥ 出典が実在し、ID が一意）" {
-        val violations = RequirementTraceCheck.violations(
-            requirementFiles.associate { it.name to it.readText() },
-            trsFiles.associate { it.name to it.readText() },
-        )
+        val violations = RequirementTraceCheck.violations(requirementDocs, generatedDocs)
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() } // 違反の全件を失敗メッセージに出す
     }
 
@@ -260,8 +278,8 @@ class TraceabilityTest : StringSpec({
     }
 
     "未解決の Blocking な Open Issue が指す AC に、その OI-ID の @pending が付いている（G5）" {
-        val violations = trsFiles.flatMap { trs -> UnresolvedBlockingCheck.violations(trs.readText()).map { "${trs.name}: $it" } }
-        violations.shouldBeEmpty()
+        val violations = trsDocs.flatMap { (name, text) -> UnresolvedBlockingCheck.violations(text, generatedDocs[name].orEmpty()).map { "$name: $it" } }
+        withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
     }
 
     "反例: 未解決の Blocking があるのに @pending が無い TRS は違反になる" {
@@ -284,7 +302,7 @@ class TraceabilityTest : StringSpec({
     "反例: @pending が実在する別の未解決の Blocking（OI-002）だけを指していると、OI-001 の AC に OI-001 の @pending が無く、AC-09-01 も OI-002 の関連列に無いので違反になる" {
         UnresolvedBlockingCheck.violations(
             sampleTrsRows(
-                listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
+                listOf("| OI-001 | Blocking | AC-09-01 | Open | |", "| OI-002 | Blocking | AC-09-02 | Open | |"),
                 "@AC-09-01 @layer:1 @pending:OI-002",
                 "@AC-09-02 @layer:1 @pending:OI-002",
             ),
@@ -298,7 +316,7 @@ class TraceabilityTest : StringSpec({
         // 期待値の出所は Issue #101 の決定。AC-09-01 は OI-001 の関連列にあるので OI-001 は合格、OI-002 の関連列は AC-09-02 だけなので違反になる
         UnresolvedBlockingCheck.violations(
             sampleTrsRows(
-                listOf("| OI-001 | Blocking | AC-09-01 | Open |", "| OI-002 | Blocking | AC-09-02 | Open |"),
+                listOf("| OI-001 | Blocking | AC-09-01 | Open | |", "| OI-002 | Blocking | AC-09-02 | Open | |"),
                 "@AC-09-01 @layer:1 @pending:OI-001 @pending:OI-002",
                 "@AC-09-02 @layer:1 @pending:OI-002",
             ),
@@ -367,11 +385,11 @@ class TraceabilityTest : StringSpec({
 
     "反例: Open Issues 表の見出しが無い TRS は違反になる" {
         UnresolvedBlockingCheck.violations("| AC-09-01 | 説明 |\n")
-            .shouldContainExactly("Open Issues 表の見出し（ID・区分・関連・状態）が見つからない")
+            .shouldContainExactly("Open Issues 表の見出し（ID・区分・関連・状態・反映先）が見つからない")
     }
 
     "反例: Open Issues 表に行が 1 つも無いと違反になる" {
-        UnresolvedBlockingCheck.violations("| ID | 区分 | 関連 | 状態 |\n|---|---|---|---|\n")
+        UnresolvedBlockingCheck.violations("| ID | 区分 | 関連 | 状態 | 反映先 |\n|---|---|---|---|---|\n")
             .shouldContainExactly("Open Issues 表に行が 1 つも無い")
     }
 
@@ -699,23 +717,23 @@ class TraceabilityTest : StringSpec({
 
 /** 検査の入力用の最小の TRS。AC 表（`tags` の先頭の AC ID）、Gherkin のタグ行、Open Issues 表（OI-001 の1行）を持つ */
 private fun sampleTrs(kind: String, related: String, state: String, vararg tags: String): String =
-    sampleTrsRows(listOf("| OI-001 | $kind | $related | $state |"), *tags)
+    sampleTrsRows(listOf("| OI-001 | $kind | $related | $state | |"), *tags)
 
 /** [sampleTrs] の Open Issues 表の行（`| ID | 区分 | 関連 | 状態 |` の順）を複数指定できる版 */
 private fun sampleTrsRows(oiRows: List<String>, vararg tags: String): String = buildString {
-    appendLine("| AC | 内容 |")
-    appendLine("|---|---|")
-    tags.forEach { appendLine("| ${it.substringBefore(' ').removePrefix("@")} | 説明 |") }
+    appendLine("| AC ID | 関連 UC | テストレベル | 検証層 | 優先度 | 検証する振る舞い | 根拠 |")
+    appendLine("|---|---|---|---|---|---|---|")
+    tags.forEach { appendLine("| ${it.substringBefore(' ').removePrefix("@")} | UC-01 | 単体 | 層1 | Must | 説明 | REQ-TST-01 |") }
     appendLine()
     tags.forEach { appendLine(it) }
     appendLine()
-    appendLine("| ID | 区分 | 関連 | 状態 |")
-    appendLine("|---|---|---|---|")
+    appendLine("| ID | 区分 | 関連 | 状態 | 反映先 |")
+    appendLine("|---|---|---|---|---|")
     oiRows.forEach { appendLine(it) }
 }
 
 /** ⑤ ⑥ の検査の入力用の最小の要件定義書。機能要件の表に [rows]（行全体）を置き、未決事項の表（Q-01）を持つ。表の先頭の行は 7 行目 */
-private fun reqDocRows(rows: List<String>): String = buildString {
+internal fun reqDocRows(rows: List<String>): String = buildString {
     appendLine("# 要件")
     appendLine()
     appendLine("## 3. 機能要件")
@@ -732,7 +750,7 @@ private fun reqDocRows(rows: List<String>): String = buildString {
 }
 
 /** ⑤ ⑥ の検査の入力用の最小の TRS。[us] の i 番目が US-0i の出典、[uc] の i 番目が UC-0i の出典になる */
-private fun trsDoc(us: List<String>, uc: List<String>): String = buildString {
+internal fun trsDoc(us: List<String>, uc: List<String>): String = buildString {
     appendLine("# TRS")
     appendLine()
     appendLine("### 1. ユーザーストーリー（US）")
@@ -753,3 +771,6 @@ private fun trsDoc(us: List<String>, uc: List<String>): String = buildString {
         appendLine("| アクター | 本人 |")
     }
 }
+
+/** テスト名の検査（① ⑦）が、自己テストの入力の文字列をテスト名と取り違えないよう除くファイル */
+internal val selfTestFiles = setOf("TraceabilityTest", "TrsSetCheckTest")
