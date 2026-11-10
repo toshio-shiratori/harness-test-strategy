@@ -177,9 +177,12 @@ tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIn
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    // TraceabilityTest が TRS・要件定義書とそれぞれのテンプレートを読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
+    // TraceabilityTest が TRS ファイル・生成物のファイル・要件定義書・基本設計書とそれぞれのテンプレートを読むため、変更時に再実行されるよう入力に宣言する（未宣言だと up-to-date 扱いで素通りする）
+    // docs/trs は generated も含むが、読んでいることを明示するため generated も宣言する
     inputs.dir("docs/trs")
+    inputs.dir("docs/trs/generated")
     inputs.dir("docs/requirements")
+    inputs.dir("docs/basic-design")
     inputs.file("../../docs/testing/trs/_template.md")
     inputs.file("../../docs/testing/templates/requirements.md")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する

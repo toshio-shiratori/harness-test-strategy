@@ -38,7 +38,7 @@ internal object RequirementTraceCheck {
     private val fenceOpen = Regex("""^(`{3,}|~{3,})(.*)$""")
 
     /** 1 行の読み取り結果。[level] は見出しの深さ（見出しでなければ 0）、[table] は表の通し番号（表の行でなければ -1）、[row] は表の中の行の位置 */
-    private class Line(val no: Int, val text: String, val level: Int, val title: String, val table: Int, val row: Int, val cells: List<String>)
+    internal class Line(val no: Int, val text: String, val level: Int, val title: String, val table: Int, val row: Int, val cells: List<String>)
 
     class Requirement(val id: String, val line: Int)
 
@@ -57,7 +57,7 @@ internal object RequirementTraceCheck {
      * コードブロックは、開いた文字（`` ` `` か `~`）と同じ文字を、開いた長さ以上に並べた行で閉じる。
      * 表は連続する `|` 始まりの行で、通し番号と行の位置を付ける。
      */
-    private fun scan(text: String): List<Line> {
+    internal fun scan(text: String): List<Line> {
         var fenceChar = ' '
         var fenceLen = 0
         var inComment = false

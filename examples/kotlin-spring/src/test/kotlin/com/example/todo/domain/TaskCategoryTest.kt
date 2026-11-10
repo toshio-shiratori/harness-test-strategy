@@ -16,7 +16,7 @@ import java.time.ZoneOffset
 import java.util.TimeZone
 
 /**
- * 期待値は TRS TODO-001 の AC-04-01 と制約表（5.2 の C-10〜C-15）を正とする。
+ * 期待値は TRS TODO-001 の AC-04-01 と制約表（生成物のファイルの 5.2 の C-10〜C-15）から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装から逆生成しない（03 §3.1）。
  * 現在時刻の判定は Asia/Tokyo（+09:00）の日付で行い、期限の翌日の 0 時 0 分から期限切れになる。
  */
 class TaskCategoryTest : FunSpec({
@@ -27,7 +27,7 @@ class TaskCategoryTest : FunSpec({
 
     fun clockAt(now: String, zone: ZoneId = ZoneOffset.UTC): Clock = Clock.fixed(OffsetDateTime.parse(now).toInstant(), zone)
 
-    // AC-04-01 の Examples の 1 行を 1 ケースにする。id は、その行が当たる制約表 5.2 の行（期待結果は制約表の値）
+    // AC-04-01 が根拠にする制約表 5.2 の行（C-10〜C-13）を、1 行 1 ケースにする。id は制約 ID で、期待結果は制約表の値
     data class Case(val id: String, val state: TaskStatus, val due: String?, val now: String, val expected: TaskCategory)
 
     context("AC-04-01 タスクの区分は、完了・期限・現在時刻で決まる（C-10〜C-13）") {

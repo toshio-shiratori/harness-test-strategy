@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 /**
  * 登録（UC-01）の HTTP と DB の結合テスト（層2 Integration）。
  * Controller → Service → MyBatis → MySQL（Testcontainers）まで通し、保存は HTTP で一覧を取り直して確かめる。
- * 期待値は TRS TODO-001 の AC と OI の決定を正とし、実装の挙動から逆生成していない。
+ * 期待値は TRS TODO-001 の AC と制約表、OI の決定から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装の挙動から逆生成していない（03 §3.1）。
  * タイトルの検証そのものの網羅は層1（`TaskTitleTest`）が受け持つ。ここでは、拒否が 400 と理由コードで返り、何も保存されないことを見る。
  */
 class TaskApiHttpTest : TaskApiTestBase() {
@@ -36,7 +36,7 @@ class TaskApiHttpTest : TaskApiTestBase() {
 
     @Test
     fun `AC-01-15 登録したタスクは保存され、読み戻しても同じである`() {
-        // 期待値は TRS の Examples の表から転記した（title, saved, due）。saved が null のものは入力と同じ
+        // 期待値は、AC-01-15 が根拠にする制約表 5.2 の C-50・C-54・C-58・C-66 から取った（title, saved, due）。saved が null のものは入力と同じ
         val cases = listOf(
             Triple(milk, milk, "2026-11-30"),
             Triple(milk, milk, "2026-10-31"),
