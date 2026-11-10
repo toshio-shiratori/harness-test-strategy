@@ -37,8 +37,26 @@ internal object RequirementTraceCheck {
     private val ucLike = Regex("""^UC-\d+""")
     private val fenceOpen = Regex("""^(`{3,}|~{3,})(.*)$""")
 
-    /** 1 行の読み取り結果。[level] は見出しの深さ（見出しでなければ 0）、[table] は表の通し番号（表の行でなければ -1）、[row] は表の中の行の位置 */
-    internal class Line(val no: Int, val text: String, val level: Int, val title: String, val table: Int, val row: Int, val cells: List<String>)
+    /** [Line.fence] の値。コードブロックの外、開きの行、中の行、閉じの行 */
+    internal enum class Fence { NONE, OPEN, BODY, CLOSE }
+
+    /**
+     * 1 行の読み取り結果。[level] は見出しの深さ（見出しでなければ 0）、[table] は表の通し番号（表の行でなければ -1）、[row] は表の中の行の位置。
+     * [fence] はコードブロックの中の位置、[fenceInfo] はそのコードブロックの言語（開きの行の、最初の語。コードブロックの外では空）。
+     * [comment] は HTML コメントの開始行から終了行まで（コードブロックの中は数えない）。
+     */
+    internal class Line(
+        val no: Int,
+        val text: String,
+        val level: Int,
+        val title: String,
+        val table: Int,
+        val row: Int,
+        val cells: List<String>,
+        val fence: Fence = Fence.NONE,
+        val fenceInfo: String = "",
+        val comment: Boolean = false,
+    )
 
     class Requirement(val id: String, val line: Int)
 
@@ -60,6 +78,7 @@ internal object RequirementTraceCheck {
     internal fun scan(text: String): List<Line> {
         var fenceChar = ' '
         var fenceLen = 0
+        var fenceInfo = ""
         var inComment = false
         var table = -1
         var nextTable = 0
@@ -73,6 +92,13 @@ internal object RequirementTraceCheck {
             if (fence) {
                 fenceChar = fenceMark!!.groupValues[1][0]
                 fenceLen = if (fenced) 0 else fenceMark.groupValues[1].length
+                if (!fenced) fenceInfo = fenceMark.groupValues[2].trim().substringBefore(' ')
+            }
+            val position = when {
+                fence && fenced -> Fence.CLOSE
+                fence -> Fence.OPEN
+                fenced -> Fence.BODY
+                else -> Fence.NONE
             }
             val comment = !fence && !fenced && (inComment || "<!--" in raw)
             if (comment) {
@@ -91,7 +117,10 @@ internal object RequirementTraceCheck {
                 isRow -> row++
                 else -> table = -1
             }
-            Line(i + 1, raw, heading?.groupValues?.get(1)?.length ?: 0, heading?.groupValues?.get(2).orEmpty(), table, row, if (isRow) cells(t) else emptyList())
+            Line(
+                i + 1, raw, heading?.groupValues?.get(1)?.length ?: 0, heading?.groupValues?.get(2).orEmpty(), table, row, if (isRow) cells(t) else emptyList(),
+                position, if (position == Fence.NONE) "" else fenceInfo, comment,
+            )
         }
     }
 
