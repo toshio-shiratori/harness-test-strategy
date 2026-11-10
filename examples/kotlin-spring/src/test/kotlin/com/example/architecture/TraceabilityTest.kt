@@ -184,6 +184,10 @@ internal object UnresolvedBlockingCheck {
  * 要件定義書（`docs/requirements/`）の要件 ID が、どの TRS の US/UC の出典にも現れなければ失敗させる（03 §3.4.4 の ⑤）。
  * US/UC の出典が実在する要件 ID でなければ（空欄・`—`・OI-ID を含む）、また同じ要件 ID が複数の行にあれば失敗させる（同 ⑥）。
  * US/UC は生成物のファイルから読む。要件定義書と TRS の書式が読めないとき（要件を読む表の外の要件 ID、要件 0 件、US/UC 0 件など）も失敗させる（[RequirementTraceCheck]）。
+ * 基本設計書（`docs/basic-design/`）の設計 ID（節 2〜9 の表の先頭列）が、どの TRS の根拠にも現れなければ失敗させる（03 §3.4.4 の ⑧）。
+ * TRS の根拠の設計 ID が実在しなければ、また同じ設計 ID が複数の行にあれば失敗させる（同 ⑨）。設計 ID の書式が読めないときも失敗させる（[DesignIds]・[BasisCheck]）。
+ * 要件定義書と基本設計書の目次が、03 §5.2 の目次と違えば失敗させる（同 §3.4.5 の ⑩）。
+ * 要件定義書の「使わない言い換え」が、同じ名前の要件定義書・基本設計書・TRS・生成物のファイルに現れれば失敗させる（同 ⑪。[InputDocCheck]）。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
 class TraceabilityTest : StringSpec({
@@ -230,6 +234,34 @@ class TraceabilityTest : StringSpec({
     "TRS ファイルと生成物のファイルが組になり、03 §3.4 の失敗条件に当たらない（置き場・AC の表・期待結果・根拠の実在・照合）" {
         val violations = TrsSetCheck.violations(trsDocs, generatedDocs, requirementDocs, designDocs)
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() } // 違反の全件を失敗メッセージに出す
+    }
+
+    "要件定義書と基本設計書の目次が、03 §5.2 のとおりである（⑩）" {
+        val violations = InputDocCheck.tocViolations("要件定義書", requirementDocs, InputDocCheck.requirementToc) +
+            InputDocCheck.tocViolations("基本設計書", designDocs, InputDocCheck.designToc)
+        withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
+    }
+
+    "要件定義書の「使わない言い換え」が、同じ名前の要件定義書・基本設計書・TRS ファイル・生成物のファイルに現れない（⑪）" {
+        val violations = InputDocCheck.termViolations(requirementDocs, designDocs, trsDocs, generatedDocs)
+        withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
+    }
+
+    "目次の定数（InputDocCheck）が 03 §5.2 の目次と同じで、テンプレートも ⑩ を通る（目次の正が規範とずれない）" {
+        // 03 §5.2 の番号つきの一覧を読む。一覧は、番号が 1 に戻るところで、要件定義書と基本設計書に分かれる
+        val section = File("../../docs/testing/03-trs-guideline.md").readText().substringAfter("### 5.2 入力の文書").substringBefore("### 5.3")
+        val lists = mutableListOf<MutableList<String>>()
+        Regex("""^(\d+)\. (.+)$""", RegexOption.MULTILINE).findAll(section).forEach { m ->
+            if (m.groupValues[1] == "1") lists += mutableListOf<String>()
+            lists.last() += m.groupValues[2].trim()
+        }
+        lists shouldBe listOf(InputDocCheck.requirementToc, InputDocCheck.designToc)
+        val templates = File("../../docs/testing/templates")
+        val requirementTemplate = mapOf("requirements.md" to File(templates, "requirements.md").readText())
+        InputDocCheck.tocViolations("要件定義書", requirementTemplate, InputDocCheck.requirementToc).shouldBeEmpty()
+        InputDocCheck.tocViolations("基本設計書", mapOf("basic-design.md" to File(templates, "basic-design.md").readText()), InputDocCheck.designToc).shouldBeEmpty()
+        // 用語の表の見出しと小見出しを、検査が読める（テンプレートの書式を変えたとき、検査から外れない）
+        InputDocCheck.terms(requirementTemplate.getValue("requirements.md")).errors.shouldBeEmpty()
     }
 
     "pending でない全ての AC に、先頭に AC ID を持つテストが紐づいている（①）" {
