@@ -1,5 +1,6 @@
 package com.example.architecture
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
@@ -393,11 +394,137 @@ class TrsSetCheckTest : StringSpec({
     }
 
     "反例: AC の表の根拠の設計 ID が、基本設計書の節 2〜9 に無いと違反になる（無い ID・節 1 の ID・節 10 の ID）" {
-        listOf("DES-TST-99", "DES-TST-90", "DES-TST-91").forEach { id ->
-            check(gen = generatedFile(firstBasis = "C-10, $id")).shouldContainExactly("t.md: AC-01-01: 根拠 $id は基本設計書の節 2〜9 に無い設計 ID")
+        check(gen = generatedFile(firstBasis = "C-10, DES-TST-99")).shouldContainExactly("t.md: AC-01-01: 根拠 DES-TST-99 は基本設計書の節 2〜9 に無い設計 ID")
+        // 節 1・節 10 の設計 ID の形は、設計 ID に数えない（根拠から指すと実在しない ID になる）。節の外に書いたこと自体も違反になる
+        val outOfRange = designDoc(outOfRange = true)
+        val outside = listOf(
+            "design.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(outOfRange, "| DES-TST-90")}）: DES-TST-90",
+            "design.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(outOfRange, "| DES-TST-91")}）: DES-TST-91",
+        )
+        listOf("DES-TST-90", "DES-TST-91").forEach { id ->
+            check(gen = generatedFile(firstBasis = "C-10, $id"), designs = mapOf("design.md" to outOfRange))
+                .shouldContainExactly(outside + "t.md: AC-01-01: 根拠 $id は基本設計書の節 2〜9 に無い設計 ID")
         }
-        check(gen = generatedFile(firstBasis = "C-10, DES-TST-01"), designs = emptyMap())
-            .shouldContainExactly("t.md: AC-01-01: 根拠 DES-TST-01 は基本設計書の節 2〜9 に無い設計 ID", "t.md: AC-01-02: 根拠 DES-TST-02 は基本設計書の節 2〜9 に無い設計 ID")
+        // 基本設計書が無いと、設計 ID はすべて実在しない。AC の表の 2 件と 5.2 の 2 件を、行ごとに報告する
+        check(gen = generatedFile(firstBasis = "C-10, DES-TST-01"), designs = emptyMap()).shouldContainExactly(
+            "t.md: AC-01-01: 根拠 DES-TST-01 は基本設計書の節 2〜9 に無い設計 ID",
+            "t.md: AC-01-02: 根拠 DES-TST-02 は基本設計書の節 2〜9 に無い設計 ID",
+            "t.md: C-10: 根拠 DES-TST-01 は基本設計書の節 2〜9 に無い設計 ID",
+            "t.md: C-11: 根拠 DES-TST-02 は基本設計書の節 2〜9 に無い設計 ID",
+        )
+    }
+
+    "⑨ 反例: 組合せ別の期待結果（5.2）の根拠の設計 ID が、基本設計書の節 2〜9 に無いと違反になる" {
+        check(gen = generatedFile(secondBasis = "REQ-TST-02, DES-TST-02, DES-TST-99"))
+            .shouldContainExactly("t.md: C-11: 根拠 DES-TST-99 は基本設計書の節 2〜9 に無い設計 ID")
+    }
+
+    "⑨ 反例: 根拠の値が DES- で始まるのに設計 ID の書式でないと違反になる（AC の表も 5.2 も。綴りの誤りが実在の検査をすり抜けない）" {
+        val malformed = listOf("DES-", "DES-TST-1", "DES-tst-01", "DES-T-01", "DES-TOOLONGX-01", "DES-TST-01-02", "DES-TST01", "DES-TST-x1")
+        malformed.forEach { value ->
+            val message = "根拠 $value は DES- で始まるが、設計 ID の書式（DES-<略号>-<番号>。略号は英大文字 2〜6、番号は 2 桁以上）でない"
+            check(gen = generatedFile(firstBasis = "C-10, $value")).shouldContainExactly("t.md: AC-01-01: $message")
+            check(gen = generatedFile(secondBasis = "REQ-TST-02, DES-TST-02, $value")).shouldContainExactly("t.md: C-11: $message")
+        }
+    }
+
+    "⑨ 正例: 5.2 の根拠に、要件 ID と OI-ID と設計 ID を並べても、設計 ID が実在すれば合格する" {
+        check(gen = generatedFile(secondBasis = "REQ-TST-02, DES-TST-02, OI-001")).shouldBeEmpty()
+    }
+
+    "⑨ 反例: 同じ設計 ID が、同じ基本設計書の複数の行にあると違反になる" {
+        val doc = designDoc().replace("| DES-TST-02 | まだ無い", "| DES-TST-01 | まだ無い")
+        check(designs = mapOf("design.md" to doc)).shouldContain(
+            "設計 ID DES-TST-01 が複数の行にある（design.md:${lineOf(doc, "| DES-TST-01 | 登録")}, design.md:${lineOf(doc, "| DES-TST-01 | まだ無い")}）",
+        )
+    }
+
+    "⑨ 反例: 同じ設計 ID が、別の基本設計書の間で複数の行にあると違反になる" {
+        val other = designDoc()
+        check(designs = mapOf("design.md" to designDoc(), "other.md" to other)).shouldContain(
+            "設計 ID DES-TST-01 が複数の行にある（design.md:${lineOf(other, "| DES-TST-01")}, other.md:${lineOf(other, "| DES-TST-01")}）",
+        )
+    }
+
+    "⑨ 書式の反例: 節 2〜9 の表の先頭列が、設計 ID の形でないと違反になる（節の番号・小見出しの表・見出し行と区切り行は除く）" {
+        val doc = designDoc().replace("| DES-TST-02 | まだ無い", "| 状態 2 | まだ無い")
+        DesignIds.violations(mapOf("design.md" to doc)).shouldContain("design.md: 節 2〜9 の表で先頭列が設計 ID の形でない行がある（行 ${lineOf(doc, "| 状態 2")}）: 状態 2")
+        DesignIds.violations(mapOf("design.md" to designDoc())).shouldBeEmpty()
+    }
+
+    "⑨ 書式の反例: 設計 ID の形の文字列が、節 2〜9 の表の外（節 1・節 10・メタ情報・地の文・コードブロック・コメント）にあると違反になる" {
+        val outside = listOf("節 1" to "| DES-TST-90 | 全体 |", "地の文" to "DES-TST-92 を参照する。", "メタ情報" to "| 対応 | DES-TST-93 |")
+        outside.forEach { (place, line) ->
+            val doc = designDoc().replace("## 2. 画面", "$line\n\n## 2. 画面")
+            val id = Regex("""DES-TST-9\d""").find(line)!!.value
+            withClue(place) {
+                DesignIds.violations(mapOf("d.md" to doc)).shouldContain("d.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(doc, line)}）: $id")
+            }
+        }
+        val section10 = designDoc(outOfRange = true)
+        DesignIds.violations(mapOf("d.md" to section10)).shouldContain("d.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(section10, "| DES-TST-91")}）: DES-TST-91")
+        val fenced = designDoc().replace("## 5. 状態と操作", "```text\n| DES-TST-94 | 例 |\n```\n\n## 5. 状態と操作")
+        DesignIds.violations(mapOf("d.md" to fenced)).shouldContain("d.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(fenced, "| DES-TST-94")}）: DES-TST-94")
+        val commented = designDoc().replace("## 5. 状態と操作", "<!-- DES-TST-95 -->\n\n## 5. 状態と操作")
+        DesignIds.violations(mapOf("d.md" to commented)).shouldContain("d.md: 設計 ID の形の文字列が、節 2〜9 の表の外にある（行 ${lineOf(commented, "<!-- DES-TST-95")}）: DES-TST-95")
+    }
+
+    "⑨ 書式の正例: 節 2〜9 の表の先頭列以外にある設計 ID の形の文字列は、定義に数えず、違反にもしない" {
+        val doc = designDoc().replace("| DES-TST-01 | 登録 | 登録する |", "| DES-TST-01 | 登録 | DES-TST-02 の後に登録する |")
+        DesignIds.violations(mapOf("d.md" to doc)).shouldBeEmpty()
+        DesignIds.parse(doc).items.map { it.id } shouldBe listOf("DES-TST-01", "DES-TST-02")
+    }
+
+    "⑨ 書式の反例: 節 2〜9 の表の見出し行に設計 ID の形の文字列があると違反になる" {
+        val doc = designDoc().replace("| ID | 画面 | 表示と操作 |", "| DES-TST-96 | 画面 | 表示と操作 |")
+        DesignIds.violations(mapOf("d.md" to doc)).shouldContain("d.md: 節 2〜9 の表の見出し行に設計 ID の形の文字列がある（行 ${lineOf(doc, "| DES-TST-96")}）: DES-TST-96")
+    }
+
+    "⑨ 書式の反例: 基本設計書があるのに設計 ID が 1 件も読めないと違反になる（表が無い・節の番号が無い・節 1 と節 10 だけ）" {
+        val none = "# 基本設計書\n\n## 2. 画面\n\n該当なし\n\n## 5. 状態と操作\n\n該当なし\n"
+        val unnumbered = "# 基本設計書\n\n## 画面\n\n| ID | 画面 |\n|---|---|\n| X-01 | 登録 |\n"
+        listOf(none, unnumbered, "").forEach {
+            DesignIds.violations(mapOf("d.md" to it)).shouldContain("d.md: 設計 ID が 1 件も読めない（節 2〜9 の表に、先頭列が設計 ID の行を置く）")
+        }
+        check(designs = mapOf("design.md" to none)).shouldContain("design.md: 設計 ID が 1 件も読めない（節 2〜9 の表に、先頭列が設計 ID の行を置く）")
+    }
+
+    "⑧ 反例: 基本設計書の設計 ID が、どの TRS の根拠にも現れないと違反になる" {
+        val doc = designDoc()
+        check(gen = generatedFile(firstBasis = "C-10, REQ-TST-01", secondBasis = "REQ-TST-02, OI-001", acRows = listOf(acRow("AC-01-01", "C-10, REQ-TST-01"), acRow("AC-01-02", "C-11, REQ-TST-02, OI-001"), acRow("AC-01-03", "REQ-TST-03")), firstRowBasis = "REQ-TST-01"))
+            .shouldContainExactly(
+                "design.md: 設計 ID DES-TST-01 が、どの TRS の根拠にも現れない（行 ${lineOf(doc, "| DES-TST-01")}）",
+                "design.md: 設計 ID DES-TST-02 が、どの TRS の根拠にも現れない（行 ${lineOf(doc, "| DES-TST-02")}）",
+            )
+    }
+
+    "⑧ 正例: 設計 ID が、AC の表の根拠だけ、または 5.2 の根拠だけに現れても、現れたとみなす" {
+        // DES-TST-02 は AC の表だけ（5.2 の C-11 には書かない）、DES-TST-01 は 5.2 だけ（AC の表には書かない）
+        val gen = generatedFile(
+            firstBasis = "C-10, REQ-TST-01",
+            acRows = listOf(acRow("AC-01-01", "C-10, REQ-TST-01"), acRow("AC-01-02", "C-11, REQ-TST-02, DES-TST-02, OI-001"), acRow("AC-01-03", "REQ-TST-03")),
+            secondBasis = "REQ-TST-02, OI-001",
+        )
+        check(gen = gen).shouldBeEmpty()
+    }
+
+    "⑧ 正例: @pending を付けた AC の根拠の設計 ID も、現れたとみなす" {
+        val trs = trsFile(oiRows = defaultOiRows + oiRow("OI-005", "Blocking", "AC-01-03", "Open", ""))
+        val gen = generatedFile(
+            acRows = listOf(acRow("AC-01-01", "C-10, REQ-TST-01, DES-TST-01"), acRow("AC-01-02", "C-11, REQ-TST-02, OI-001"), acRow("AC-01-03", "REQ-TST-03, DES-TST-02")),
+            tags = listOf("@AC-01-03 @layer:2 @pending:OI-005"),
+            secondBasis = "REQ-TST-02, OI-001",
+        )
+        check(trs = trs, gen = gen).shouldBeEmpty()
+    }
+
+    "⑧ 正例: 設計 ID が複数の TRS に分かれて現れても、全体で 1 回ずつ現れていればよい（全 TRS の根拠を合わせて照合する）" {
+        val first = generatedFile(acRows = listOf(acRow("AC-01-01", "C-10, REQ-TST-01, DES-TST-01"), acRow("AC-01-02", "C-11, REQ-TST-02, OI-001"), acRow("AC-01-03", "REQ-TST-03")), secondBasis = "REQ-TST-02, OI-001")
+        val second = generatedFile(acRows = listOf(acRow("AC-02-01", "C-10, REQ-TST-01, DES-TST-02")), tags = emptyList(), firstRowBasis = "REQ-TST-01", secondBasis = "REQ-TST-02")
+        val secondTrs = trsFile(oiRows = listOf(oiRow("OI-001", "Blocking", "AC-02-01", "Resolved", "AC-02-01 追加")), trace = listOf("AC-02-01"))
+        TrsSetCheck.violations(mapOf("t.md" to trsFile(), "o.md" to secondTrs), mapOf("t.md" to first, "o.md" to second), req, des).shouldBeEmpty()
+        TrsSetCheck.violations(mapOf("t.md" to trsFile()), mapOf("t.md" to first), req, des)
+            .shouldContainExactly("design.md: 設計 ID DES-TST-02 が、どの TRS の根拠にも現れない（行 ${lineOf(designDoc(), "| DES-TST-02")}）")
     }
 
     "反例: AC の表の根拠の OI-ID が、組になる TRS ファイルの Open Issues 表に無いと違反になる" {
@@ -471,8 +598,9 @@ class TrsSetCheckTest : StringSpec({
         AcRefs.expand("F1-L2").ids.shouldBeEmpty()
     }
 
-    "設計 ID は、基本設計書の節 2〜9 の表の先頭列だけから読む" {
+    "設計 ID は、基本設計書の節 2〜9 の表の先頭列だけから読む（節 1 と節 10 の設計 ID の形は数えない）" {
         DesignIds.read(designDoc()) shouldBe setOf("DES-TST-01", "DES-TST-02")
+        DesignIds.read(designDoc(outOfRange = true)) shouldBe setOf("DES-TST-01", "DES-TST-02")
     }
 })
 
@@ -515,7 +643,7 @@ private fun trsFile(oiRows: List<String> = defaultOiRows, trace: List<String> = 
 
 /**
  * 生成物のファイルの最小の例。US・UC・AC の表・流れの Gherkin・5.2 を持つ。5.2 の最初の行（C-10）の期待結果は [firstExpected]、
- * 2 行目（C-11）の根拠は [secondBasis]、AC の表の最初の行の根拠は [firstBasis] で変えられる（[acRows] を指定したときは [firstBasis] は使わない）
+ * 1 行目（C-10）の根拠は [firstRowBasis]、2 行目（C-11）の根拠は [secondBasis]、AC の表の最初の行の根拠は [firstBasis] で変えられる（[acRows] を指定したときは [firstBasis] は使わない）
  */
 private fun generatedFile(
     us: List<String> = listOf("REQ-TST-01, REQ-TST-02, REQ-TST-03"),
@@ -525,6 +653,7 @@ private fun generatedFile(
     tags: List<String> = listOf("@AC-01-03 @layer:2 @e2e:happy-path"),
     firstExpected: String = "成功する",
     secondBasis: String = "REQ-TST-02, DES-TST-02, OI-001",
+    firstRowBasis: String = "REQ-TST-01, DES-TST-01",
 ): String = trsDoc(us, uc) + buildString {
     appendLine()
     appendLine("### 3. 受入条件（AC）")
@@ -546,19 +675,22 @@ private fun generatedFile(
     appendLine()
     appendLine(EXPECTATION_HEADER)
     appendLine("|---|---|---|---|")
-    appendLine("| C-10 | 条件 | $firstExpected | REQ-TST-01, DES-TST-01 |")
+    appendLine("| C-10 | 条件 | $firstExpected | $firstRowBasis |")
     appendLine("| C-11 | 条件 | 拒否される | $secondBasis |")
 }
 
-/** 基本設計書の最小の例。節 1 と節 10 にも、設計 ID の形の値を置く（節 2〜9 の外なので、設計 ID に数えない） */
-private fun designDoc(): String = buildString {
+/**
+ * 基本設計書の最小の例。節 2〜9 に設計 ID（DES-TST-01、DES-TST-02）を置く。[outOfRange] が true のときは、
+ * 節 1 に DES-TST-90、節 10 に DES-TST-91 も置く（節 2〜9 の表の外なので、設計 ID に数えず、書式の違反になる）
+ */
+private fun designDoc(outOfRange: Boolean = false): String = buildString {
     appendLine("# 基本設計書")
     appendLine()
     appendLine("## 1. 全体構成")
     appendLine()
-    appendLine("| ID | 内容 |")
+    appendLine("| 構成要素 | 役割 |")
     appendLine("|---|---|")
-    appendLine("| DES-TST-90 | 全体 |")
+    appendLine("| ${if (outOfRange) "DES-TST-90" else "登録画面"} | 全体 |")
     appendLine()
     appendLine("## 2. 画面")
     appendLine()
@@ -578,5 +710,5 @@ private fun designDoc(): String = buildString {
     appendLine()
     appendLine("| ID | 内容 | 担当 | OI-ID |")
     appendLine("|---|---|---|---|")
-    appendLine("| DES-TST-91 | 問い | オーナー | — |")
+    appendLine("| ${if (outOfRange) "DES-TST-91" else "Q-01"} | 問い | オーナー | — |")
 }

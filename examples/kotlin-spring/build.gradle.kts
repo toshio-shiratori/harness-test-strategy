@@ -185,6 +185,9 @@ tasks.withType<Test> {
     inputs.dir("docs/basic-design")
     inputs.file("../../docs/testing/trs/_template.md")
     inputs.file("../../docs/testing/templates/requirements.md")
+    inputs.file("../../docs/testing/templates/basic-design.md")
+    // 目次の定数（InputDocCheck）が規範と同じことを確かめるため、03 の 5.2 を読む
+    inputs.file("../../docs/testing/03-trs-guideline.md")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する
     inputs.file("build.gradle.kts")
     // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02a §2.3）。未指定なら Kotest の既定（1000）。

@@ -10,6 +10,9 @@ package com.example.architecture
  * - 生成物のファイルに無い US・UC・AC の表の行
  * - 生成物のファイルにある Open Issues の表・因子・水準・禁止組合せの表（見出しの列名で見分ける）
  * - 見出しが規定と違う AC の表・組合せ別の期待結果の表
+ *
+ * 基本設計書の設計 ID との照合（03 §3.4.4 の ⑧ ⑨）も、この [TrsSetCheck.violations] が行う。
+ * 根拠の設計 ID の実在（[BasisCheck]）、設計 ID の書式と重複（[DesignIds.violations]）、設計 ID が全 TRS の根拠に現れること（[DesignIds.uncovered]）である。
  */
 
 /** AC ID の範囲表記の展開（03 §3.4.3 の「② ③ の書式」）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
@@ -215,43 +218,49 @@ internal object ExpectationTable {
     }
 }
 
-/** 基本設計書の設計 ID。`## 2.` から `## 9.` までの節の表の先頭列だけを読む（節 1 と節 10 は設計 ID の対象外） */
-internal object DesignIds {
-    private val idForm = Regex("""^DES-[A-Z]{2,6}-\d{2,}$""")
-    private val sectionNumber = Regex("""^(\d+)\.""")
-
-    fun read(text: String): Set<String> {
-        var inRange = false
-        val ids = mutableSetOf<String>()
-        RequirementTraceCheck.scan(text).forEach { l ->
-            if (l.level == 1) inRange = false
-            if (l.level == 2) inRange = sectionNumber.find(l.title)?.groupValues?.get(1)?.toInt() in 2..9
-            if (inRange && l.table >= 0 && l.row >= 1 && idForm.matches(l.cells.first())) ids += l.cells.first()
-        }
-        return ids
-    }
-}
-
-/** AC の表の根拠の列の実在の検査（`C-xx`、要件 ID、設計 ID、OI。#293）。意味の一致は検査できないので、AI のレビューが補う */
+/**
+ * 根拠の列の実在の検査（`C-xx`、要件 ID、設計 ID、OI。#293。設計 ID は 03 §3.4.4 の ⑨）。意味の一致は検査できないので、AI のレビューが補う。
+ * AC の表の根拠は 4 種類すべてを調べる（[violations]）。組合せ別の期待結果（5.2）の根拠は、設計 ID の実在と書式だけを調べる（[expectationViolations]）。
+ * 根拠の値が `DES-` で始まるのに設計 ID の書式でないときは、綴りの誤りが実在の検査をすり抜けないよう、書式の違反として別に報告する。
+ */
 internal object BasisCheck {
+    private const val DESIGN_PREFIX = "DES-"
     private val constraintId = Regex("""^C-\d\d$""")
     private val requirementId = Regex("""^REQ-[A-Z]{2,6}-\d{2,}$""")
-    private val designId = Regex("""^DES-[A-Z]{2,6}-\d{2,}$""")
     private val oiId = Regex("""^OI-\d+$""")
 
     class Known(val constraints: Set<String>, val requirements: Set<String>, val designs: Set<String>, val openIssues: Set<String>)
 
+    private fun designProblem(value: String, designs: Set<String>): String? = when {
+        !DesignIds.isId(value) -> "根拠 $value は DES- で始まるが、設計 ID の書式（DES-<略号>-<番号>。略号は英大文字 2〜6、番号は 2 桁以上）でない"
+        value !in designs -> "根拠 $value は基本設計書の節 2〜9 に無い設計 ID"
+        else -> null
+    }
+
     private fun problem(value: String, known: Known): String? = when {
         value.isEmpty() -> "根拠が空欄"
+        value.startsWith(DESIGN_PREFIX) -> designProblem(value, known.designs)
         constraintId.matches(value) -> "根拠 $value は組合せ別の期待結果（5.2）に無い制約 ID".takeIf { value !in known.constraints }
         requirementId.matches(value) -> "根拠 $value は要件定義書に無い要件 ID".takeIf { value !in known.requirements }
-        designId.matches(value) -> "根拠 $value は基本設計書の節 2〜9 に無い設計 ID".takeIf { value !in known.designs }
         oiId.matches(value) -> "根拠 $value は Open Issues 表に無い OI-ID".takeIf { value !in known.openIssues }
         else -> "根拠 $value は C-xx・要件 ID・設計 ID・OI-ID のどれの形でもない（区切りは半角のカンマ）"
     }
 
+    private fun values(basis: String) = basis.split(",").map { it.trim() }
+
     fun violations(rows: List<AcTable.Row>, known: Known): List<String> =
-        rows.flatMap { row -> row.basis.split(",").map { it.trim() }.mapNotNull { problem(it, known) }.distinct().map { "${row.id}: $it" } }
+        rows.flatMap { row -> values(row.basis).mapNotNull { problem(it, known) }.distinct().map { "${row.id}: $it" } }
+
+    /** 5.2 の根拠の設計 ID（`DES-` で始まる値）の、書式と実在。要件 ID と OI の実在は調べない（03 §3.4.4 の ⑨ は設計 ID だけを定める） */
+    fun expectationViolations(rows: List<ExpectationTable.Row>, designs: Set<String>): List<String> =
+        rows.flatMap { row ->
+            values(row.basis).filter { it.startsWith(DESIGN_PREFIX) }.mapNotNull { designProblem(it, designs) }.distinct().map { "${row.id}: $it" }
+        }
+
+    /** ⑧ 生成物のファイルの、AC の表と 5.2 の根拠に現れた設計 ID（`@pending` の AC の根拠も数える）。書式の違う値は数えない */
+    fun cited(generatedText: String): Set<String> =
+        (AcTable.read(generatedText).rows.map { it.basis } + ExpectationTable.read(generatedText).rows.map { it.basis })
+            .flatMap { values(it) }.filter { DesignIds.isId(it) }.toSet()
 }
 
 /** TRS ファイルのトレーサビリティ表（テンプレート §7）の AC ID を、AC の表と照合する（03 §3.4 の検査の単位） */
@@ -353,7 +362,8 @@ internal object TrsSetCheck {
         )
         return structureViolations(trsText, generatedText) +
             contentViolations(trsText, generatedText) +
-            BasisCheck.violations(AcTable.read(generatedText).rows, known)
+            BasisCheck.violations(AcTable.read(generatedText).rows, known) +
+            BasisCheck.expectationViolations(ExpectationTable.read(generatedText).rows, designs)
     }
 
     /** 違反の説明。空なら合格。引数は、TRS ファイル・生成物のファイル・要件定義書・基本設計書の `(ファイル名, 本文)`。ファイル名は TRS ファイルと生成物のファイルで同じになる */
@@ -368,6 +378,8 @@ internal object TrsSetCheck {
         (generatedDocs.keys - trsDocs.keys).sorted().forEach { errors += "$it: 対になる TRS ファイルが無い（生成物のファイルだけがある）" }
         val requirements = requirementDocs.values.flatMap { RequirementTraceCheck.requirements(it).items.map { r -> r.id } }.toSet()
         val designs = designDocs.values.flatMap { DesignIds.read(it) }.toSet()
+        errors += DesignIds.violations(designDocs)
+        errors += DesignIds.uncovered(designDocs, generatedDocs.values.flatMap { BasisCheck.cited(it) }.toSet())
         (trsDocs.keys intersect generatedDocs.keys).sorted().forEach { name ->
             errors += pairViolations(trsDocs.getValue(name), generatedDocs.getValue(name), requirements, designs).map { "$name: $it" }
         }
