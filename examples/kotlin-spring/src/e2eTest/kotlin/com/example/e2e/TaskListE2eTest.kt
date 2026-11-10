@@ -46,7 +46,7 @@ import java.time.ZoneId
  * 各テストの前に、タスクと完了済みの表示の選択を DB から消す（テスト間の干渉を防ぐ）。
  *
  * 想定実行時間の固定費: Spring と MySQL コンテナの起動、ブラウザの起動はクラスで 1 回かかる。
- * ローカルのウォーム実行（macOS arm64、MySQL イメージと Chromium は取得済み）の実測で、クラス全体は 9.4 秒、各テストは 0.12〜0.68 秒。
+ * ローカルのウォーム実行（macOS arm64、MySQL イメージと Chromium は取得済み）の実測で、クラス全体は 9.7 秒、各テストは 0.12〜0.66 秒。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(E2eMySqlContainerConfiguration::class)
@@ -147,6 +147,15 @@ class TaskListE2eTest {
             val id = Regex(""""id"\s*:\s*(\d+)""").find(created.text())?.groupValues?.get(1)
             api.post("/tasks/$id/complete").ok() shouldBe true
         }
+    }
+
+    /** Given: API で、完了済みの表示の選択を「隠す」にする。 */
+    private fun givenHiddenCompleted() {
+        val response = api.put(
+            "/settings/completed-visibility",
+            RequestOptions.create().setHeader("Content-Type", "application/json").setData("""{"visibility":"HIDE"}"""),
+        )
+        response.ok() shouldBe true
     }
 
     /**
@@ -357,6 +366,55 @@ class TaskListE2eTest {
         assertThat(task("B")).hasCount(0)
         // 前回の選択が保たれている（UC-06 の基本フロー 4）
         assertThat(page.getByTestId("hide-completed-toggle")).isChecked()
+    }
+
+    /**
+     * 表示: 画面で完了済みを隠すと、完了の行が一覧から消え、未完了と期限切れの行は表示されたままである。
+     *
+     * - 領域: 表示（`@e2e:display`）。切り替えの操作の直後に、一覧の行を DOM から取り除くこと（DES-TODO-23）。
+     * - 下層で代替できない理由: 行を消すのは画面のスクリプトの DOM の更新で、ブラウザでしか確かめられない。
+     *   サーバーが選択に従って一覧を返すことは、AC-06-06 が Integration で確かめ済み。
+     * - AC: AC-06-08
+     * - 想定実行時間: 1 秒未満。不安定要因への対策: 切り替えの後は、完了の行が消えるまで `hasCount` の自動再試行で待ち、その後に残りの行を確かめる。
+     */
+    @Test
+    fun `AC-06-08 画面で完了済みを隠すと、完了の行が消え、未完了と期限切れの行は残る`() {
+        givenTask("A")
+        givenTask("B", done = true)
+        givenTask("C", dueDate = pastDate())
+        openPage()
+        assertThat(task("B")).isVisible()
+
+        page.getByTestId("hide-completed-toggle").check()
+
+        assertThat(task("B")).hasCount(0)
+        assertThat(task("A")).isVisible()
+        assertThat(task("C")).isVisible()
+    }
+
+    /**
+     * 表示: 完了済みを隠している画面で、表示に戻すと、完了の行が一覧に現れる。
+     *
+     * - 領域: 表示（`@e2e:display`）。切り替えの操作の直後に、完了の行を一覧に描画すること（DES-TODO-24）。
+     * - 下層で代替できない理由: AC-06-08 と同じ。行を描画するのは画面のスクリプトで、ブラウザでしか確かめられない。
+     * - AC: AC-06-09
+     * - 想定実行時間: 1 秒未満。不安定要因への対策: Given の「隠している」状態は API で保存してから画面を開く。
+     *   隠れていることを確かめてから表示に戻し、行が現れるまで自動再試行で待つ。
+     */
+    @Test
+    fun `AC-06-09 完了済みを隠している画面で表示に戻すと、完了の行が現れる`() {
+        givenTask("A")
+        givenTask("B", done = true)
+        givenHiddenCompleted()
+        openPage()
+        assertThat(task("A")).isVisible()
+        assertThat(task("B")).hasCount(0)
+
+        page.getByTestId("hide-completed-toggle").uncheck()
+
+        assertThat(task("B")).isVisible()
+        assertThat(label("B")).hasText("完了")
+        assertThat(task("A")).isVisible()
     }
 
     private companion object {

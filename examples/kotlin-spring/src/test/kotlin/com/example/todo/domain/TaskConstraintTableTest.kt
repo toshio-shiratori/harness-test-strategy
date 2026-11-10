@@ -250,6 +250,27 @@ class TaskConstraintTableTest : FunSpec({
         ) { it.verify() }
     }
 
+    // 区分は完了・期限・現在時刻で決まる。期限を過ぎた未完了を完了にすると区分は完了になり、戻すと期限切れになる（C-13、C-12）
+    context("AC-02-10 期限を過ぎた未完了のタスクを完了にすると、区分は完了になり、タイトルと期限は変わらない（C-71）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                OverdueCase("C-71", "F4-L3 期限の翌日の 0 時 0 分（JST）", "2026-10-31", now = "2026-11-01T00:00+09:00"),
+                OverdueCase("C-71", "F4-L4 期限の翌日より後", "2026-10-31", now = "2026-11-05T12:00+09:00"),
+            ),
+        ) { it.verifyComplete() }
+    }
+
+    context("AC-03-10 期限を過ぎた完了のタスクを未完了に戻すと、区分は期限切れになり、タイトルと期限は変わらない（C-72）") {
+        withData(
+            nameFn = { "${it.id} ${it.label}" },
+            ts = listOf(
+                OverdueCase("C-72", "F4-L3 期限の翌日の 0 時 0 分（JST）", "2026-10-31", now = "2026-11-01T00:00+09:00"),
+                OverdueCase("C-72", "F4-L4 期限の翌日より後", "2026-10-31", now = "2026-11-05T12:00+09:00"),
+            ),
+        ) { it.verifyReopen() }
+    }
+
     context("AC-06-01 AC-06-02 AC-06-03 完了済みの表示の選択に従って、一覧に載るタスクが決まる（C-30〜C-32）") {
         val clock = Clock.fixed(Instant.parse("2026-11-01T03:00:00Z"), ZoneOffset.UTC)
         val tasks = listOf(
@@ -401,6 +422,33 @@ private data class StatusCase(
         val after = if (complete) before.complete() else before.reopen()
         after.status shouldBe expected
         after.copy(status = from) shouldBe before
+    }
+}
+
+/** 期限 [due] を [now] の時点で過ぎているタスクに対する操作。期待結果は制約表（C-71、C-72）の値。 */
+private data class OverdueCase(val id: String, val label: String, val due: String, val now: String) {
+    private val clock = Clock.fixed(OffsetDateTime.parse(now).toInstant(), ZoneOffset.UTC)
+
+    fun verifyComplete() {
+        val before = task(1, "牛乳を買う", due, TaskStatus.Open)
+        before.category(clock) shouldBe TaskCategory.Overdue // Given: 期限を過ぎた未完了
+
+        val after = before.complete()
+
+        after.status shouldBe TaskStatus.Done
+        after.category(clock) shouldBe TaskCategory.Done
+        after.copy(status = before.status) shouldBe before // 状態以外の属性は変わらない
+    }
+
+    fun verifyReopen() {
+        val before = task(1, "牛乳を買う", due, TaskStatus.Done)
+        before.category(clock) shouldBe TaskCategory.Done // Given: 期限を過ぎた完了
+
+        val after = before.reopen()
+
+        after.status shouldBe TaskStatus.Open
+        after.category(clock) shouldBe TaskCategory.Overdue
+        after.copy(status = before.status) shouldBe before // 状態以外の属性は変わらない
     }
 }
 
