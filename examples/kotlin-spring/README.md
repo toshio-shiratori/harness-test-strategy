@@ -135,7 +135,7 @@ curl -i -X POST http://localhost:8080/tasks \
 | `docs/04.md` | 04 リグレッション運用規程のサンプルでの実装 |
 | `exploration/` | 層3の AI 探索の指示・報告の型・実行スクリプト。手元で動かすスキルは `.claude/skills/ai-exploration/`(手順書は `docs/02b.md` の §3.1) |
 | `docs/requirements/` | サンプルの要件定義書(TODO-001)。TRS の入力で、`TraceabilityTest` が要件 ID と US/UC の出典の対応を検査する |
-| `docs/basic-design/` | サンプルの基本設計書(TODO-001)。TRS を生成するときの入力。TODO-001 の TRS は、AC と期待結果の根拠で、項目の ID(`DES-TODO-xx`)を指す。`TraceabilityTest` は、AC の表の根拠の設計 ID の実在の照合にだけ読む([03.md の §1](docs/03.md#1-trs-の配置03-1)) |
+| `docs/basic-design/` | サンプルの基本設計書(TODO-001)。TRS を生成するときの入力。TODO-001 の TRS は、AC と期待結果の根拠で、項目の ID(`DES-TODO-xx`)を指す。`TraceabilityTest` は、AC の表と 5.2 の根拠の設計 ID の実在・網羅の照合と、目次・用語の検査に読む([03.md の §1](docs/03.md#1-trs-の配置03-1)) |
 | `docs/trs/` | サンプルの TRS ファイル(TODO-001)。人が合意する節(因子・水準、禁止組合せ、Open Issues)と運用情報(トレーサビリティなど)。`TraceabilityTest` が読む |
 | `docs/trs/generated/` | サンプルの TRS の生成物(TODO-001)。US、UC、AC、組合せ別の期待結果。TRS ファイルと同じ名前で置き、`TraceabilityTest` が組にして読む |
 | `docs/trs-generation-trial/` | 要件定義書から TRS を生成した試行の生成物。現行の仕様ではなく、検査も読まない。AC 番号は TRS と別物である。記録は [`docs/records/trs-generation-trial.md`](../../docs/records/trs-generation-trial.md)。接頭辞 `c2-` のファイルは 2 回目の生成で、記録は [`docs/records/trs-generation-trial-2.md`](../../docs/records/trs-generation-trial-2.md) |
