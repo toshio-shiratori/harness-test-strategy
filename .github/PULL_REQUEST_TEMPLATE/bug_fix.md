@@ -22,6 +22,11 @@ Closes #
 - [ ] 仕様の誤り・不足があれば、入力の文書か人が合意する節（03 §5.1）を直し、TRS を再生成している（03 §5.4）。なければ該当なし
 - [ ] 還元先の層と理由を上に記載している
 
+## 既存の ID の変化
+
+<!-- examples/kotlin-spring/docs/trs/generated/ の既存の ID が変わったときは、ID ごとに「- <ID>: <理由>」を書く。書き方は examples/kotlin-spring/docs/03.md の 5.8。変化が無ければ「なし」 -->
+なし
+
 ## 検証
 
 - [ ] `npm run lint`

@@ -3,11 +3,12 @@
   "private": true,
   "description": "AI駆動開発向けテスト戦略ドキュメント",
   "scripts": {
-    "lint": "npm run lint:md && npm run lint:refs && npm run lint:portable && npm run lint:mermaid",
+    "lint": "npm run lint:md && npm run lint:refs && npm run lint:portable && npm run lint:id-changes && npm run lint:mermaid",
     "lint:md": "markdownlint-cli2",
     "lint:md:fix": "markdownlint-cli2 --fix",
     "lint:refs": "node scripts/check-section-refs.mjs",
     "lint:portable": "node scripts/check-portable.mjs --self-test && node scripts/check-portable.mjs",
+    "lint:id-changes": "node scripts/check-id-changes.mjs --self-test",
     "lint:mermaid": "node scripts/lint-mermaid.mjs",
     "measure:mermaid": "node scripts/measure-mermaid.mjs"
   },

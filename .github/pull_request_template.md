@@ -6,6 +6,11 @@ Closes #
 
 ## 変更内容
 
+## 既存の ID の変化
+
+<!-- examples/kotlin-spring/docs/trs/generated/ の既存の ID が変わったときは、ID ごとに「- <ID>: <理由>」を書く。書き方は examples/kotlin-spring/docs/03.md の 5.8。変化が無ければ「なし」 -->
+なし
+
 ## 検証
 
 - [ ] `npm run lint`
