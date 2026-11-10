@@ -14,6 +14,9 @@ class TaskOperationHttpTest : TaskApiTestBase() {
     private val milk = "牛乳を買う"
     private val due = "2026-11-30"
 
+    // 固定した時計は 2026-11-01 10:00 JST。この期限は、その日付より前なので期限切れになる
+    private val pastDue = "2026-10-31"
+
     // 登録された識別子は、採番表の AUTO_INCREMENT で増える小さい番号。この値は払い出されない
     private val unknownId = 9_999_999_999L
 
@@ -75,6 +78,17 @@ class TaskOperationHttpTest : TaskApiTestBase() {
     }
 
     @Test
+    fun `AC-02-11 期限を過ぎた未完了のタスクを完了にする要求は成功し、読み戻した区分は完了である`() {
+        setVisibility("SHOW").expectStatus().is2xxSuccessful
+        val task = register(milk, pastDue)
+        list().single { it.id == task.id }.category shouldBe "OVERDUE" // Given: 期限を過ぎた未完了
+
+        complete(task.id).expectStatus().is2xxSuccessful
+
+        list().single { it.id == task.id } shouldBe TaskJson(task.id, milk, pastDue, "DONE", "DONE")
+    }
+
+    @Test
     fun `AC-03-02 未完了のタスクを未完了に戻しても、何も変わらない`() {
         val task = openTask()
 
@@ -108,6 +122,18 @@ class TaskOperationHttpTest : TaskApiTestBase() {
         reopen(task.id).expectStatus().is2xxSuccessful
 
         list().single { it.id == task.id }.status shouldBe "OPEN"
+    }
+
+    @Test
+    fun `AC-03-11 期限を過ぎた完了のタスクを未完了に戻す要求は成功し、読み戻した区分は期限切れである`() {
+        val task = register(milk, pastDue)
+        complete(task.id).expectStatus().is2xxSuccessful
+        setVisibility("SHOW").expectStatus().is2xxSuccessful
+        list().single { it.id == task.id }.category shouldBe "DONE" // Given: 期限を過ぎた完了
+
+        reopen(task.id).expectStatus().is2xxSuccessful
+
+        list().single { it.id == task.id } shouldBe TaskJson(task.id, milk, pastDue, "OPEN", "OVERDUE")
     }
 
     @Test
