@@ -11,8 +11,8 @@ package com.example.architecture
  * - 生成物のファイルにある Open Issues の表・因子・水準・禁止組合せの表（見出しの列名で見分ける）
  * - 見出しが規定と違う AC の表・組合せ別の期待結果の表
  *
- * 基本設計書の設計 ID との照合（03 §3.4.4 の ⑧ ⑨）も、この [TrsSetCheck.violations] が行う。
- * 根拠の設計 ID の実在（[BasisCheck]）、設計 ID の書式と重複（[DesignIds.violations]）、設計 ID が全 TRS の根拠に現れること（[DesignIds.uncovered]）である。
+ * 根拠の値の実在（03 §3.4.4 の ⑨）と、基本設計書の設計 ID との照合（同 ⑧）も、この [TrsSetCheck.violations] が行う。
+ * AC の表と 5.2 の根拠の値の実在（[BasisCheck]）、設計 ID の書式と重複（[DesignIds.violations]）、設計 ID が全 TRS の根拠に現れること（[DesignIds.uncovered]）である。
  */
 
 /** AC ID の範囲表記の展開（03 §3.4.3 の「② ③ の書式」）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
@@ -219,9 +219,9 @@ internal object ExpectationTable {
 }
 
 /**
- * 根拠の列の実在の検査（`C-xx`、要件 ID、設計 ID、OI。#293。設計 ID は 03 §3.4.4 の ⑨）。意味の一致は検査できないので、AI のレビューが補う。
- * AC の表の根拠は 4 種類すべてを調べる（[violations]）。組合せ別の期待結果（5.2）の根拠は、設計 ID の実在と書式だけを調べる（[expectationViolations]）。
- * 根拠の値が `DES-` で始まるのに設計 ID の書式でないときは、綴りの誤りが実在の検査をすり抜けないよう、書式の違反として別に報告する。
+ * 根拠の列の値の実在の検査（`C-xx`、要件 ID、設計 ID、OI-ID。03 §3.4.4 の ⑨）。意味の一致は検査できないので、AI のレビューが補う。
+ * AC の表（[violations]）と組合せ別の期待結果 5.2（[expectationViolations]）の根拠を、同じ判定（[problem]）で調べる。
+ * 空欄、実在しない値、どの形にも当たらない値が違反である。制約 ID は AC の表にだけ書け、5.2 の根拠に書くと違反である。`DES-` で始まるのに設計 ID の書式でない値は、綴りの誤りが実在の検査をすり抜けないよう、書式の違反として別の文言で報告する。
  */
 internal object BasisCheck {
     private const val DESIGN_PREFIX = "DES-"
@@ -251,10 +251,12 @@ internal object BasisCheck {
     fun violations(rows: List<AcTable.Row>, known: Known): List<String> =
         rows.flatMap { row -> values(row.basis).mapNotNull { problem(it, known) }.distinct().map { "${row.id}: $it" } }
 
-    /** 5.2 の根拠の設計 ID（`DES-` で始まる値）の、書式と実在。要件 ID と OI の実在は調べない（03 §3.4.4 の ⑨ は設計 ID だけを定める） */
-    fun expectationViolations(rows: List<ExpectationTable.Row>, designs: Set<String>): List<String> =
+    /** 5.2 の根拠の値の、空欄・形・実在（AC の表と同じ判定）。制約 ID は、実在するものでも書けない（03 §3.4.4 の ⑨） */
+    fun expectationViolations(rows: List<ExpectationTable.Row>, known: Known): List<String> =
         rows.flatMap { row ->
-            values(row.basis).filter { it.startsWith(DESIGN_PREFIX) }.mapNotNull { designProblem(it, designs) }.distinct().map { "${row.id}: $it" }
+            values(row.basis).mapNotNull { value ->
+                if (constraintId.matches(value)) "根拠 $value は制約 ID である。組合せ別の期待結果の根拠には、制約 ID を書けない" else problem(value, known)
+            }.distinct().map { "${row.id}: $it" }
         }
 
     /** ⑧ 生成物のファイルの、AC の表と 5.2 の根拠に現れた設計 ID（`@pending` の AC の根拠も数える）。書式の違う値は数えない */
@@ -351,7 +353,7 @@ internal object TrsSetCheck {
             TraceabilityTable.violations(trsText, ids.toSet(), exemptions(oiRows))
     }
 
-    /** 1 組の検査。根拠の実在の照合先のうち、要件 ID と設計 ID は全文書から集めた [requirements]・[designs]、制約 ID と OI-ID は組から読む */
+    /** 1 組の検査。根拠の実在の照合先のうち、要件 ID と設計 ID は全文書から集めた [requirements]・[designs]、制約 ID（5.2）と OI-ID は組から読む */
     private fun pairViolations(trsText: String, generatedText: String, requirements: Set<String>, designs: Set<String>): List<String> {
         val (oiRows, _) = UnresolvedBlockingCheck.parse(trsText)
         val known = BasisCheck.Known(
@@ -363,7 +365,7 @@ internal object TrsSetCheck {
         return structureViolations(trsText, generatedText) +
             contentViolations(trsText, generatedText) +
             BasisCheck.violations(AcTable.read(generatedText).rows, known) +
-            BasisCheck.expectationViolations(ExpectationTable.read(generatedText).rows, designs)
+            BasisCheck.expectationViolations(ExpectationTable.read(generatedText).rows, known)
     }
 
     /** 違反の説明。空なら合格。引数は、TRS ファイル・生成物のファイル・要件定義書・基本設計書の `(ファイル名, 本文)`。ファイル名は TRS ファイルと生成物のファイルで同じになる */

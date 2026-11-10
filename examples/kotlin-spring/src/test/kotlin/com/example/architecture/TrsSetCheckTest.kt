@@ -419,6 +419,34 @@ class TrsSetCheckTest : StringSpec({
             .shouldContainExactly("t.md: C-11: 根拠 DES-TST-99 は基本設計書の節 2〜9 に無い設計 ID")
     }
 
+    "⑨ 反例: 5.2 の根拠が空欄だと違反になる（空の項目も）" {
+        listOf("", "REQ-TST-02,", "REQ-TST-02, , DES-TST-02").forEach { basis ->
+            check(gen = generatedFile(secondBasis = basis)).shouldContainExactly("t.md: C-11: 根拠が空欄")
+        }
+    }
+
+    "⑨ 反例: 5.2 の根拠に C-xx を書くと違反になる（制約 ID は AC の表にだけ書ける。実在する行・自分の行・実在しない行のどれも）" {
+        listOf("C-10", "C-11", "C-99").forEach { id ->
+            check(gen = generatedFile(secondBasis = "REQ-TST-02, $id"))
+                .shouldContainExactly("t.md: C-11: 根拠 $id は制約 ID である。組合せ別の期待結果の根拠には、制約 ID を書けない")
+        }
+    }
+
+    "⑨ 反例: 5.2 の根拠の要件 ID が、要件定義書に無いと違反になる" {
+        check(gen = generatedFile(secondBasis = "REQ-TST-09, DES-TST-02")).shouldContainExactly("t.md: C-11: 根拠 REQ-TST-09 は要件定義書に無い要件 ID")
+    }
+
+    "⑨ 反例: 5.2 の根拠の OI-ID が、組になる TRS ファイルの Open Issues 表に無いと違反になる" {
+        check(gen = generatedFile(secondBasis = "REQ-TST-02, OI-099")).shouldContainExactly("t.md: C-11: 根拠 OI-099 は Open Issues 表に無い OI-ID")
+    }
+
+    "⑨ 反例: 5.2 の根拠が、どの種類の形にも当たらないと違反になる（範囲・装飾・全角の区切り・AC ID・—）" {
+        listOf("C-10〜C-11", "`REQ-TST-02`", "REQ-TST-02、DES-TST-02", "AC-01-02", "—", "req-tst-02").forEach { value ->
+            check(gen = generatedFile(secondBasis = value))
+                .shouldContainExactly("t.md: C-11: 根拠 $value は C-xx・要件 ID・設計 ID・OI-ID のどれの形でもない（区切りは半角のカンマ）")
+        }
+    }
+
     "⑨ 反例: 根拠の値が DES- で始まるのに設計 ID の書式でないと違反になる（AC の表も 5.2 も。綴りの誤りが実在の検査をすり抜けない）" {
         val malformed = listOf("DES-", "DES-TST-1", "DES-tst-01", "DES-T-01", "DES-TOOLONGX-01", "DES-TST-01-02", "DES-TST01", "DES-TST-x1")
         malformed.forEach { value ->
@@ -428,7 +456,7 @@ class TrsSetCheckTest : StringSpec({
         }
     }
 
-    "⑨ 正例: 5.2 の根拠に、要件 ID と OI-ID と設計 ID を並べても、設計 ID が実在すれば合格する" {
+    "⑨ 正例: 5.2 の根拠に、要件 ID・設計 ID・OI-ID を並べても、すべて実在すれば合格する" {
         check(gen = generatedFile(secondBasis = "REQ-TST-02, DES-TST-02, OI-001")).shouldBeEmpty()
     }
 
@@ -525,6 +553,15 @@ class TrsSetCheckTest : StringSpec({
         TrsSetCheck.violations(mapOf("t.md" to trsFile(), "o.md" to secondTrs), mapOf("t.md" to first, "o.md" to second), req, des).shouldBeEmpty()
         TrsSetCheck.violations(mapOf("t.md" to trsFile()), mapOf("t.md" to first), req, des)
             .shouldContainExactly("design.md: 設計 ID DES-TST-02 が、どの TRS の根拠にも現れない（行 ${lineOf(designDoc(), "| DES-TST-02")}）")
+    }
+
+    "⑨ 反例: @pending の AC の根拠に、実在しない値があっても違反になる（pending でも根拠は調べる）" {
+        val trs = trsFile(oiRows = defaultOiRows + oiRow("OI-005", "Blocking", "AC-01-03", "Open", ""))
+        val gen = generatedFile(
+            acRows = defaultAcRows.dropLast(1) + acRow("AC-01-03", "REQ-TST-99"),
+            tags = listOf("@AC-01-03 @layer:2 @pending:OI-005"),
+        )
+        check(trs = trs, gen = gen).shouldContainExactly("t.md: AC-01-03: 根拠 REQ-TST-99 は要件定義書に無い要件 ID")
     }
 
     "反例: AC の表の根拠の OI-ID が、組になる TRS ファイルの Open Issues 表に無いと違反になる" {
