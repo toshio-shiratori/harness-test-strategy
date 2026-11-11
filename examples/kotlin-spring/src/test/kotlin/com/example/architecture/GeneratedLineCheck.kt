@@ -1,5 +1,8 @@
 package com.example.architecture
 
+import java.nio.file.Files
+import java.nio.file.Path
+
 /**
  * 生成物のファイルの行が、次の 3 種のどれかに当たることを検査する（03 §3.4 の「検査の単位」と §3.4.3 の「生成物のファイルに置ける行」）。
  * 入力は生成物のファイルの本文と、TRS のテンプレートの本文で、戻り値は違反の説明の一覧である（空なら合格）。実ファイルの検査と自己テストは、同じ [GeneratedLineCheck.violations] を呼ぶ。
@@ -7,21 +10,41 @@ package com.example.architecture
  *
  * 1. ID に結び付く記述
  *    - 表の ID の行。US の表・AC の表・組合せ別の期待結果（5.2）の表の行で、先頭列がその表の ID の形（`US-<数字>`、`AC-xx-yy`、`C-xx`）のもの。見出しは、テンプレートと同じ列のものに限る。
- *    - UC の節。見出しが `UC-<数字>:`（全角のコロンも可）で始まり、深さがテンプレートの UC の見出しと同じ（`####`）節で、次の同じ深さ以上の見出しの手前まで。中の文は問わない。ほかの深さの見出しは、UC の節にならない。
+ *    - UC の節。見出しが `UC-<数字>:`（全角のコロンも可）で始まり、深さがテンプレートの UC の見出しと同じ（`####`）節で、次の同じ深さ以上の見出しの手前まで。ほかの深さの見出しは、UC の節にならない。
+ *      中の行は、空行のほか、テンプレートの UC の節から読んだ書式の行だけを置ける（下の「UC の節の中の行」）。Gherkin・定型文の判定は、中の行には使わない。
  *    - Gherkin のシナリオ。`gherkin` のコードブロックの中の、`Scenario`・`Scenario Outline`・`Scenario Template`・`Example` で、空行を挟まない直前の 1 行が `@AC-xx-yy` を持つタグ行のもの。
  *      中の手順と、`Scenario Outline`（`Scenario Template` を含む）の `Examples` とその下の表の行を含む。
  * 2. ID に結び付かない Gherkin。`Feature` の 1 行と、`Background` とその手順。
  * 3. テンプレートの定型文。正規化した行が、取った行のどれかと、全体で一致するもの。空欄を含む定型文は、題の行だけである。
  *    - 取る行: テンプレートの、見出し行、引用行、表の見出し行と区切り行、`---` の行。コードブロックの中は取らない。ただし「生成物のファイルの冒頭」の節の `markdown` のコードブロックは、全行を取る。
  *    - 取る範囲: 第 1 部と第 2 部は、見出しとその直下の行だけ。節 1・2・3・5 は、次の同じ深さ以上の見出しの手前までの、下位の見出しを含む行。5.1 の下は取らない。
- *    - 正規化: 前後の空白を除き、連続する空白を 1 つにする。`[文字](リンク先)` は `文字` にする。リンク先は `.md` への相対パス（`#アンカー` 可）に限り、title を付けた形、絶対 URL、`.md` 以外は違反にする。
+ *    - 正規化: 前後の空白を除き、連続する空白を 1 つにする。`[文字](リンク先)` は `文字` にする。文字が空か空白だけのリンク（`[](…)`）は、語の間に表示されないリンクを挟めてしまうので、違反にする。リンク先は `.md` への相対パス（`#アンカー` 可）に限り、title を付けた形、絶対 URL、`.md` 以外は違反にする。
+ *      リンク先のファイルは、生成物のファイルからの相対パスで解決し、無ければ違反にする。
+ *      リンク先の書き方は、`Path.normalize()` で変わらない形に限る（`./` や `値/..` を挟めない）。ファイル名は、実在するファイルの名前と大文字小文字まで一致しなければ違反にする。`#アンカー` は、リンク先のファイルの見出しから作る GitHub 形式のアンカーのどれかに一致しなければ違反にする（`lint:refs` の slug と同じ規則）。
  *      表の区切り行（縦線を含み、縦線・ハイフン・コロンだけでできた行）は、空白をすべて除いて比べる。
  *    - 題の行: 「生成物のファイルの冒頭」の最初の行。ファイルの 1 行目に 1 回だけ置け、`<機能ID>` と `<機能名>` は、空でない任意の文字列に一致する。
  *      組の TRS ファイルのメタ情報の「TRS ID」と「機能名」と同じ値でなければ違反（`` ` `` の囲みは除いて比べる）。TRS ファイルが読めない、値が無いときも違反にする。
  *      題の行以外の定型文に、`` ` `` の外の `<…>` があるテンプレートは、読めないものとして違反にする。
  *
- * すべての行に適用する細目:
- * - コードブロックは `gherkin` だけを置ける。ほかの言語は、UC の節の中でも置けない（UC の節の「文は問わない」より、この規則を優先する）。
+ * UC の節の中の行（空行を除く。置けるのは次だけで、ほかは違反）:
+ * - UC の見出し（節の最初の行）。
+ * - 項目の表。見出し行と区切り行は、リンクを外さず、空白の正規化だけで、テンプレートの行と一致するもの。データの行は、先頭のセルがテンプレートの項目名のもの。内容のセルは問わない。
+ * - 太字のラベルの行。テンプレートの UC の節にある、`**…**` だけの行と一致するもの。
+ * - 手順。`<数字>.` と半角の空白 1 つに続く本文の 1 文字目が、Unicode の文字の分類 L（`\p{L}`）の行。字下げした行は置けない。
+ * - 代替フローの表。見出し行と区切り行は、項目の表と同じ比べ方。データの行は、先頭のセルが `UC-<数字>-A<数字>` の形のもの。内容のセルは問わない。
+ * - 置けないもの: 地の文、引用、記号のリスト、続きの行、入れ子の見出し、リンク参照の定義、コードブロック（フェンスの行。開きの行で 1 件の違反にし、中は検査しない）。
+ *   手順の本文の規則は、テンプレートの手順には適用しない。テンプレートは書式の元として、表の見出しと項目名、ラベルだけを読む。
+ * - 見出し・手順・表のセルと、表の ID の行（上の 1 の 1 つ目）は、記号を次のとおりに限る。リンク・画像・HTML・文字参照で、表示と中身が違う文を作れるためである。
+ *   - `\` は置けない。バッククォートの 2 個以上の連なりは置けない。
+ *   - バッククォートは、対にする。表の行はセルごと、そのほかは行の中で、奇数個なら違反にする。
+ *   - 対にしたインラインのコードを除いた残りに、`[`・`]`・`<`・`&` を置けない。
+ *   - 範囲外: 不可視の文字（U+200B、U+3164、タグ文字など）と、GitHub 固有の描画（数式 `$…$` など）。わざとの隠蔽で、生成の誤りではなく、PR の承認が守る範囲である。
+ *
+ * 生成物のファイルのすべての表（UC の節の外の ID の行の表を含む）で、データ行のセルの数は、その表の見出し行と同じにする。
+ * 数えるときの区切りは、エスケープしていない `|` で、インラインのコードの中の `|` も区切る（GitHub の表の描画と同じ）。UC の節の表と ID の行は `\` を置けないので、すべての `|` が区切りになる。
+ *
+ * コードブロック・HTML コメント・リンク参照の定義・Gherkin の細目（`gherkin` だけを置ける規則は UC の節の外、コメントと定義の規則は UC の節の中も含む）:
+ * - UC の節の外では、コードブロックは `gherkin` だけを置ける。
  * - HTML コメントと、リンク参照の定義の行（`[ラベル]: リンク先`、`[//]: # (…)` を含む）は、どこにも置けない。UC の節の中も同じである。コメントは、開始行から終了行までを 1 件の違反にする。
  * - Gherkin に置けない要素は、`Feature` の説明文、`Rule`、タグ行の無いシナリオ、手順の表、docstring、`#` で始まる行（`# language` を含む）である。タグ行は、シナリオの直前の 1 行だけである。
  *
@@ -33,14 +56,28 @@ internal object GeneratedLineCheck {
      * [ucLevel] は UC の見出しの深さ（テンプレートの UC の見出しと同じ深さの見出しだけが、UC の節を始める）。
      * [title] は題の行の照合（空欄 `<機能ID>` と `<機能名>` を含む、定型文の中で唯一の行）。[errors] はテンプレートが読めなかった理由。
      */
-    class Template(val literals: Set<String>, val separators: Set<String>, val title: Regex?, val ucLevel: Int, val errors: List<String>) {
+    class Template(val literals: Set<String>, val separators: Set<String>, val title: Regex?, val ucLevel: Int, val uc: UcForm?, val errors: List<String>) {
         fun accepts(normalized: String) =
             if (isSeparatorLine(normalized)) withoutSpaces(normalized) in separators else normalized in literals
     }
 
+    /**
+     * テンプレートの UC の節から読んだ書式。表の見出し行（正規化した行）・区切り行（空白をすべて除いた行）・項目名（項目の表のデータ行の先頭のセル）と、太字のラベルの行。
+     * 表は、節の中の 1 つ目が項目の表、2 つ目が代替フローの表。
+     */
+    class UcForm(
+        val itemHeader: String,
+        val itemSeparator: String,
+        val itemNames: Set<String>,
+        val altHeader: String,
+        val altSeparator: String,
+        val labels: Set<String>,
+    )
+
     private val link = Regex("""\[([^\]]*)]\([^)]*\)""")
     private val linkTarget = Regex("""^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)[^\s#]*\.md(#\S*)?$""")
     private val linkDefinition = Regex("""^ {0,3}\[[^\]]+]:\s*\S""")
+    private val emptyLink = Regex("""\[[\p{javaWhitespace}]*]\([^)]*\)""")
     private val linkWithTarget = Regex("""\[[^\]]*]\(([^)]*)\)""")
     private val whitespace = Regex("""[\p{javaWhitespace}]+""")
     private val placeholderOrCode = Regex("""`[^`]*`|<[^<>]+>""")
@@ -58,6 +95,13 @@ internal object GeneratedLineCheck {
     private val acForm = Regex("""^AC-\d\d-\d\d$""")
     private val constraintForm = Regex("""^C-\d\d$""")
     private val ucTitle = Regex("""^UC-\d+\s*[:：]""")
+    private val ucStep = Regex("""^\d+\. \p{L}""")
+    private val ucAltId = Regex("""^UC-\d+-A\d+$""")
+    private val codeSpan = Regex("""`[^`]*`""")
+    private val backtickRun = Regex("""``""")
+    private val markupChars = Regex("""[\[\]<&]""")
+    private val boldLabel = Regex("""^\*\*[^*]+\*\*$""")
+    private val headingPunctuation = Regex("""[^\p{L}\p{M}\p{N}_\- ]""")
 
     private const val GHERKIN = "gherkin"
 
@@ -171,10 +215,126 @@ internal object GeneratedLineCheck {
         normalized.filter { placeholders(it).isNotEmpty() }.forEach { errors += "テンプレートの、題の行以外に、`` ` `` の外の <…> がある: $it" }
         val separators = normalized.filter(::isSeparatorLine).map(::withoutSpaces).toSet()
         val literals = normalized.filterNot(::isSeparatorLine).toSet()
-        val ucLevel = lines.firstOrNull { it.fence == RequirementTraceCheck.Fence.NONE && it.level > 0 && ucTitle.containsMatchIn(it.title) }?.level ?: 0
+        val ucStart = lines.indexOfFirst { it.fence == RequirementTraceCheck.Fence.NONE && it.level > 0 && ucTitle.containsMatchIn(it.title) }
+        val ucLevel = if (ucStart >= 0) lines[ucStart].level else 0
         if (ucLevel == 0) errors += "テンプレートに、UC の見出し（UC-<数字>: で始まる見出し）が見つからない"
-        return Template(literals, separators, title, ucLevel, errors)
+        val uc = if (ucStart >= 0) readUcForm(lines.drop(ucStart + 1).takeWhile { it.level == 0 || it.level > ucLevel }, errors) else null
+        return Template(literals, separators, title, ucLevel, uc, errors)
     }
+
+    /** テンプレートの UC の節（[section] は見出しの次の行から、節の終わりまで）の書式を読む。読めない理由は [errors] に入れる */
+    private fun readUcForm(section: List<RequirementTraceCheck.Line>, errors: MutableList<String>): UcForm? {
+        val plain = section.filter { it.fence == RequirementTraceCheck.Fence.NONE }
+        val tables = plain.filter { it.table >= 0 }.groupBy { it.table }.values.toList()
+        val labels = plain.map { it.text.trim() }.filter { boldLabel.matches(it) }.toSet()
+        if (tables.size < 2) errors += "テンプレートの UC の節に、項目の表と代替フローの表（表が 2 つ）が見つからない"
+        if (labels.isEmpty()) errors += "テンプレートの UC の節に、太字のラベルの行（**…**）が見つからない"
+        if (tables.size < 2 || labels.isEmpty()) return null
+        fun separatorOf(table: List<RequirementTraceCheck.Line>) = table.firstOrNull { it.row == 1 && isSeparator(it.cells) }?.let { withoutSpaces(it.text) }
+        val (item, alt) = tables
+        val itemSeparator = separatorOf(item)
+        val altSeparator = separatorOf(alt)
+        val itemNames = item.filter { it.row >= 2 }.map { it.cells.first() }.toSet()
+        if (itemSeparator == null || altSeparator == null) errors += "テンプレートの UC の節の表に、見出し行の次の区切り行が無い"
+        if (itemNames.isEmpty()) errors += "テンプレートの UC の節の項目の表に、項目名の行が無い"
+        if (itemSeparator == null || altSeparator == null || itemNames.isEmpty()) return null
+        return UcForm(spaced(item.first().text), itemSeparator, itemNames, spaced(alt.first().text), altSeparator, labels)
+    }
+
+    /**
+     * UC の節の中の 1 行（空行と、節の最初の行は除く）が置けない理由。置けるなら null。
+     * [headers] は、この生成物のファイルの表ごとの、見出し行（空白だけを正規化したもの）。
+     */
+    private fun ucLineViolation(l: RequirementTraceCheck.Line, uc: UcForm, headers: Map<Int, String>, widths: Map<Int, Int>): String? {
+        if (l.table < 0) {
+            return when {
+                l.text.trimEnd() in uc.labels -> null
+                ucStep.containsMatchIn(l.text) -> hiddenMarkup(l.text, false)
+                else -> "UC の節に置けない行（置けるのは、項目の表、太字のラベル、番号付きの手順、代替フローの表だけ）"
+            }
+        }
+        val header = headers.getValue(l.table)
+        val isItem = header == uc.itemHeader
+        if (!l.text.startsWith("|") || (!isItem && header != uc.altHeader)) return "UC の節に置けない表の行（テンプレートの項目の表と代替フローの表だけ）"
+        val separator = if (isItem) uc.itemSeparator else uc.altSeparator
+        return when {
+            l.row == 0 -> null
+            l.row == 1 -> if (withoutSpaces(l.text) == separator) null else "UC の節の表の区切り行が、テンプレートと違う"
+            isItem && l.cells.first() !in uc.itemNames -> "項目の表の先頭のセルが、テンプレートの項目名ではない"
+            !isItem && !ucAltId.matches(l.cells.first()) -> "代替フローの表の先頭のセルが、UC-<数字>-A<数字> の形ではない"
+            else -> hiddenMarkup(l.text, true) ?: cellCountViolation(l.text, widths.getValue(l.table))
+        }
+    }
+
+    /** 空白の正規化だけ（連続する空白を 1 つにし、前後を除く）。[normalize] と違い、リンクを外さない */
+    private fun spaced(line: String): String = whitespace.replace(line, " ").trim()
+
+    /** 表の行のセルの数。エスケープしていない `|` で区切る（インラインのコードの中の `|` も区切る）。行頭と行末の `|` は、数えない */
+    private fun cellCount(line: String): Int {
+        val t = line.trim().removePrefix("|")
+        var separators = 0
+        var lastSeparator = -1
+        var i = 0
+        while (i < t.length) {
+            when (t[i]) {
+                '\\' -> i++
+                '|' -> {
+                    separators++
+                    lastSeparator = i
+                }
+            }
+            i++
+        }
+        return if (lastSeparator == t.length - 1 && separators > 0) separators else separators + 1
+    }
+
+    /**
+     * UC の節の行と ID の行の、記号の違反の説明。無ければ null。[isRow] は表の行（セルごとに、バッククォートを対にする）。
+     * 順に、`\`、バッククォートの 2 個以上の連なり、対にならないバッククォート、対にしたインラインのコードを除いた残りの `[`・`]`・`<`・`&` を調べる。
+     */
+    private fun hiddenMarkup(line: String, isRow: Boolean): String? {
+        val parts = if (isRow) line.trim().removePrefix("|").removeSuffix("|").split("|") else listOf(line)
+        return when {
+            '\\' in line -> "バックスラッシュは置けない（エスケープで、記号やコードの区切りを隠せる）"
+            backtickRun.containsMatchIn(line) -> "バッククォートの 2 個以上の連なりは置けない"
+            parts.any { it.count { c -> c == '`' } % 2 != 0 } -> "インラインのコードのバッククォートが対にならない（表はセルごと、ほかは行の中で対にする）"
+            parts.any { markupChars.containsMatchIn(codeSpan.replace(it, "")) } -> "インラインのコードの外に、[ ] < & は置けない（リンク・画像・HTML・文字参照）"
+            else -> null
+        }
+    }
+
+    /** データ行のセルの数が、その表の見出し行と違うときの説明。同じなら null */
+    private fun cellCountViolation(line: String, headerWidth: Int): String? =
+        cellCount(line).let { if (it == headerWidth) null else "セルの数（$it）が、表の見出し行（$headerWidth）と違う" }
+
+    /** 見出しの文字列から、GitHub 形式のアンカーを作る（`lint:refs` の slug と同じ規則） */
+    internal fun slug(heading: String): String =
+        headingPunctuation.replace(link.replace(heading, "$1").replace("`", "").replace("*", "").trim().lowercase(), "").replace(' ', '-')
+
+    /** ファイルの、見出しから作ったアンカーの全部。同じ見出しは、2 つ目から `-1`、`-2` を付ける */
+    internal fun anchorsOf(text: String): Set<String> {
+        val seen = mutableMapOf<String, Int>()
+        return RequirementTraceCheck.scan(text).filter { it.fence == RequirementTraceCheck.Fence.NONE && it.level > 0 && !it.comment }.map { h ->
+            val base = slug(h.title)
+            val count = seen.merge(base, 1, Int::plus)!! - 1
+            if (count == 0) base else "$base-$count"
+        }.toSet()
+    }
+
+    /** 行の、`[文字](リンク先)` のうち、形が正しいもの（[badLinkTargets] の残り）の、リンク先のファイルとアンカーの違反。[dir] は生成物のファイルのあるディレクトリ */
+    private fun unresolvedLinks(line: String, dir: Path, cache: MutableMap<Path, Set<String>?>): List<String> =
+        linkWithTarget.findAll(line).map { it.groupValues[1] }.filter { linkTarget.matches(it) }.mapNotNull { target ->
+            val relative = target.substringBefore('#')
+            val file = dir.resolve(relative).normalize()
+            val anchors = cache.getOrPut(file) { if (Files.isRegularFile(file)) anchorsOf(Files.readString(file)) else null }
+            when {
+                Path.of(relative).normalize().toString() != relative -> "リンク先の書き方が、正規化した形ではない（./ や 値/.. を挟めない。$target）"
+                anchors == null -> "リンク先のファイルが無い（$target）"
+                !sameCase(file, relative) -> "リンク先のファイル名が、実在する名前と大文字小文字まで一致しない（$target）"
+                '#' in target && target.substringAfter('#') !in anchors -> "リンク先のファイルに、アンカーに当たる見出しが無い（$target）"
+                else -> null
+            }
+        }.toList()
 
     /** 表の ID の行の、行番号。見出しがテンプレートと同じ列の、US の表・AC の表・5.2 の表だけを数える */
     private fun idRowLines(text: String): Set<Int> = TrsTables.read(text).flatMap { table ->
@@ -263,25 +423,31 @@ internal object GeneratedLineCheck {
     /**
      * 生成物のファイルの本文の、3 種のどれにも当たらない行の説明。空なら合格。[template] が読めないときは、その理由だけを返す。
      * [trsText] は、組の TRS ファイル（`docs/trs/` の同じ名前のファイル）の本文で、題の `<機能ID>` と `<機能名>` の照合に使う。読めなければ null。
+     * [generatedDir] は、生成物のファイルのあるディレクトリで、定型文の行のリンク先（相対パス）を解決する起点である。
      */
-    fun violations(generatedText: String, template: Template, trsText: String?): List<String> {
+    fun violations(generatedText: String, template: Template, trsText: String?, generatedDir: Path): List<String> {
         if (template.errors.isNotEmpty()) return template.errors
         val title = checkNotNull(template.title) { "題の行の照合が無いテンプレートは、errors に理由がある" }
+        val uc = checkNotNull(template.uc) { "UC の書式が無いテンプレートは、errors に理由がある" }
         val lines = RequirementTraceCheck.scan(generatedText)
         val idRows = idRowLines(generatedText)
+        val headerLines = lines.filter { it.table >= 0 && it.row == 0 }
+        val headers = headerLines.associate { it.table to spaced(it.text) }
+        val widths = headerLines.associate { it.table to cellCount(it.text) }
+        val anchorCache = mutableMapOf<Path, Set<String>?>()
         val errors = mutableListOf<String>()
         errors += titleViolations(lines.first().text, title, trsText)
-        badLinkTargets(lines.first().text).takeIf { it.isNotEmpty() }?.let { errors += "行 1: 定型文の行のリンク先は、.md への相対パス（#アンカー可）に限る（${it.joinToString("、")}）" }
+        errors += linkViolations(1, lines.first().text, generatedDir, anchorCache)
         var ucLevel = 0
         var i = 0
         while (i < lines.size) {
             val l = lines[i]
             if (l.fence == RequirementTraceCheck.Fence.OPEN) {
                 val body = lines.drop(i + 1).takeWhile { it.fence == RequirementTraceCheck.Fence.BODY }
-                if (l.fenceInfo == GHERKIN) {
-                    errors += gherkinViolations(body)
-                } else {
-                    errors += "行 ${l.no}: $GHERKIN 以外のコードブロックは置けない（言語: ${l.fenceInfo.ifEmpty { "なし" }}）"
+                when {
+                    ucLevel > 0 -> errors += "行 ${l.no}: UC の節に、コードブロックは置けない（言語: ${l.fenceInfo.ifEmpty { "なし" }}）"
+                    l.fenceInfo == GHERKIN -> errors += gherkinViolations(body)
+                    else -> errors += "行 ${l.no}: $GHERKIN 以外のコードブロックは置けない（言語: ${l.fenceInfo.ifEmpty { "なし" }}）"
                 }
                 i += 1 + body.size
                 continue
@@ -301,22 +467,43 @@ internal object GeneratedLineCheck {
                 i++
                 continue
             }
+            var startsUc = false
             if (l.level > 0) {
                 if (ucLevel > 0 && l.level <= ucLevel) ucLevel = 0
-                if (l.level == template.ucLevel && ucTitle.containsMatchIn(l.title)) ucLevel = l.level
+                if (l.level == template.ucLevel && ucTitle.containsMatchIn(l.title)) {
+                    ucLevel = l.level
+                    startsUc = true
+                }
             }
             val isTitleShape = l.text.isNotBlank() && title.matches(normalize(l.text))
             when {
                 l.no == 1 -> Unit // 題の行は、titleViolations が調べた
                 isTitleShape -> errors += "行 ${l.no}: 題の行は、ファイルの 1 行目に 1 回だけ置ける: ${excerpt(l.text)}"
-                l.text.isBlank() || ucLevel > 0 || l.no in idRows -> Unit
-                badLinkTargets(l.text).isNotEmpty() && template.accepts(normalize(l.text)) ->
-                    errors += "行 ${l.no}: 定型文の行のリンク先は、.md への相対パス（#アンカー可）に限る（${badLinkTargets(l.text).joinToString("、")}）: ${excerpt(l.text)}"
-                template.accepts(normalize(l.text)) -> Unit
+                l.text.isBlank() -> Unit
+                startsUc -> hiddenMarkup(l.text, false)?.let { errors += "行 ${l.no}: $it: ${excerpt(l.text)}" }
+                ucLevel > 0 -> ucLineViolation(l, uc, headers, widths)?.let { errors += "行 ${l.no}: $it: ${excerpt(l.text)}" }
+                l.no in idRows -> (hiddenMarkup(l.text, true) ?: cellCountViolation(l.text, widths.getValue(l.table)))?.let { errors += "行 ${l.no}: $it: ${excerpt(l.text)}" }
+                template.accepts(normalize(l.text)) -> errors += linkViolations(l.no, l.text, generatedDir, anchorCache, excerpt(l.text))
                 else -> errors += "行 ${l.no}: 3 種のどれにも当たらない行（ID に結び付く記述、ID に結び付かない Gherkin、テンプレートの定型文）: ${excerpt(l.text)}"
             }
             i++
         }
         return errors
+    }
+
+    /** [relative]（正規化済み）の、`..` の後ろの名前の並びが、実在するファイルの名前（[Path.toRealPath]）と、大文字小文字まで一致するか */
+    private fun sameCase(file: Path, relative: String): Boolean {
+        val written = Path.of(relative).filter { it.toString() != ".." }.map { it.toString() }
+        val real = file.toRealPath().toList().takeLast(written.size).map { it.toString() }
+        return written == real
+    }
+
+    /** 定型文の行（題の行を含む）の、リンク先の違反。形が違うものと、ファイル・アンカーが実在しないもの */
+    private fun linkViolations(no: Int, line: String, dir: Path, cache: MutableMap<Path, Set<String>?>, excerpt: String = ""): List<String> {
+        val suffix = if (excerpt.isEmpty()) "" else ": $excerpt"
+        if (emptyLink.containsMatchIn(line)) return listOf("行 $no: 定型文の行のリンクの文字が空（表示されないリンクは置けない）$suffix")
+        val bad = badLinkTargets(line)
+        if (bad.isNotEmpty()) return listOf("行 $no: 定型文の行のリンク先は、.md への相対パス（#アンカー可）に限る（${bad.joinToString("、")}）$suffix")
+        return unresolvedLinks(line, dir, cache).map { "行 $no: 定型文の行の$it$suffix" }
     }
 }
