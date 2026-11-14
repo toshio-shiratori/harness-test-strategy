@@ -7,7 +7,7 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 /**
- * [InputDocCheck] の自己テスト（03 §3.4.5 の ⑩ 目次と ⑪ 用語の言い換え）。入力は文字列で組み立てる。実ファイルの検査は [TraceabilityTest] にある。
+ * [InputDocCheck] の自己テスト（03a §5 の ⑩ 目次と ⑪ 用語の言い換え）。入力は文字列で組み立てる。実ファイルの検査は [TraceabilityTest] にある。
  */
 class InputDocCheckTest : StringSpec({
     val requirementToc = InputDocCheck.requirementToc

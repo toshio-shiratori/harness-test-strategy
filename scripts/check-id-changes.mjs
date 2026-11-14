@@ -1,5 +1,5 @@
 // PR の base と head を比べて、生成物のファイルで「既存の ID」が変わった、または消えたものを列挙し、
-// PR 本文の `## 既存の ID の変化` の節に、ID ごとの理由があることを検査する(03 §5.1 の例外、実現例は examples/kotlin-spring/docs/03.md の 5.8)。
+// PR 本文の `## 既存の ID の変化` の節に、ID ごとの理由があることを検査する(03b §1 の例外、実現例は examples/kotlin-spring/docs/03.md の 5.8)。
 //
 // 列挙するもの(生成物のファイルの変化だけ。新しい ID の行を足す変化は、人がレビューしないので列挙しない):
 //   - 既存の ID に結び付く記述が、消えた、または中身が変わったもの
@@ -269,7 +269,7 @@ export function enumerate(base, head, used) {
   }
   // ID に結び付かない Gherkin は、足されても変化とする(Background を足すと、すべてのシナリオの前提が変わるため)
   if (joined(base, GHERKIN_KEY) !== joined(head, GHERKIN_KEY)) mark(GHERKIN_KEY, head.parts.has(GHERKIN_KEY) ? "changed" : "removed");
-  // 新しい AC の行は、人がレビューしない(03 §5.1)。最初から @pending の新しい AC は、未解決の Blocking な OI に縛られる(03 §3.4.2 の ② ③)ので列挙しない
+  // 新しい AC の行は、人がレビューしない(03b §1)。最初から @pending の新しい AC は、未解決の Blocking な OI に縛られる(03a §2 の ② ③)ので列挙しない
   for (const id of head.pending) if (base.parts.has(id) && !base.pending.has(id)) mark(id, "pending");
   for (const id of head.parts.keys()) if (id !== GHERKIN_KEY && !base.parts.has(id) && used.has(id)) mark(id, "reused");
   return new Map([...found].sort(([a], [b]) => a.localeCompare(b)));

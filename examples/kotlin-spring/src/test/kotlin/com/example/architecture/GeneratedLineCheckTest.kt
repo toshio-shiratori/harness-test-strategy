@@ -13,9 +13,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * [GeneratedLineCheck]（生成物のファイルの各行が、ID に結び付く記述か、テンプレートの定型文のどちらかであること。03 §3.4.3）の検査と自己テスト。
+ * [GeneratedLineCheck]（生成物のファイルの各行が、ID に結び付く記述か、テンプレートの定型文のどちらかであること。03a §3）の検査と自己テスト。
  * 実ファイルの検査は、`docs/trs/generated/` の全ファイルを、`docs/testing/trs/_template.md` の定型文に通す。
- * 反例は、実際の生成物のファイルに 1 か所だけ足す・変えて作る。期待は 03 §3.4.3 の文面から決め、既存の挙動から逆生成しない。
+ * 反例は、実際の生成物のファイルに 1 か所だけ足す・変えて作る。期待は 03a §3 の文面から決め、既存の挙動から逆生成しない。
  * このファイルは、文字列の中に、テスト名の先頭の ID の形（引用符かバッククォートの直後の AC-xx-yy）を置かない。置くと、AC の紐づけ検査がテスト名と取り違える。
  */
 class GeneratedLineCheckTest : StringSpec({
@@ -106,11 +106,11 @@ class GeneratedLineCheckTest : StringSpec({
         }
     }
 
-    // ---- 03 §3.4.3 の正規化と空欄 ----
+    // ---- 03a §3 の正規化と空欄 ----
 
     "正規化: 前後の空白を除き、連続する空白を 1 つにし、リンクの記法を文字にする" {
         GeneratedLineCheck.normalize("  a \t b　c  ") shouldBe "a b c"
-        GeneratedLineCheck.normalize("> [03 §5.4](../../x/03.md#54) の 2") shouldBe "> 03 §5.4 の 2"
+        GeneratedLineCheck.normalize("> [03b §4](../../x/03.md#54) の 2") shouldBe "> 03b §4 の 2"
         GeneratedLineCheck.normalize("[a](u)と[b](v)") shouldBe "aとb"
     }
 
@@ -189,7 +189,7 @@ class GeneratedLineCheckTest : StringSpec({
         violationsIn(title + "`OI-001` を書く", tpl, trs).shouldHaveSize(1)
     }
 
-    // ---- 03 §3.4.3 の、置けない行 ----
+    // ---- 03a §3 の、置けない行 ----
 
     "反例: 入力の値を写した地の文・リスト・小見出し・表は、定型文でも ID に結び付く記述でもないので、すべて違反になる" {
         val extra = listOf(
@@ -528,7 +528,7 @@ class GeneratedLineCheckTest : StringSpec({
         listOf(
             "(../../../../../docs/testing/03-trs-guideline.md#21-仕様レイヤー)",
             "(../../requirements/TODO-001-task-management.md)",
-            "(../../../../../docs/testing/03-trs-guideline.md#54-生成物の置き場と編集)",
+            "(../../../../../docs/testing/03b-generation-flow.md#4-生成物の置き場と編集)",
         ).forEach { ok ->
             withClue(ok) { check(good.replace(target, ok)).shouldBeEmpty() }
         }
@@ -563,16 +563,18 @@ class GeneratedLineCheckTest : StringSpec({
         check(good.replace("(../TODO-001-task-management.md)", "(../NOT-THERE.md#x)")).shouldBeOneAt(noAnchorLine, "リンク先のファイルが無い")
         check(good.replace("(../TODO-001-task-management.md)", "(../)")).shouldHaveSize(1) // .md でない。形の違反
         // 実在しないアンカー。最初の 1 本だけ変える
-        val anchor = "#54-生成物の置き場と編集"
+        val anchor = "#4-生成物の置き場と編集"
         good shouldContain anchor
-        check(good.replaceFirst(anchor, "#54-存在しない見出し")).shouldBeOneAt(lineOf(good, "> このファイルは"), "アンカーに当たる見出しが無い")
-        check(good.replaceFirst(anchor, "#54-生成物の置き場と編集-1")).shouldHaveSize(1) // 重複した見出しの接尾辞は、重複が無ければ無い
-        check(good.replaceFirst(anchor, "#54")).shouldHaveSize(1) // 見出しの先頭だけでは一致しない
+        check(good.replaceFirst(anchor, "#4-存在しない見出し")).shouldBeOneAt(lineOf(good, "> このファイルは"), "アンカーに当たる見出しが無い")
+        check(good.replaceFirst(anchor, "#4-生成物の置き場と編集-1")).shouldHaveSize(1) // 重複した見出しの接尾辞は、重複が無ければ無い
+        check(good.replaceFirst(anchor, "#4")).shouldHaveSize(1) // 見出しの先頭だけでは一致しない
         check(good.replaceFirst(anchor, "#")).shouldHaveSize(1) // 空のアンカー
-        check(good.replaceFirst(anchor, "#21-仕様レイヤー")).shouldBeEmpty() // 03 の別の見出しのアンカーなら、通る
-        // 別のファイルの見出しは、リンク先のファイルのものでなければ一致しない（TRS ファイルに、03 の見出しは無い）
+        check(good.replaceFirst(anchor, "#2-入力の文書")).shouldBeEmpty() // 03b の別の見出しのアンカーなら、通る
+        // 別のファイルの見出しは、リンク先のファイルのものでなければ一致しない（03b へのリンクに、03 の見出しのアンカーを使うと一致しない）
+        check(good.replaceFirst(anchor, "#21-仕様レイヤー")).shouldBeOneAt(lineOf(good, "> このファイルは"), "アンカーに当たる見出しが無い")
+        // 別のファイルの見出しは、リンク先のファイルのものでなければ一致しない（TRS ファイルに、03 系の見出しは無い）
         check(good.replace("(../TODO-001-task-management.md)", "(../TODO-001-task-management.md$anchor)")).shouldBeOneAt(noAnchorLine, "アンカーに当たる見出しが無い")
-        // 03 §5.4 のアンカーを使う他の行（5 行目など）も、同じ規則で調べる
+        // 03b §4 のアンカーを使う他の行（5 行目など）も、同じ規則で調べる
         val second = good.lines().indexOfLast { it.contains(anchor) } + 1
         second shouldNotBe lineOf(good, "> このファイルは")
         val broken = good.lines().toMutableList().also { it[second - 1] = it[second - 1].replace(anchor, "#無い") }.joinToString("\n")
@@ -614,11 +616,14 @@ class GeneratedLineCheckTest : StringSpec({
         GeneratedLineCheck.anchorsOf("# A\n\n## A\n\n## A\n\n```text\n# コードの中\n```\n\n<!--\n# コメントの中\n-->\n\n### b") shouldBe setOf("a", "a-1", "a-2", "b")
     }
 
-    "アンカー: 実ファイルの、03 への定型文のアンカーは、1 本以上あり、03 の見出しに実在する（アンカーを抜き出して確かめる）" {
-        val anchors = Regex("""03-trs-guideline\.md(#\S+?)\)""").findAll(good).map { it.groupValues[1].removePrefix("#") }.toSet()
-        anchors.size shouldNotBe 0
-        val headings = GeneratedLineCheck.anchorsOf(File("../../docs/testing/03-trs-guideline.md").readText())
-        anchors.forEach { withClue(it) { (it in headings) shouldBe true } }
+    "アンカー: 実ファイルの、03・03a・03b への定型文のアンカーは、1 本以上あり、リンク先のファイルの見出しに実在する（アンカーを抜き出して確かめる）" {
+        val links = Regex("""(03[ab]?-[a-z-]+\.md)(#\S+?)\)""").findAll(good).map { it.groupValues[1] to it.groupValues[2].removePrefix("#") }.toSet()
+        links.size shouldNotBe 0
+        links.map { it.first }.toSet() shouldBe setOf("03-trs-guideline.md", "03a-traceability-checks.md", "03b-generation-flow.md")
+        links.forEach { (file, anchor) ->
+            val headings = GeneratedLineCheck.anchorsOf(File("../../docs/testing/$file").readText())
+            withClue("$file#$anchor") { (anchor in headings) shouldBe true }
+        }
     }
 
     "UC の節の見出し: UC-<数字>: で始まるものだけ。全角のコロンも可で、コロンの無い見出しは UC の節にならない" {
@@ -859,7 +864,7 @@ private fun miniTrs(id: String, name: String) = "| 項目 | 内容 |\n|---|---|\
 private fun miniCheck(template: GeneratedLineCheck.Template, body: String) =
     violationsIn("$MINI_TITLE\n\n$body", template, miniTrs("T-1", "名前"))
 
-/** 03 §3.4.3 の「取る範囲」の見出しと、「生成物のファイルの冒頭」の節（題の行の後ろの本文は [preamble]）だけを持つ、最小のテンプレート */
+/** 03a §3 の「取る範囲」の見出しと、「生成物のファイルの冒頭」の節（題の行の後ろの本文は [preamble]）だけを持つ、最小のテンプレート */
 private fun miniTemplate(preamble: String): String = """
 # TRS-<機能ID>: <機能名>
 
