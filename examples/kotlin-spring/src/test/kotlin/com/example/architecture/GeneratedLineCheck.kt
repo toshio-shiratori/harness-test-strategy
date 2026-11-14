@@ -4,7 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * 生成物のファイルの行が、次の 3 種のどれかに当たることを検査する（03 §3.4 の「検査の単位」と §3.4.3 の「生成物のファイルに置ける行」）。
+ * 生成物のファイルの行が、次の 3 種のどれかに当たることを検査する（03 §3.4 の「検査の単位」と 03a §3 の「生成物のファイルに置ける行」）。
  * 入力は生成物のファイルの本文と、TRS のテンプレートの本文で、戻り値は違反の説明の一覧である（空なら合格）。実ファイルの検査と自己テストは、同じ [GeneratedLineCheck.violations] を呼ぶ。
  * 空行は検査しない。
  *
@@ -114,7 +114,7 @@ internal object GeneratedLineCheck {
     private val acTag = Regex("""(^|\s)@AC-\d\d-\d\d(\s|$)""")
     private const val EXCERPT = 40
 
-    /** 前後の空白を除き、連続する空白を 1 つにして、`[文字](リンク先)` を `文字` にする（03 §3.4.3 の「正規化」） */
+    /** 前後の空白を除き、連続する空白を 1 つにして、`[文字](リンク先)` を `文字` にする（03a §3 の「正規化」） */
     fun normalize(line: String): String = whitespace.replace(link.replace(line, "$1"), " ").trim()
 
     /** 行の、`[文字](リンク先)` のリンク先のうち、`.md` への相対パス（`#アンカー` 可）でないもの。title を付けた形、絶対 URL、`.md` 以外が当たる */

@@ -176,18 +176,18 @@ internal object UnresolvedBlockingCheck {
  * 関連列の AC ID が AC の表に無いことは、[TrsSetCheck] が検査する（自己テストは [TrsSetCheckTest]）。
  * AC に紐づくテストが無ければ失敗させる（①）。テスト名は先頭に `AC-xx-yy` を置く（複数なら空白区切り）。
  * テスト名の先頭の AC ID が、どの TRS の AC の表にも無ければ失敗させる（⑦）。
- * AC ID は TRS 間で重複させない（別の TRS のテストで満たされたように見えるのを防ぐ。03 §3.4）。
+ * AC ID は TRS 間で重複させない（別の TRS のテストで満たされたように見えるのを防ぐ。03a §2 の ④）。
  * Blocking の Open Issue により期待値が未確定の AC は、Gherkin のタグに `@pending:<OI-ID>` を付けて除外する。
  * 未解決の Blocking な Open Issue が指す AC に `@pending:<OI-ID>` が無ければ失敗させる（[UnresolvedBlockingCheck]）。
  * 逆に `@pending:<ID>` が、表に無い OI-ID・未解決の Blocking でない OI-ID・`ISSUE-n` を指していても失敗させる（同上）。
  * `@pending:<OI-ID>` を付けた AC が、その OI の関連列に含まれなくても失敗させる（同上。無関係な AC を除外する抜け道を塞ぐ）。
- * 要件定義書（`docs/requirements/`）の要件 ID が、どの TRS の US/UC の出典にも現れなければ失敗させる（03 §3.4.4 の ⑤）。
+ * 要件定義書（`docs/requirements/`）の要件 ID が、どの TRS の US/UC の出典にも現れなければ失敗させる（03a §4 の ⑤）。
  * US/UC の出典が実在する要件 ID でなければ（空欄・`—`・OI-ID を含む）、また同じ要件 ID が複数の行にあれば失敗させる（同 ⑥）。
  * US/UC は生成物のファイルから読む。要件定義書と TRS の書式が読めないとき（要件を読む表の外の要件 ID、要件 0 件、US/UC 0 件など）も失敗させる（[RequirementTraceCheck]）。
- * 基本設計書（`docs/basic-design/`）の設計 ID（節 2〜9 の表の先頭列）が、どの TRS の根拠にも現れなければ失敗させる（03 §3.4.4 の ⑧）。
+ * 基本設計書（`docs/basic-design/`）の設計 ID（節 2〜9 の表の先頭列）が、どの TRS の根拠にも現れなければ失敗させる（03a §4 の ⑧）。
  * TRS の根拠の値（C-xx・要件 ID・設計 ID・OI-ID）が空欄、どの形にも当たらない、実在しない、その表に書けないとき、また同じ設計 ID が複数の行にあるとき、失敗させる（同 ⑨）。
  * 設計 ID の書式が読めないときも失敗させる（[DesignIds]・[BasisCheck]）。
- * 要件定義書と基本設計書の目次が、03 §5.2 の目次と違えば失敗させる（同 §3.4.5 の ⑩）。
+ * 要件定義書と基本設計書の目次が、03b §2 の目次と違えば失敗させる（03a §5 の ⑩）。
  * 要件定義書の「使わない言い換え」が、同じ名前の要件定義書・基本設計書・TRS・生成物のファイルに現れれば失敗させる（同 ⑪。[InputDocCheck]）。
  * このファイルは CODEOWNERS の対象（`@pending` の乱用や検査の弱体化を人間がレビューする）。
  */
@@ -237,7 +237,7 @@ class TraceabilityTest : StringSpec({
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() } // 違反の全件を失敗メッセージに出す
     }
 
-    "要件定義書と基本設計書の目次が、03 §5.2 のとおりである（⑩）" {
+    "要件定義書と基本設計書の目次が、03b §2 のとおりである（⑩）" {
         val violations = InputDocCheck.tocViolations("要件定義書", requirementDocs, InputDocCheck.requirementToc) +
             InputDocCheck.tocViolations("基本設計書", designDocs, InputDocCheck.designToc)
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
@@ -248,9 +248,9 @@ class TraceabilityTest : StringSpec({
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() }
     }
 
-    "目次の定数（InputDocCheck）が 03 §5.2 の目次と同じで、テンプレートも ⑩ を通る（目次の正が規範とずれない）" {
-        // 03 §5.2 の番号つきの一覧を読む。一覧は、番号が 1 に戻るところで、要件定義書と基本設計書に分かれる
-        val section = File("../../docs/testing/03-trs-guideline.md").readText().substringAfter("### 5.2 入力の文書").substringBefore("### 5.3")
+    "目次の定数（InputDocCheck）が 03b §2 の目次と同じで、テンプレートも ⑩ を通る（目次の正が規範とずれない）" {
+        // 03b §2 の番号つきの一覧を読む。一覧は、番号が 1 に戻るところで、要件定義書と基本設計書に分かれる
+        val section = File("../../docs/testing/03b-generation-flow.md").readText().substringAfter("## 2. 入力の文書").substringBefore("## 3. 生成の規則")
         val lists = mutableListOf<MutableList<String>>()
         Regex("""^(\d+)\. (.+)$""", RegexOption.MULTILINE).findAll(section).forEach { m ->
             if (m.groupValues[1] == "1") lists += mutableListOf<String>()

@@ -1,6 +1,6 @@
 # 基本設計書: タスク管理（登録・完了・一覧と期限）
 
-> この基本設計書は、標準の[基本設計書のテンプレート](../../../../docs/testing/templates/basic-design.md)に沿って書いた。[要件定義書](../requirements/TODO-001-task-management.md)を実現する方式を書き、TRS を生成するときの入力になる（[03 §5.2](../../../../docs/testing/03-trs-guideline.md#52-入力の文書)）。
+> この基本設計書は、標準の[基本設計書のテンプレート](../../../../docs/testing/templates/basic-design.md)に沿って書いた。[要件定義書](../requirements/TODO-001-task-management.md)を実現する方式を書き、TRS を生成するときの入力になる（[03b §2](../../../../docs/testing/03b-generation-flow.md#2-入力の文書)）。
 > 用語は[要件定義書の用語](../requirements/TODO-001-task-management.md#22-用語)を使う。
 > 書いた内容は、要件定義書の要件と、TRS の UC の基本フローから導いた。TRS の Open Issues（OI）の決定から来た値にだけ、OI を括弧で添えた。
 > 実装にだけ値があり、仕様が無いものは、項目には値を書かず、節 10 の未決事項に挙げた。

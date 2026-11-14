@@ -58,7 +58,7 @@ flowchart TB
 
 1. [01 基本方針書](docs/testing/01-test-policy.md)の層構造と責務分離をチームで合意します。
 2. 最初の機能の要求と設計を、[要件定義書](docs/testing/templates/requirements.md)と[基本設計書](docs/testing/templates/basic-design.md)のテンプレートに書きます。
-3. その2文書を入力に、TRS を[テンプレート](docs/testing/trs/_template.md)の形で生成します([03 §5](docs/testing/03-trs-guideline.md#5-策定フロー))。
+3. その2文書を入力に、TRS を[テンプレート](docs/testing/trs/_template.md)の形で生成します([03b の策定フロー](docs/testing/03b-generation-flow.md#策定フロー))。
 4. 関門の道具を、自分の言語で用意します。
    - 言語・ツールの前提は、[02a §0](docs/testing/02a-types-and-pbt.md#0-技術前提導入先の言語ツールに求めるもの) が求めるものです。
    - ミューテーション・実行境界・エージェント向けの設定は、[02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準)と [02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所) に従います。
@@ -80,11 +80,16 @@ flowchart TB
   end
   subgraph R2[" "]
     direction LR
-    E["03 TRS"] --> F["04 運用規程"] --> G["05 導入手順"]
+    E["03 TRS"] --> E2["03a<br/>検査の詳細"] --> E3["03b<br/>生成フロー"]
   end
-  R1 --> R2
+  subgraph R3[" "]
+    direction LR
+    F["04 運用規程"] --> G["05 導入手順"]
+  end
+  R1 --> R2 --> R3
   style R1 fill:none,stroke:none
   style R2 fill:none,stroke:none
+  style R3 fill:none,stroke:none
   classDef default font-size:14px
 ```
 
@@ -94,7 +99,9 @@ flowchart TB
 | [02a 型設計とPBT](docs/testing/02a-types-and-pbt.md) | 導入先の言語・ツールの前提、型で誤りを書けなくする設計、PBT |
 | [02b 層1の実行境界とミューテーション](docs/testing/02b-execution-and-mutation.md) | 層1・統合テスト・E2E の実行境界、ミューテーションテスト、AI エージェントに従わせる機械的な設定 |
 | [02c E2E 最小化原則](docs/testing/02c-e2e.md) | E2E を許可する領域、審査、予算 |
-| [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法 |
+| [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法。TRS の構造、期待値の出所、検査の要約、Open Issues |
+| [03a トレーサビリティ検査の詳細](docs/testing/03a-traceability-checks.md) | TRS・要件・設計・テストの対応を機械検査する失敗条件の全体と、検査が前提とする書式 |
+| [03b TRS 生成フロー](docs/testing/03b-generation-flow.md) | TRS を入力の文書から生成して維持するフロー、生成の規則、生成物の置き場と編集 |
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [要件定義書テンプレート](docs/testing/templates/requirements.md) | TRS の生成に要る要求(目的・利用者・前提・業務フロー・要件・未決事項)を、要件 ID を付けて書く雛形 |

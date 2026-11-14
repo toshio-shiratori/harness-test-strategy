@@ -1,7 +1,7 @@
 package com.example.architecture
 
 /**
- * TRS ファイルと生成物のファイルを組にして検査する（03 §3.4 の「検査の単位」と §3.4.3 の書式）。
+ * TRS ファイルと生成物のファイルを組にして検査する（03 §3.4 の「検査の単位」と 03a §3 の書式）。
  * 入力は `(ファイル名, 本文)` の対応で、戻り値は違反の説明の一覧である（空なら合格）。実ファイルの検査と自己テストは、同じ [TrsSetCheck.violations] を呼ぶ。
  *
  * 読み取りの空振りで AC が黙って検査から外れないよう、次のどれも失敗にする。
@@ -11,11 +11,11 @@ package com.example.architecture
  * - 生成物のファイルにある Open Issues の表・因子・水準・禁止組合せの表（見出しの列名で見分ける）
  * - 見出しが規定と違う AC の表・組合せ別の期待結果の表
  *
- * 根拠の値の実在（03 §3.4.4 の ⑨）と、基本設計書の設計 ID との照合（同 ⑧）も、この [TrsSetCheck.violations] が行う。
+ * 根拠の値の実在（03a §4 の ⑨）と、基本設計書の設計 ID との照合（同 ⑧）も、この [TrsSetCheck.violations] が行う。
  * AC の表と 5.2 の根拠の値の実在（[BasisCheck]）、設計 ID の書式と重複（[DesignIds.violations]）、設計 ID が全 TRS の根拠に現れること（[DesignIds.uncovered]）である。
  */
 
-/** AC ID の範囲表記の展開（03 §3.4.3 の「② ③ の書式」）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
+/** AC ID の範囲表記の展開（03a §3 の「② ③ の書式」）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
 internal object AcRefs {
     enum class Problem { UNREADABLE, REVERSED }
 
@@ -56,7 +56,7 @@ internal object TrsTables {
         }
 }
 
-/** 生成物のファイルの AC の表（テンプレート §3）。見出しの完全一致で読む（03 §3.4.3 の「① ④ の書式」） */
+/** 生成物のファイルの AC の表（テンプレート §3）。見出しの完全一致で読む（03a §3 の「① ④ の書式」） */
 internal object AcTable {
     val header = listOf("AC ID", "関連 UC", "テストレベル", "検証層", "優先度", "検証する振る舞い", "根拠")
 
@@ -118,8 +118,8 @@ internal object TrsFileCheck {
 }
 
 /**
- * 生成物のファイルに置いてはならない表（Open Issues・因子・水準・禁止組合せ）。見出しの列名（セルの完全一致）で見分ける（03 §3.4.3）。
- * トレーサビリティ表（テンプレート §7）も、運用情報なので TRS ファイルにだけ置く（03 §5.4）。
+ * 生成物のファイルに置いてはならない表（Open Issues・因子・水準・禁止組合せ）。見出しの列名（セルの完全一致）で見分ける（03a §3）。
+ * トレーサビリティ表（テンプレート §7）も、運用情報なので TRS ファイルにだけ置く（03b §4）。
  */
 internal object GeneratedFileCheck {
     fun violations(text: String): List<String> = TrsTables.read(text).mapNotNull { table ->
@@ -135,7 +135,7 @@ internal object GeneratedFileCheck {
     }
 }
 
-/** 組合せ別の期待結果（テンプレート §5.2）の表と、期待結果・根拠の判定（03 §3.4.3） */
+/** 組合せ別の期待結果（テンプレート §5.2）の表と、期待結果・根拠の判定（03a §3） */
 internal object ExpectationTable {
     val header = listOf("制約ID", "条件", "期待結果", "根拠（要件 ID / 設計 ID / OI）")
 
@@ -219,7 +219,7 @@ internal object ExpectationTable {
 }
 
 /**
- * 根拠の列の値の実在の検査（`C-xx`、要件 ID、設計 ID、OI-ID。03 §3.4.4 の ⑨）。意味の一致は検査できないので、AI のレビューが補う。
+ * 根拠の列の値の実在の検査（`C-xx`、要件 ID、設計 ID、OI-ID。03a §4 の ⑨）。意味の一致は検査できないので、AI のレビューが補う。
  * AC の表（[violations]）と組合せ別の期待結果 5.2（[expectationViolations]）の根拠を、同じ判定（[problem]）で調べる。
  * 空欄、実在しない値、どの形にも当たらない値が違反である。制約 ID は AC の表にだけ書け、5.2 の根拠に書くと違反である。`DES-` で始まるのに設計 ID の書式でない値は、綴りの誤りが実在の検査をすり抜けないよう、書式の違反として別の文言で報告する。
  */
@@ -251,7 +251,7 @@ internal object BasisCheck {
     fun violations(rows: List<AcTable.Row>, known: Known): List<String> =
         rows.flatMap { row -> values(row.basis).mapNotNull { problem(it, known) }.distinct().map { "${row.id}: $it" } }
 
-    /** 5.2 の根拠の値の、空欄・形・実在（AC の表と同じ判定）。制約 ID は、実在するものでも書けない（03 §3.4.4 の ⑨） */
+    /** 5.2 の根拠の値の、空欄・形・実在（AC の表と同じ判定）。制約 ID は、実在するものでも書けない（03a §4 の ⑨） */
     fun expectationViolations(rows: List<ExpectationTable.Row>, known: Known): List<String> =
         rows.flatMap { row ->
             values(row.basis).mapNotNull { value ->
@@ -296,7 +296,7 @@ internal object TraceabilityTable {
     }
 }
 
-/** ① AC に対応するテストの検査と、⑦ テスト名の AC ID の実在の検査（03 §3.4.2） */
+/** ① AC に対応するテストの検査と、⑦ テスト名の AC ID の実在の検査（03a §2） */
 internal object TestNameCheck {
     private val pendingTag = Regex("""@(AC-\d\d-\d\d)\b[^\n]*@pending:""")
     private val leadingIds = Regex("""["`](AC-\d\d-\d\d(?:[ \t]+AC-\d\d-\d\d)*)""")

@@ -1,11 +1,13 @@
-// 02a / 02b / 02c の節番号参照とリンクを検査する。markdownlint は節番号の誤りを検出できないため、ここで補う。
-//   (a) `02a §2.3` のような参照の節が、参照先ファイルに実在する。
+// 02a / 02b / 02c と 03 / 03a / 03b の節番号参照とリンクを検査する。markdownlint は節番号の誤りを検出できないため、ここで補う。
+//   (a) `02a §2.3`、`03a §2` のような参照の節が、参照先ファイルに実在する。
 //       `02b §6 / §1.4`、`02a §2.2・§2.4` のように接頭辞なしの `§y` が続くときは、直前の接頭辞のファイルの節として検査する。
-//       3 ファイル内の接頭辞なしの `§x` は、そのファイル内の節を指す。未知の `02d` などの接頭辞はエラーにする。
+//       6 ファイル内の接頭辞なしの `§x` は、そのファイル内の節を指す。未知の `02d`、`03c` などの接頭辞はエラーにする。
+//       03 系の 3 ファイルでは、直前が「テンプレート」の `§x`（並びを含む）を、テンプレート（docs/testing/trs/_template.md）の節として検査する。
+//       03 の分割で消えた節（`03 §5.1`、`03 §3.4.3` など）も、実在しない節としてエラーになる。
 //   (b) 分割前の旧形式（`02 §x`、`02 の §x`、`(02、§x)`、`02-test-architecture`）が残っていない。
-//   (c) 3 ファイルへのリンクが切れていない。
-//       ファイル名が `02x-….md` なのに docs/testing/ 直下の 3 ファイルのどれでもないもの、アンカーが無いもの、
-//       リンクの表示テキストの `02a §x` と、リンク先（ファイル・アンカーの節）が食い違うものはエラーにする。
+//   (c) 6 ファイルへのリンクが切れていない。
+//       ファイル名が `02x-….md`・`03x-….md` なのに docs/testing/ 直下の 6 ファイルのどれでもないもの、アンカーが無いもの、
+//       リンクの表示テキストの `02a §x`・`03b §x` と、リンク先（ファイル・アンカーの節）が食い違うものはエラーにする。
 // 検出できないもの: 節は実在するが中身が違う参照（例: 実行境界の説明に Testcontainers の節番号を書く）。レビューで補う。
 // ローカル (`npm run lint`) と CI で同一のコマンドを使う。
 import { execFileSync } from "node:child_process";
@@ -18,7 +20,11 @@ const DOCS = {
   "02a": "docs/testing/02a-types-and-pbt.md",
   "02b": "docs/testing/02b-execution-and-mutation.md",
   "02c": "docs/testing/02c-e2e.md",
+  "03": "docs/testing/03-trs-guideline.md",
+  "03a": "docs/testing/03a-traceability-checks.md",
+  "03b": "docs/testing/03b-generation-flow.md",
 };
+const TEMPLATE = "docs/testing/trs/_template.md";
 const DOC_PATHS = new Set(Object.values(DOCS));
 
 // 追跡ファイル + 未追跡（.gitignore 対象外）。worktree 内の複製は対象外。
@@ -60,8 +66,9 @@ const slugOf = (heading) =>
 
 const sections = {}; // 02a -> Set("0", "1", "1.1", ...)
 const anchors = {}; // 02a -> Map(slug -> 節番号 または null)
-for (const [key, path] of Object.entries(DOCS)) {
-  sections[key] = new Set();
+const templateSections = new Set(); // テンプレートの節番号（"1", "5", "5.2", ...）
+for (const [key, path] of [...Object.entries(DOCS), ["template", TEMPLATE]]) {
+  sections[key] = key === "template" ? templateSections : new Set();
   anchors[key] = new Map();
   const seen = new Map();
   const isFenceLine = makeFence();
@@ -83,6 +90,8 @@ for (const [key, path] of Object.entries(DOCS)) {
   }
 }
 const keyOfPath = (p) => Object.keys(DOCS).find((k) => DOCS[k] === p);
+const isDoc03 = (key) => key === "03" || /^03[a-z]$/.test(key ?? ""); // 03 / 03a / 03b
+const familyHint = (key) => (key.startsWith("03") ? "03 / 03a / 03b のどれかにする" : "02a / 02b / 02c のどれかにする");
 
 const errors = [];
 const fail = (file, lineNo, msg) => errors.push(`${file}:${lineNo}: ${msg}`);
@@ -91,6 +100,8 @@ const fail = (file, lineNo, msg) => errors.push(`${file}:${lineNo}: ${msg}`);
 const OLD_REF = /(?<![0-9A-Za-z-])`?02`?[\s、,の]{0,6}§/;
 const OLD_FILE = /02-test-architecture/;
 const DOC_NAME = /02[a-z]-[A-Za-z0-9-]*\.md/g;
+const DOC_NAME_03 = /(?<![0-9A-Za-z-])03[a-z]?-[A-Za-z0-9-]*\.md/g; // 日付の `-03-…md` などを拾わない
+const TEMPLATE_BEFORE = /(?:テンプレート[（(]?\s?|_template\.md\]\([^)]*\)\s?)$/; // 「テンプレート §5.2」「テンプレート（§4、§5.1）」
 // § の参照 1 件。接頭辞（01〜09 + 任意の a-z）は省略できる
 const SECTION_TOKEN = /(?:(?<![0-9A-Za-z-])`?(0\d[a-z]?)`?\s?)?§(\d+(?:\.\d+)*)/g;
 const CONNECTOR = /^[\s・/、,〜~]{1,4}$/; // 「02b §6 / §1.4」「02a §2.2・§2.4」のような並び
@@ -98,7 +109,7 @@ const LINK = /\[([^\]]*)\]\(([^)#\s]*)(?:#([^)\s]*))?\)/g;
 
 const checkRef = (file, no, key, num) => {
   if (!(key in DOCS)) {
-    fail(file, no, `未知の接頭辞 ${key} §${num}（02a / 02b / 02c のどれかにする）`);
+    fail(file, no, `未知の接頭辞 ${key} §${num}（${familyHint(key)}）`);
   } else if (!sections[key].has(num)) {
     fail(file, no, `${key} §${num} は存在しない（${DOCS[key]} に該当する節がない）`);
   }
@@ -131,21 +142,29 @@ for (const file of files) {
       const [, prefix, num] = m;
       let key = prefix;
       if (!key && prevKey !== null && CONNECTOR.test(line.slice(prevEnd, m.index))) key = prevKey; // 並びは直前の接頭辞を引き継ぐ
+      // 03 系の中の「テンプレート §x」は、テンプレートの節を指す
+      if (!key && ownKey && isDoc03(ownKey) && !inFence && TEMPLATE_BEFORE.test(line.slice(0, m.index))) key = "template";
       if (key === "02") continue; // 旧形式は (b) で報告済み
-      if (key?.startsWith("02")) {
+      if (key === "template") {
+        if (!templateSections.has(num)) fail(file, no, `テンプレートに §${num} は存在しない（${TEMPLATE} に該当する節がない）`);
+      } else if (key?.startsWith("02") || key?.startsWith("03")) {
         checkRef(file, no, key, num);
       } else if (!key && ownKey && !inFence && !isRelationRow) {
-        // 3 ファイル内の接頭辞なしの § は、そのファイル内の節を指す
+        // 6 ファイル内の接頭辞なしの § は、そのファイル内の節を指す
         if (!sections[ownKey].has(num)) {
-          fail(file, no, `§${num} はこのファイルに存在しない（別ファイルの節なら 02a / 02b / 02c の接頭辞を付ける）`);
+          const hint = isDoc03(ownKey) ? "03 / 03a / 03b" : "02a / 02b / 02c";
+          fail(file, no, `§${num} はこのファイルに存在しない（別ファイルの節なら ${hint} の接頭辞を付ける）`);
         }
       }
-      prevKey = key?.startsWith("02") ? key : null;
+      prevKey = key === "template" || key?.startsWith("02") || key?.startsWith("03") ? key : null;
       prevEnd = m.index + m[0].length;
     }
 
     // (c) ファイル名の綴り
     for (const m of line.matchAll(DOC_NAME)) {
+      if (!DOC_PATHS.has(`docs/testing/${m[0]}`)) fail(file, no, `存在しないファイル名 ${m[0]}`);
+    }
+    for (const m of line.matchAll(DOC_NAME_03)) {
       if (!DOC_PATHS.has(`docs/testing/${m[0]}`)) fail(file, no, `存在しないファイル名 ${m[0]}`);
     }
 
@@ -163,6 +182,9 @@ for (const file of files) {
           if (/^02[a-z]-.*\.md$/.test(basename(target))) {
             fail(file, no, `リンク先が 02a / 02b / 02c のどれでもない: ${target}（解決先 ${targetPath}）`);
           }
+          if (/^03[a-z]?-.*\.md$/.test(basename(target))) {
+            fail(file, no, `リンク先が 03 / 03a / 03b のどれでもない: ${target}（解決先 ${targetPath}）`);
+          }
           continue;
         }
         if (!existsSync(resolve(root, targetPath))) {
@@ -176,7 +198,10 @@ for (const file of files) {
         }
         // 表示テキストの `02a §x` と、リンク先のファイル・節が一致する
         const anchorSection = anchors[key].get(anchor);
-        for (const t of label.matchAll(/(?<![0-9A-Za-z-])`?(02[a-z])`?\s?§(\d+(?:\.\d+)*)/g)) {
+        for (const t of [
+          ...label.matchAll(/(?<![0-9A-Za-z-])`?(02[a-z])`?\s?§(\d+(?:\.\d+)*)/g),
+          ...label.matchAll(/(?<![0-9A-Za-z-])`?(03[a-z]?)`?\s?§(\d+(?:\.\d+)*)/g),
+        ]) {
           if (t[1] !== key) {
             fail(file, no, `リンクの表示テキスト ${t[1]} §${t[2]} と、リンク先のファイル ${basename(targetPath)} が食い違う`);
           } else if (anchorSection !== t[2]) {
@@ -194,7 +219,8 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(
-  `節番号参照・リンクの検査: 問題なし（${files.length} ファイル、節 ${Object.values(sections)
-    .map((s) => s.size)
+  `節番号参照・リンクの検査: 問題なし（${files.length} ファイル、節 ${Object.entries(sections)
+    .filter(([k]) => k !== "template")
+    .map(([, s]) => s.size)
     .join(" / ")} 件）`,
 );

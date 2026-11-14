@@ -22,7 +22,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 
 1. `CLAUDE.md` を読み、品質ゲートと「変更してはいけないもの」を把握する
 2. Issue 本文を読み、従う
-3. 対応する TRS(`examples/kotlin-spring/docs/trs/`)の AC を読む。期待値の正は `CLAUDE.md` と `03` §3.1 に従い、既存コードの挙動から逆生成しない。AC を直す必要が出たときは、AC を手で直さず、報告でリーダーに伝える(`03` §5.4)
+3. 対応する TRS(`examples/kotlin-spring/docs/trs/`)の AC を読む。期待値の正は `CLAUDE.md` と `03` §3.1 に従い、既存コードの挙動から逆生成しない。AC を直す必要が出たときは、AC を手で直さず、報告でリーダーに伝える(`03b` §4)
 4. 実装する。規約は次のとおり
    - ドメインの値はプリミティブで持たず、コンストラクタで検証する Value Object にする
    - 状態は `sealed` 型で表し、`when` に `else` を書かない(`allWarningsAsErrors` で非網羅はビルドエラー)

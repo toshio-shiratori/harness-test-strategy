@@ -16,13 +16,13 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 | `examples/kotlin-spring/` | 標準を Kotlin + Spring Boot に導入した一例。自己完結の Gradle プロジェクトで、Gradle のコマンドはすべてこのディレクトリで実行する。標準の各文書に対応する実現例・コード例は `docs/<文書番号>.md`（`01`・`02a`・`02b`・`02c`・`03`・`04`）にあり、`src/` と同期させる。サンプルの TRS は `docs/trs/` にある。`todo` はサンプルの要件（TODO-001）に対応するサンプル領域で、製品コードではない | しない |
 | `docs/records/` | このリポジトリ自身の運用・パイロットの記録 | しない |
 
-`01-test-policy` → `02a-types-and-pbt` → `02b-execution-and-mutation` → `02c-e2e` → `03-trs-guideline` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
+`01-test-policy` → `02a-types-and-pbt` → `02b-execution-and-mutation` → `02c-e2e` → `03-trs-guideline` → `03a-traceability-checks` → `03b-generation-flow` → `04-regression-governance` → `05-adoption-guide` と `trs/_template.md` は相互にリンクしているので、見出しやファイル名を変えるときはリンク切れに注意する。
 
 ## 品質ゲート（変更内容ごとに通すもの）
 
 | 変更 | 実行するもの | CI |
 |---|---|---|
-| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:id-changes` = 既存の ID の変化を列挙するスクリプトの自己テスト、`lint:mermaid` = 全 mermaid ブロックを実レンダリングし、構文エラーと、描画した幅が 900px を超える図を失敗にする〔高さは検査しない〕。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
+| `*.md` | `npm ci && npm run lint`（`lint:md` = markdownlint-cli2、`lint:refs` = 02a〜02c と 03・03a・03b の節番号参照とリンク、`lint:portable` = `docs/testing/` の言語中立・自己完結〔外へのリンク、言語のコードブロック、このリポジトリ固有の語。自己テスト付き〕、`lint:id-changes` = 既存の ID の変化を列挙するスクリプトの自己テスト、`lint:mermaid` = 全 mermaid ブロックを実レンダリングし、構文エラーと、描画した幅が 900px を超える図を失敗にする〔高さは検査しない〕。Chrome を起動するので遅い）。`lint:md:fix` で自動修正 | `lint.yml` |
 | `examples/kotlin-spring/` の `src/`・`build.gradle.kts`・`docs/*.md` のコード例・`docs/trs/`・`docs/trs/generated/`・`docs/basic-design/`、`docs/testing/trs/_template.md`、`docs/testing/templates/requirements.md` | `cd examples/kotlin-spring` してから `./gradlew detekt ktlintCheck test integrationTest`(`integrationTest` は Docker が必要)、続けて `./gradlew pitest` と `./gradlew pitest -Ppitest.domainOnly=true`(層1の全対象と、ドメイン層だけの2回。閾値はどちらも 80%、夜間の実行は 70%)。`src/e2eTest` や `src/main/resources/static/` を変えたときは `./gradlew e2eTest` も(Docker とブラウザ〔Chromium〕が必要。`examples/kotlin-spring/README.md` の「E2E のセットアップ」) | `kotlin-samples.yml`(`test` / `integration` / `e2e` ジョブ)/ `nightly-mutation.yml` |
 | 生成物(`examples/kotlin-spring/docs/trs/generated/`)を変える PR | 既存の ID(US・UC・AC・`C-xx`)が消えた・変わった、既存の AC が `@pending` になった、過去に使った ID が戻った、ID に結び付かない Gherkin が変わった、生成物のファイルが無くなったときは、PR 本文の `## 既存の ID の変化` に ID ごとの理由を書く(`- <ID>: <理由>`)。`scripts/check-id-changes.mjs` が列挙し、理由がなければ失敗にする。履歴を読むので `fetch-depth: 0` が要る | `pr-id-changes-check.yml` |
 | バグ修正 PR | タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作る(還元先・完了条件の欄が出る)。`scripts/check-bug-fix-pr.sh` が欄の有無と未チェックの完了条件を検査する | `pr-bug-fix-check.yml` |
@@ -46,7 +46,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 - `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02a-types-and-pbt.md` §1、Kotlin の実装は `examples/kotlin-spring/docs/02a.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
 - PBT が失敗したら `02a` §2.3.1 の手順（Kotlin の例は `examples/kotlin-spring/docs/02a.md`）に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
-- 期待値の正は `03` §3.1 に従う。承認済みの仕様書(要件定義書・基本設計書・TRS の人が合意する節)、承認済みのデザインの順で、定めがなければ Open Issue として人間が決める。TRS の AC と期待結果は仕様書から生成した展開で、手で直さず、入力を直して再生成する。生成の誤りは、そのまま再生成する(`03` §5.4)。既存コードの挙動から期待値を逆生成しない(`03` §3.2)。
+- 期待値の正は `03` §3.1 に従う。承認済みの仕様書(要件定義書・基本設計書・TRS の人が合意する節)、承認済みのデザインの順で、定めがなければ Open Issue として人間が決める。TRS の AC と期待結果は仕様書から生成した展開で、手で直さず、入力を直して再生成する。生成の誤りは、そのまま再生成する(`03b` §4)。既存コードの挙動から期待値を逆生成しない(`03` §3.2)。
 - TRS の Open Issues は解決後も行を削除しない。AC / UC 番号は TRS 間で一意にする。
 
 ## バックログ(Issue)の運用
