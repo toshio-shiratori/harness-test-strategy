@@ -26,7 +26,7 @@ import java.io.File
  *   照合から外すのは、未解決でない行の反映先に `AC-xx-yy 削除` と書いた AC だけである（[TrsSetCheck.exemptions]）。外すのは「AC の表にあるか」の照合だけで、
  *   未解決の Blocking の `@pending` の要否には効かない。未解決の Blocking の関連列の AC がすべて外れているときは、違反とする。
  * - `@pending:<ID>` に書けるのは「その TRS の Open Issues 表にある、未解決（`Open` / `In Discussion`）の `Blocking` な OI-ID」だけ
- *   （03 §3.4 の「Blocking の Open Issue が未解決の AC」と一致させ、除外の抜け道を作らない）。次は違反とする。
+ *   （03 §1.1 の「未解決の Blocking」と一致させ、除外の抜け道を作らない）。次は違反とする。
  *   `OI-<数字>` の形でない値（`ISSUE-n` を含む。実装待ちは Issue / PR で管理する）、表に無い OI-ID、
  *   未解決の Blocking でない OI-ID（`Resolved` / `Superseded` / `Won't Fix` / `Non-blocking`）。
  *   対象は、行内で `@AC-xx-yy` より後ろにある `@pending:` である（AC を除外する判定と同じ範囲。行頭が `@` の行に限らない）。
@@ -170,7 +170,7 @@ internal object UnresolvedBlockingCheck {
 }
 
 /**
- * 03 §3.4 / 01 の G5: TRS ファイル（`docs/trs/`）と、同じ名前の生成物のファイル（`docs/trs/generated/`）を組にして読み、失敗条件を検査する。
+ * 03 §3.4・03-1 §2 / 01 の G5: TRS ファイル（`docs/trs/`）と、同じ名前の生成物のファイル（`docs/trs/generated/`）を組にして読み、失敗条件を検査する。
  * 組にならないファイル、TRS ファイルにある US・UC・AC の表の行、生成物のファイルに無い US・UC・AC の表の行、生成物のファイルにある
  * Open Issues・因子・水準・禁止組合せの表、組合せ別の期待結果（5.2）の書式、AC の表の根拠の実在、トレーサビリティ表（7）と Open Issues の
  * 関連列の AC ID が AC の表に無いことは、[TrsSetCheck] が検査する（自己テストは [TrsSetCheckTest]）。
@@ -232,7 +232,7 @@ class TraceabilityTest : StringSpec({
         designDocs.values.sumOf { DesignIds.read(it).size } shouldBeGreaterThan 0
     }
 
-    "TRS ファイルと生成物のファイルが組になり、03 §3.4 の失敗条件に当たらない（置き場・AC の表・期待結果・根拠の実在・照合）" {
+    "TRS ファイルと生成物のファイルが組になり、03 §3.4・03-1 §2 の失敗条件に当たらない（置き場・AC の表・期待結果・根拠の実在・照合）" {
         val violations = TrsSetCheck.violations(trsDocs, generatedDocs, requirementDocs, designDocs)
         withClue(violations.joinToString("\n")) { violations.shouldBeEmpty() } // 違反の全件を失敗メッセージに出す
     }

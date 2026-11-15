@@ -1,7 +1,7 @@
 package com.example.architecture
 
 /**
- * TRS ファイルと生成物のファイルを組にして検査する（03 §3.4 の「検査の単位」と 03-1 §3 の書式）。
+ * TRS ファイルと生成物のファイルを組にして検査する（03-1 §2 の「検査の単位」と 03-1 §3.1〜§3.7 の書式）。
  * 入力は `(ファイル名, 本文)` の対応で、戻り値は違反の説明の一覧である（空なら合格）。実ファイルの検査と自己テストは、同じ [TrsSetCheck.violations] を呼ぶ。
  *
  * 読み取りの空振りで AC が黙って検査から外れないよう、次のどれも失敗にする。
@@ -15,7 +15,7 @@ package com.example.architecture
  * AC の表と 5.2 の根拠の値の実在（[BasisCheck]）、設計 ID の書式と重複（[DesignIds.violations]）、設計 ID が全 TRS の根拠に現れること（[DesignIds.uncovered]）である。
  */
 
-/** AC ID の範囲表記の展開（03-1 §3 の「② ③ の書式」）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
+/** AC ID の範囲表記の展開（03-1 §3.2 の書式）。Open Issues の関連列とトレーサビリティ表の先頭列で共用する */
 internal object AcRefs {
     enum class Problem { UNREADABLE, REVERSED }
 
@@ -56,7 +56,7 @@ internal object TrsTables {
         }
 }
 
-/** 生成物のファイルの AC の表（テンプレート §3）。見出しの完全一致で読む（03-1 §3 の「① ④ の書式」） */
+/** 生成物のファイルの AC の表（テンプレート §3）。見出しの完全一致で読む（03-1 §3.1 の書式） */
 internal object AcTable {
     val header = listOf("AC ID", "関連 UC", "テストレベル", "検証層", "優先度", "検証する振る舞い", "根拠")
 
@@ -96,7 +96,7 @@ internal object AcTable {
     }
 }
 
-/** TRS ファイルに置いてはならないもの（US の行・UC の節・AC の表の行）。AC を生成物のファイルだけに置くため（03 §3.4） */
+/** TRS ファイルに置いてはならないもの（US の行・UC の節・AC の表の行）。AC を生成物のファイルだけに置くため（03-1 §2 の「検査の単位」） */
 internal object TrsFileCheck {
     private val usId = Regex("""^US-\d+$""")
     private val ucHeading = Regex("""^UC-\d+""")
@@ -118,7 +118,7 @@ internal object TrsFileCheck {
 }
 
 /**
- * 生成物のファイルに置いてはならない表（Open Issues・因子・水準・禁止組合せ）。見出しの列名（セルの完全一致）で見分ける（03-1 §3）。
+ * 生成物のファイルに置いてはならない表（Open Issues・因子・水準・禁止組合せ）。見出しの列名（セルの完全一致）で見分ける（03-1 §3.8.1）。
  * トレーサビリティ表（テンプレート §7）も、運用情報なので TRS ファイルにだけ置く（03-2 §4）。
  */
 internal object GeneratedFileCheck {
@@ -135,7 +135,7 @@ internal object GeneratedFileCheck {
     }
 }
 
-/** 組合せ別の期待結果（テンプレート §5.2）の表と、期待結果・根拠の判定（03-1 §3） */
+/** 組合せ別の期待結果（テンプレート §5.2）の表と、期待結果・根拠の判定（03-1 §3.7） */
 internal object ExpectationTable {
     val header = listOf("制約ID", "条件", "期待結果", "根拠（要件 ID / 設計 ID / OI）")
 
@@ -265,7 +265,7 @@ internal object BasisCheck {
             .flatMap { values(it) }.filter { DesignIds.isId(it) }.toSet()
 }
 
-/** TRS ファイルのトレーサビリティ表（テンプレート §7）の AC ID を、AC の表と照合する（03 §3.4 の検査の単位） */
+/** TRS ファイルのトレーサビリティ表（テンプレート §7）の AC ID を、AC の表と照合する（03-1 §2 の「検査の単位」） */
 internal object TraceabilityTable {
     class Entry(val id: String, val line: Int)
 
@@ -321,7 +321,7 @@ internal object TestNameCheck {
     }
 }
 
-/** TRS ファイルと生成物のファイルの組を、03 §3.4 の失敗条件で検査する */
+/** TRS ファイルと生成物のファイルの組を、03-1 §2 の失敗条件で検査する */
 internal object TrsSetCheck {
     private val gherkinTag = Regex("""@(AC-\d\d-\d\d)\b""")
     private val deletion = Regex("""^(AC-\d\d-\d\d) 削除$""")
@@ -330,7 +330,7 @@ internal object TrsSetCheck {
     private fun structureViolations(trsText: String, generatedText: String): List<String> =
         TrsFileCheck.violations(trsText) + GeneratedFileCheck.violations(generatedText)
 
-    /** 未解決でない Open Issue の反映先に、`AC-xx-yy 削除` と書いた AC。照合から外す（03 §3.4 の検査の単位） */
+    /** 未解決でない Open Issue の反映先に、`AC-xx-yy 削除` と書いた AC。照合から外す（03-1 §2 の「検査の単位」） */
     fun exemptions(rows: List<UnresolvedBlockingCheck.Row>): Set<String> =
         rows.filter { !it.unresolved && UnresolvedBlockingCheck.isResolvedState(it.state) }
             .flatMap { row -> row.reflect.split(",").mapNotNull { deletion.find(it.trim())?.groupValues?.get(1) } }.toSet()
