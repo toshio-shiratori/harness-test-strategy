@@ -210,7 +210,7 @@ class TraceabilityTest : StringSpec({
     // テスト名（Kotest の文字列名・JUnit のバッククォート名）の先頭に置かれた AC ID。自己テストの文字列は、テスト名ではないので除く
     val testSources = Konsist.scopeFromTest().files.filterNot { it.name in selfTestFiles }.joinToString("\n") { it.text }
 
-    "統合テスト（src/integrationTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
+    "Integration（src/integrationTest）のテスト名も AC の紐づけ検査の対象に含まれる" {
         // 層2（Integration）の AC は src/integrationTest のテストに紐づく。ここが検査範囲から外れると、移した AC が「テスト無し」と誤判定される
         Konsist.scopeFromTest().files.any { "/src/integrationTest/" in it.path } shouldBe true
         testSources.contains("class TaskApiHttpTest") shouldBe true // src/integrationTest のテスト本文が照合対象に入っている

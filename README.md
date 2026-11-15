@@ -95,9 +95,9 @@ flowchart TB
 
 | 文書 | 内容 |
 |---|---|
-| [01 基本方針書](docs/testing/01-test-policy.md) | 基本理念、W字モデル、テストの層構造、人間と AI の責務分離、品質ゲート |
+| [01 基本方針書](docs/testing/01-test-policy.md) | 基本理念、W字モデル、テストの層構造、人間と AI の責務分離、品質ゲート、用語表 |
 | [02-1 型設計とPBT](docs/testing/02-1-types-and-pbt.md) | 導入先の言語・ツールの前提、型で誤りを書けなくする設計、PBT |
-| [02-2 層1の実行境界とミューテーション](docs/testing/02-2-execution-and-mutation.md) | 層1・統合テスト・E2E の実行境界、ミューテーションテスト、AI エージェントに従わせる機械的な設定 |
+| [02-2 実行境界とミューテーション](docs/testing/02-2-execution-and-mutation.md) | 層1・Integration・E2E の実行境界、ミューテーションテスト、AI エージェントに従わせる機械的な設定 |
 | [02-3 E2E 最小化原則](docs/testing/02-3-e2e.md) | E2E を許可する領域、審査、予算 |
 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法。TRS の構造、期待値の出所、検査の要約、Open Issues |
 | [03-1 トレーサビリティ検査の詳細](docs/testing/03-1-traceability-checks.md) | TRS・要件・設計・テストの対応を機械検査する失敗条件の全体と、検査が前提とする書式 |

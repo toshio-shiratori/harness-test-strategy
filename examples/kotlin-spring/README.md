@@ -126,10 +126,10 @@ curl -i -X POST http://localhost:8080/tasks \
 
 | パス | 内容 |
 |---|---|
-| `src/` | サンプルのソースとテスト(層1は `src/test`、統合テストは `src/integrationTest`、E2E は `src/e2eTest`) |
+| `src/` | サンプルのソースとテスト(層1は `src/test`、Integration は `src/integrationTest`、E2E は `src/e2eTest`) |
 | `docs/01.md` | 01 基本方針書の実現例(G1〜G5 をこのサンプルがどう実現しているか) |
 | `docs/02-1.md` | 02-1 型設計と PBT の Kotlin のコード例(`src/` と同期。変えるときは両方を更新する) |
-| `docs/02-2.md` | 02-2 層1の実行境界とミューテーションの実装(設定・コード例・実測。`src/`・`build.gradle.kts` と同期) |
+| `docs/02-2.md` | 02-2 実行境界とミューテーションの実装(設定・コード例・実測。`src/`・`build.gradle.kts` と同期) |
 | `docs/02-3.md` | 02-3 E2E 最小化原則の実例(タスク管理画面の E2E) |
 | `docs/03.md` | 03 TRS ガイドラインのサンプルでの実現 |
 | `docs/04.md` | 04 リグレッション運用規程のサンプルでの実装 |

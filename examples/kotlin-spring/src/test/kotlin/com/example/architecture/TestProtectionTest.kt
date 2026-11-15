@@ -24,7 +24,7 @@ class TestProtectionTest : StringSpec({
         tests.isNotEmpty() shouldBe true
     }
 
-    "統合テスト（src/integrationTest）も検査対象に含まれる（source set の分離で検査から外れない）" {
+    "Integration（src/integrationTest）も検査対象に含まれる（source set の分離で検査から外れない）" {
         tests.any { "/src/integrationTest/" in it.path } shouldBe true
     }
 

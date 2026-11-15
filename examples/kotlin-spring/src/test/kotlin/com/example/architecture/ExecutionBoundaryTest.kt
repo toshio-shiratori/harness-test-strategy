@@ -31,7 +31,7 @@ class ExecutionBoundaryTest : StringSpec({
 
     fun inE2eSourceSet(file: KoFileDeclaration) = "/src/e2eTest/" in file.path
 
-    // Spring / Testcontainers を使ってよい source set（統合テストと E2E）
+    // Spring / Testcontainers を使ってよい source set（Integration と E2E）
     fun inContextSourceSet(file: KoFileDeclaration) = "/src/integrationTest/" in file.path || inE2eSourceSet(file)
 
     fun usesBrowser(file: KoFileDeclaration) = file.imports.any { it.name.startsWith("com.microsoft.playwright") }
@@ -57,11 +57,11 @@ class ExecutionBoundaryTest : StringSpec({
         misplacedIntegrationTests(testFiles).shouldBeEmpty()
     }
 
-    "ブラウザ操作（Playwright）を使うテストは src/e2eTest にだけ置かれている（層1と統合テストに入れない）" {
+    "ブラウザ操作（Playwright）を使うテストは src/e2eTest にだけ置かれている（層1と Integration に入れない）" {
         misplacedBrowserTests(testFiles).shouldBeEmpty()
     }
 
-    "検査の健全性: 層1・統合テスト・E2E のすべてに検査対象のファイルがある" {
+    "検査の健全性: 層1・Integration・E2E のすべてに検査対象のファイルがある" {
         testFiles.any { "/src/test/" in it.path } shouldBe true
         testFiles.any { "/src/integrationTest/" in it.path } shouldBe true
         testFiles.any(::inE2eSourceSet) shouldBe true
