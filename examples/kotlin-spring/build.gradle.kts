@@ -165,14 +165,14 @@ pitest {
 detekt {
     config.setFrom("config/detekt/detekt.yml")
     buildUponDefaultConfig = true
-    // 02-1 §3.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
+    // 02-1 §3.3: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
     source.setFrom("src/main/kotlin")
 }
 
 // UnsafeCast / UnsafeCallOnNullableType / ForbiddenAnnotation は型解決が必要なため detektMain で実行する。
 // `./gradlew detekt` でも detektMain が走るようにして、コマンドを docs・CI・ローカルで一つにする。
 tasks.named("detekt") { dependsOn("detektMain") }
-// テストソースは `as` を許容する（02-1 §3.2）ため検査しない
+// テストソースは `as` を許容する（02-1 §3.3）ため検査しない
 tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIntegrationTest", "detektIntegrationTestSourceSet") }.configureEach { enabled = false }
 
 tasks.withType<Test> {
