@@ -18,7 +18,7 @@ import io.kotest.matchers.shouldBe
  *
  * 現在の構成でコンパイルが通り、かつ黙って実行されないのは、層1の `junit-jupiter-api` の注釈（`@Test` / `@RepeatedTest` / `@TestFactory` / `@TestTemplate`）である。
  * 次は現在の依存ではコンパイルが通らない（`@ParameterizedTest` は junit-jupiter-params、JUnit 4 は junit:junit、
- * 統合テスト・E2E の Kotest の Spec は kotest-framework が、それぞれクラスパスに無い）。
+ * Integration・E2E の Kotest の Spec は kotest-framework が、それぞれクラスパスに無い）。
  * 依存が後から足されると、コンパイルが通るのにエンジンが無いまま黙って 0 件になるので、先に違反として固定しておく。
  *
  * 検査する規則:
@@ -87,19 +87,19 @@ class UnrunTestDetectionTest : StringSpec({
         unrunKotestSpec(testFiles.filter(::inJUnitSourceSet)).shouldBeEmpty()
     }
 
-    "検査の健全性: 層1・統合テスト・E2E のすべてに検査対象のファイルがある" {
+    "検査の健全性: 層1・Integration・E2E のすべてに検査対象のファイルがある" {
         testFiles.any(::inLayer1) shouldBe true
         testFiles.any { "/src/integrationTest/" in it.path } shouldBe true
         testFiles.any { "/src/e2eTest/" in it.path } shouldBe true
     }
 
-    "検査の健全性: 実行される書き方（層1の Kotest・統合テストと E2E の JUnit 5）は違反にならない" {
-        // 統合テスト・E2E は JUnit 5 の @Test を実際に使っている。それが違反に数えられていないこと（検査が広すぎない）
+    "検査の健全性: 実行される書き方（層1の Kotest・Integration と E2E の JUnit 5）は違反にならない" {
+        // Integration・E2E は JUnit 5 の @Test を実際に使っている。それが違反に数えられていないこと（検査が広すぎない）
         testFiles.filter(::inJUnitSourceSet).any(::usesJUnit5TestAnnotation) shouldBe true
         testFiles.filter(::inLayer1).any(::usesKotestSpec) shouldBe true
     }
 
-    "違反例（fixtures）を検出できる: 層1の JUnit 注釈・JUnit 4・統合テストの Kotest Spec は違反になる" {
+    "違反例（fixtures）を検出できる: 層1の JUnit 注釈・JUnit 4・Integration の Kotest Spec は違反になる" {
         val layer1 = Konsist.scopeFromDirectory("config/konsist-fixtures/unrun-tests/layer1").files
         val junitSourceSet = Konsist.scopeFromDirectory("config/konsist-fixtures/unrun-tests/integration").files
         layer1.map { it.name } shouldContainExactlyInAnyOrder

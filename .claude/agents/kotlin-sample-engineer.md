@@ -26,7 +26,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch
 4. 実装する。規約は次のとおり
    - ドメインの値はプリミティブで持たず、コンストラクタで検証する Value Object にする
    - 状態は `sealed` 型で表し、`when` に `else` を書かない(`allWarningsAsErrors` で非網羅はビルドエラー)
-   - Spring を起動する統合テストは `examples/kotlin-spring/src/integrationTest` に置く。`examples/kotlin-spring/src/test` は層1のみ(Spring・Docker 不要)
+   - Spring を起動する Integration（層2）のテストは `examples/kotlin-spring/src/integrationTest` に置く。`examples/kotlin-spring/src/test` は層1のみ(Spring・Docker 不要)
    - 実ブラウザ(Playwright)で操作する E2E は `examples/kotlin-spring/src/e2eTest` にだけ置く。Spring・Testcontainers も `examples/kotlin-spring/src/integrationTest` と `examples/kotlin-spring/src/e2eTest` に限る(`ExecutionBoundaryTest` が検査)。E2E は 02-3 §1 の許可領域に限り、PR に審査記載(02-3 §1.3)を書く
    - Spring Boot 4 の API は 3.x と異なることがある。確認できていない API は書かず、WebFetch で公式リファレンスを確認する。確認できなければ書かずに報告する
 5. `examples/kotlin-spring/docs/*.md` のコード例を変えたら `examples/kotlin-spring/src/` も同時に更新し、`examples/kotlin-spring/src/` を変えたら `examples/kotlin-spring/docs/*.md` の対応するコード例も更新する
