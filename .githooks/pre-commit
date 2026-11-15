@@ -1,6 +1,6 @@
 #!/bin/sh
 # pre-commit: Kotlin サンプルに関わる変更をコミットする前に、静的検査(G1)と層1テスト(G2)を流す。
-# 01 §5 の G1・G2 の実行タイミング(pre-commit)と、02b §3.1 の実行順序に対応する。
+# 01 §5 の G1・G2 の実行タイミング(pre-commit)と、02-2 §1.1 の実行順序に対応する。
 # 有効にする(クローンごとに 1 度): git config core.hooksPath .githooks
 # 一時的に省く: git commit --no-verify(PR の CI では省けない)
 set -eu

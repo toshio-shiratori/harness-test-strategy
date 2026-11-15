@@ -155,7 +155,7 @@ export function findExistingIssue(issues, key) {
   return issues.find((i) => !i.pull_request && i.title.trim() === `${TITLE_PREFIX} ${key}`) ?? null;
 }
 
-// ソースから E2E の件数を数える。`@Test`（`@TestInstance` などは数えない）と、02c §5.1 の領域タグ `@e2e:<領域>`
+// ソースから E2E の件数を数える。`@Test`（`@TestInstance` などは数えない）と、02-3 §1.1 の領域タグ `@e2e:<領域>`
 export function countE2e(fileTexts) {
   let tests = 0;
   const areas = {};
@@ -399,7 +399,7 @@ function flakySection(all, win) {
     for (const c of w.candidates) lines.push(`- ${c.workflow} / ${c.job}（run ${c.runId}、${md(Date.parse(c.createdAt))}）`);
   }
   if (w.pbtSuspects.length) {
-    lines.push("", "対象の週の、PBT を含むジョブの「失敗 → 再試行で成功」。反例の可能性があるので、ログのシードで再現する（02a §2.3.1）:", "");
+    lines.push("", "対象の週の、PBT を含むジョブの「失敗 → 再試行で成功」。反例の可能性があるので、ログのシードで再現する（02-1 §3.3.1）:", "");
     for (const c of w.pbtSuspects) lines.push(`- ${c.workflow} / ${c.job}（run ${c.runId}、${md(Date.parse(c.createdAt))}）`);
   }
   lines.push(
@@ -429,11 +429,11 @@ function durationSection(all, win) {
     .flatMap((r) => r.jobs)
     .filter((j) => j.name === "e2e" && j.startedAt && j.completedAt && j.conclusion !== "skipped")
     .map((j) => (Date.parse(j.completedAt) - Date.parse(j.startedAt)) / 1000);
-  let budgetLine = "- E2E の予算（02c §5.4）: 取得できず";
+  let budgetLine = "- E2E の予算（02-3 §1.4）: 取得できず";
   if (budget !== null) {
     const reached = e2eSecs.filter((x) => x >= budget * 60).length;
     const maxSec = e2eSecs.length ? Math.max(...e2eSecs) : null;
-    budgetLine = `- E2E の予算（02c §5.4。\`${CI.file}\` の \`e2e\` ジョブの \`timeout-minutes\`）: ${budget} 分。直近 30 日で予算に達した \`e2e\` ジョブ（成否を問わない）: ${reached ? `**${reached} 件**` : "0 件"}。最大の所要時間は予算の ${maxSec === null ? "-" : `${Math.round((100 * maxSec) / (budget * 60))}%`}`;
+    budgetLine = `- E2E の予算（02-3 §1.4。\`${CI.file}\` の \`e2e\` ジョブの \`timeout-minutes\`）: ${budget} 分。直近 30 日で予算に達した \`e2e\` ジョブ（成否を問わない）: ${reached ? `**${reached} 件**` : "0 件"}。最大の所要時間は予算の ${maxSec === null ? "-" : `${Math.round((100 * maxSec) / (budget * 60))}%`}`;
   }
   return {
     text: [
@@ -452,7 +452,7 @@ function e2eCountSection() {
   const c = countE2e(readE2eSources());
   const areas = Object.entries(c.areas).sort();
   return [
-    `- E2E のテスト数（\`@Test\`）: ${c.tests} 件。領域タグ（\`@e2e:<領域>\`）の付いた数: ${c.tagged} 件${c.tests !== c.tagged ? "（**一致しない**。02c §5.3 の審査の記載を確かめる）" : ""}`,
+    `- E2E のテスト数（\`@Test\`）: ${c.tests} 件。領域タグ（\`@e2e:<領域>\`）の付いた数: ${c.tagged} 件${c.tests !== c.tagged ? "（**一致しない**。02-3 §1.3 の審査の記載を確かめる）" : ""}`,
     areas.length ? `- 領域の内訳: ${areas.map(([k, v]) => `${k} ${v}`).join("、")}` : "- 領域の内訳: -",
   ].join("\n");
 }
@@ -543,7 +543,7 @@ export function renderReport(win, parts, repo) {
     "## 人が見ること",
     "",
     `- [ ] 夜間の失敗と、Mutation Score が閾値を下回っていないか。閾値との差が ${NEAR_THRESHOLD_POINTS} ポイント未満なら、原因を調べる`,
-    "- [ ] flaky の候補の原因。E2E の flaky は 02c §5.4 に従い、隔離して 14 日以内に修復か破棄を決める。PBT の反例の可能性は、シードで再現する（02a §2.3.1）",
+    "- [ ] flaky の候補の原因。E2E の flaky は 02-3 §1.4 に従い、隔離して 14 日以内に修復か破棄を決める。PBT の反例の可能性は、シードで再現する（02-1 §3.3.1）",
     "- [ ] 実行時間が予算内か。超えていれば 04 §4 で審査する",
     "- [ ] 層3・本番で見つかった不具合が増えていないか。増えていれば、還元先の漏れを確かめる",
     "- [ ] ヒーリング履歴のレビュー（履歴の記録ができたら。いまは記録が無く、対象なし）",

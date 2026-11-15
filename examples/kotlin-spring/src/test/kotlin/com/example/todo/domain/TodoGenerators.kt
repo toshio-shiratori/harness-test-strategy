@@ -12,7 +12,7 @@ import io.kotest.property.arbitrary.orNull
 import java.time.Instant
 import java.time.LocalDate
 
-// ドメイン型ごとに Arb をここに集める（02a §2.3 規則 1）。ファクトリの検証と同じ制約を満たす値だけを生成する。
+// ドメイン型ごとに Arb をここに集める（02-1 §3.3 規則 1）。ファクトリの検証と同じ制約を満たす値だけを生成する。
 // 生成した値の期待値は、生成の仕方（使った単位の数など）から決め、実装の計算を写さない（規則 5）。
 // テストは `as` で Valid を取り出してよい（detekt の対象は本番ソースのみ）。
 

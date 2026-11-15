@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
-/** 検証用: value class をそのまま受ける DTO。本番では使わない（02a §1.2）。 */
+/** 検証用: value class をそのまま受ける DTO。本番では使わない（02-1 §2.2）。 */
 data class ValueClassRequest(val title: TaskTitle)
 
 @RestController
@@ -22,9 +22,9 @@ class ValueClassProbeController {
 }
 
 /**
- * 02a §1.2 の根拠となる実測（AC に紐づかない技術的な検証）。Jackson 3 + jackson-module-kotlin が、
+ * 02-1 §2.2 の根拠となる実測（AC に紐づかない技術的な検証）。Jackson 3 + jackson-module-kotlin が、
  * 文字列を包む value class を `private constructor` 経由で直接生成して `TaskTitle.of` の検証を素通りするかを確かめる。
- * 結果は 02a.md の §1.2 に書いている。このテストが失敗するようになった（検証が効くようになった）場合は、02a §1.2 の規則 5 を見直すこと。
+ * 結果は 02-1.md の §2.2 に書いている。このテストが失敗するようになった（検証が効くようになった）場合は、02-1 §2.2 の規則 5 を見直すこと。
  */
 @WebMvcTest(ValueClassProbeController::class)
 @AutoConfigureRestTestClient

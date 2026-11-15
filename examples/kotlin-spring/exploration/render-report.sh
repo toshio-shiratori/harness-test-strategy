@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # `claude -p --output-format json` の出力を、報告用の Markdown に整形して標準出力に出す
-# (examples/kotlin-spring/docs/02b.md §3.1)。
+# (examples/kotlin-spring/docs/02-2.md §1.1)。
 # 使い方: render-report.sh <claude の JSON 出力> <claude の終了コード> <所要時間(秒)> <モデル ID>
 # 数値は、claude が返した total_cost_usd と session_id、呼び出し側で測った所要時間だけを使う。
 set -euo pipefail

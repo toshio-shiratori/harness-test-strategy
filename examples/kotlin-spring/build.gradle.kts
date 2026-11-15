@@ -1,4 +1,4 @@
-// docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
+// docs/testing/02-1-types-and-pbt.md と docs/testing/02-2-execution-and-mutation.md のサンプルコードを実際にコンパイル・実行して検証するための最小プロジェクト。
 plugins {
     kotlin("jvm") version "2.4.21" // Spring Boot 4.1.2 の BOM（2.3 系）より新しい。kotlin-reflect / stdlib は 2.4.21 に揃うことを確認済み
     kotlin("plugin.spring") version "2.4.21"
@@ -42,7 +42,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// 実行境界（02b §3.2）: Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・DB 統合）は src/integrationTest に置き、
+// 実行境界（02-2 §1.2）: Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・DB 統合）は src/integrationTest に置き、
 // `./gradlew integrationTest` で実行する。`./gradlew test` は層1だけ（Spring・Docker 不要、全体で数秒以内）。
 testing {
     suites {
@@ -107,7 +107,7 @@ tasks.named<Test>("e2eTest") {
 
 // ドメイン層だけの実行（-Ppitest.domainOnly=true）。層1の全対象（既定）や差分実行に加えて、それらが走る契機ごとに併走させる。
 // 閾値は対象の合算にかかり、対象を広げたり、ドメイン層と他の層を同時に変えたりすると、ドメイン層に対する実効の要求が下がるため、
-// ドメイン層は別に評価する（規範 docs/testing/02b §4.1、サンプル examples/kotlin-spring/docs/02b.md §4.4）。
+// ドメイン層は別に評価する（規範 docs/testing/02-2 §2.1、サンプル examples/kotlin-spring/docs/02-2.md §2.4）。
 // 実行するテストはドメイン層のテストだけにして、ドメイン層の変異をドメイン層自身のテストで検出できることを求める。
 // -Ppitest.targetClasses を併用すると、その中のドメイン層のクラスだけを対象にする（差分実行の併走）。ドメイン層以外のクラスが
 // 含まれていたら失敗させる（呼び出し側は、ドメイン層のクラスだけを渡す）。
@@ -156,7 +156,7 @@ pitest {
             "com.example.todo.domain.TaskTitle",
         ),
     )
-    // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02b §4.1
+    // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02-2 §2.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
@@ -165,14 +165,14 @@ pitest {
 detekt {
     config.setFrom("config/detekt/detekt.yml")
     buildUponDefaultConfig = true
-    // 02a §2.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
+    // 02-1 §3.2: テストコード内のジェネレータに限り `as` を許可するため、検査対象は本番ソースのみ
     source.setFrom("src/main/kotlin")
 }
 
 // UnsafeCast / UnsafeCallOnNullableType / ForbiddenAnnotation は型解決が必要なため detektMain で実行する。
 // `./gradlew detekt` でも detektMain が走るようにして、コマンドを docs・CI・ローカルで一つにする。
 tasks.named("detekt") { dependsOn("detektMain") }
-// テストソースは `as` を許容する（02a §2.2）ため検査しない
+// テストソースは `as` を許容する（02-1 §3.2）ため検査しない
 tasks.matching { it.name in setOf("detektTest", "detektTestSourceSet", "detektIntegrationTest", "detektIntegrationTestSourceSet") }.configureEach { enabled = false }
 
 tasks.withType<Test> {
@@ -186,13 +186,13 @@ tasks.withType<Test> {
     inputs.file("../../docs/testing/trs/_template.md")
     inputs.file("../../docs/testing/templates/requirements.md")
     inputs.file("../../docs/testing/templates/basic-design.md")
-    // 目次の定数（InputDocCheck）が規範と同じことを確かめるため、03b の §2 を読む。生成物のファイルの定型文のリンクのアンカーを確かめるため、03・03a・03b の見出しを読む
+    // 目次の定数（InputDocCheck）が規範と同じことを確かめるため、03-2 の §2 を読む。生成物のファイルの定型文のリンクのアンカーを確かめるため、03・03-1・03-2 の見出しを読む
     inputs.file("../../docs/testing/03-trs-guideline.md")
-    inputs.file("../../docs/testing/03a-traceability-checks.md")
-    inputs.file("../../docs/testing/03b-generation-flow.md")
+    inputs.file("../../docs/testing/03-1-traceability-checks.md")
+    inputs.file("../../docs/testing/03-2-generation-flow.md")
     // PitestExclusionTest が excludedClasses を読むため、同じ理由で入力に宣言する
     inputs.file("build.gradle.kts")
-    // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02a §2.3）。未指定なら Kotest の既定（1000）。
+    // 夜間ジョブは -Pproptest.iterations=N で PBT の実行回数を増やす（02-1 §3.3）。未指定なら Kotest の既定（1000）。
     // Gradle の -D はテスト JVM に渡らないため、ここで転送する。
     providers.gradleProperty("proptest.iterations").orNull?.let {
         systemProperty("kotest.proptest.default.iteration.count", it)

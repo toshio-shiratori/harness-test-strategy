@@ -23,12 +23,12 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
-      # docs/testing/02a-types-and-pbt.md と docs/testing/02b-execution-and-mutation.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
+      # docs/testing/02-1-types-and-pbt.md と docs/testing/02-2-execution-and-mutation.md のサンプルコードの静的解析・テスト（ローカルも同一コマンド）
       - run: ./gradlew detekt ktlintCheck test
       # ミューテーションテスト: PR は変更クラスのみ（差分）、main への push は全体。
       # 全体（ALL）のときは、層1の全対象に加えて、ドメイン層だけの実行も走らせる。差分実行のときも、変更クラスにドメイン層
       # （com.example.todo.domain）のクラスが含まれれば、そのクラスだけをドメイン層のテストで実行する
-      # （サンプルの examples/kotlin-spring/docs/02b.md §4.4）。ドメイン層のクラスだけを渡す絞り込みは、ここ（シェル）で行う
+      # （サンプルの examples/kotlin-spring/docs/02-2.md §2.4）。ドメイン層のクラスだけを渡す絞り込みは、ここ（シェル）で行う
       # どちらかが失敗しても、もう一方の結果を得るため両方を実行して、最後にまとめて失敗にする
       - name: pitest
         env:
@@ -61,7 +61,7 @@ jobs:
 
   # Spring コンテキストを起動するテスト（@WebMvcTest・@SpringBootTest・Testcontainers の DB 統合）。
   # `test` ジョブは Docker なしの層1だけ。ubuntu-latest には Docker が入っている
-  # 02b §3.1 の実行順序（全 Unit/PBT → ミューテーション → Integration → E2E）に合わせ、`test`（層1とミューテーション）の後に実行する
+  # 02-2 §1.1 の実行順序（全 Unit/PBT → ミューテーション → Integration → E2E）に合わせ、`test`（層1とミューテーション）の後に実行する
   integration:
     needs: test
     defaults:
@@ -79,8 +79,8 @@ jobs:
 
   # 実ブラウザ（Playwright の Chromium）で動かす E2E。`integration` と同じく Docker（Testcontainers の MySQL）が要る。
   # Chromium は `e2eTest` が依存する `playwrightInstall` が取得する。取得先をキャッシュする。
-  # 02c §5.4 の E2E 予算（PR パイプライン内で 10 分以内）を timeout-minutes の上限にする。失敗をリトライや continue-on-error で隠さない
-  # `integration` の後に実行する（02b §3.1 の実行順序）
+  # 02-3 §1.4 の E2E 予算（PR パイプライン内で 10 分以内）を timeout-minutes の上限にする。失敗をリトライや continue-on-error で隠さない
+  # `integration` の後に実行する（02-2 §1.1 の実行順序）
   e2e:
     needs: integration
     defaults:
