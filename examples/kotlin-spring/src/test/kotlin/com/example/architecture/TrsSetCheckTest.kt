@@ -8,7 +8,7 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 /**
- * [TrsSetCheck] など、TRS ファイルと生成物のファイルの組を検査する部品の自己テスト（03 §3.4 の失敗条件ごとに、最小の文字列で失敗させて確かめる）。
+ * [TrsSetCheck] など、TRS ファイルと生成物のファイルの組を検査する部品の自己テスト（03 §3.4 と 03-1 §2 の失敗条件ごとに、最小の文字列で失敗させて確かめる）。
  * 入力は文字列で組み立てる。実ファイルの検査は [TraceabilityTest] にある。
  * このファイルの AC ID（`AC-01-01` など）は検査の入力であり、テスト名ではないので、[selfTestFiles] として ① ⑦ の照合から除く。
  */
@@ -29,7 +29,7 @@ class TrsSetCheckTest : StringSpec({
         check().shouldBeEmpty()
     }
 
-    // ---- 検査の単位（03 §3.4 の冒頭の表） ----
+    // ---- 検査の単位（03-1 §2 の「検査の単位」の表） ----
 
     "反例: 対になる生成物のファイルが無い TRS ファイルは違反になる（生成物のフォルダが無いときも同じ）" {
         TrsSetCheck.violations(mapOf("t.md" to trsFile()), emptyMap(), req, des)
@@ -283,7 +283,7 @@ class TrsSetCheckTest : StringSpec({
         check(trs = trs).shouldHavePrefix("t.md: Open Issues 表の見出し（ID・区分・関連・状態・反映先）が見つからない")
     }
 
-    // ---- 組合せ別の期待結果（5.2）の書式（03-1 §3） ----
+    // ---- 組合せ別の期待結果（5.2）の書式（03-1 §3.7） ----
 
     "反例: 期待結果に、ケースを生成しない文言があると違反になる（語は部分一致）" {
         listOf("テスト対象外", "テストの対象外", "テスト不要", "テストしない", "型で排除", "ケースを生成しない").forEach { word ->

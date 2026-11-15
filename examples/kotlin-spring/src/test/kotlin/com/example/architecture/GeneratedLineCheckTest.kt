@@ -13,9 +13,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * [GeneratedLineCheck]（生成物のファイルの各行が、ID に結び付く記述か、テンプレートの定型文のどちらかであること。03-1 §3）の検査と自己テスト。
+ * [GeneratedLineCheck]（生成物のファイルの各行が、ID に結び付く記述か、テンプレートの定型文のどちらかであること。03-1 §3.8）の検査と自己テスト。
  * 実ファイルの検査は、`docs/trs/generated/` の全ファイルを、`docs/testing/trs/_template.md` の定型文に通す。
- * 反例は、実際の生成物のファイルに 1 か所だけ足す・変えて作る。期待は 03-1 §3 の文面から決め、既存の挙動から逆生成しない。
+ * 反例は、実際の生成物のファイルに 1 か所だけ足す・変えて作る。期待は 03-1 §3.8 の文面から決め、既存の挙動から逆生成しない。
  * このファイルは、文字列の中に、テスト名の先頭の ID の形（引用符かバッククォートの直後の AC-xx-yy）を置かない。置くと、AC の紐づけ検査がテスト名と取り違える。
  */
 class GeneratedLineCheckTest : StringSpec({
@@ -106,7 +106,7 @@ class GeneratedLineCheckTest : StringSpec({
         }
     }
 
-    // ---- 03-1 §3 の正規化と空欄 ----
+    // ---- 03-1 §3.8.5 の正規化と空欄 ----
 
     "正規化: 前後の空白を除き、連続する空白を 1 つにし、リンクの記法を文字にする" {
         GeneratedLineCheck.normalize("  a \t b　c  ") shouldBe "a b c"
@@ -189,7 +189,7 @@ class GeneratedLineCheckTest : StringSpec({
         violationsIn(title + "`OI-001` を書く", tpl, trs).shouldHaveSize(1)
     }
 
-    // ---- 03-1 §3 の、置けない行 ----
+    // ---- 03-1 §3.8 の、置けない行 ----
 
     "反例: 入力の値を写した地の文・リスト・小見出し・表は、定型文でも ID に結び付く記述でもないので、すべて違反になる" {
         val extra = listOf(
@@ -864,7 +864,7 @@ private fun miniTrs(id: String, name: String) = "| 項目 | 内容 |\n|---|---|\
 private fun miniCheck(template: GeneratedLineCheck.Template, body: String) =
     violationsIn("$MINI_TITLE\n\n$body", template, miniTrs("T-1", "名前"))
 
-/** 03-1 §3 の「取る範囲」の見出しと、「生成物のファイルの冒頭」の節（題の行の後ろの本文は [preamble]）だけを持つ、最小のテンプレート */
+/** 03-1 §3.8.5 の「取る範囲」の見出しと、「生成物のファイルの冒頭」の節（題の行の後ろの本文は [preamble]）だけを持つ、最小のテンプレート */
 private fun miniTemplate(preamble: String): String = """
 # TRS-<機能ID>: <機能名>
 
