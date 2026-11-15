@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# AI 探索(層3)を、手元で一度だけ実行する(examples/kotlin-spring/docs/02b.md の §3.1)。
+# AI 探索(層3)を、手元で一度だけ実行する(examples/kotlin-spring/docs/02-2.md の §1.1)。
 # リポジトリのスキル(.claude/skills/ai-exploration)が呼ぶ。人が直接実行してもよい。
 #
 # 流れ: MySQL とアプリを用意し、build-prompt.sh で入力を組み立て、別プロセスの `claude -p` に
 # Playwright MCP だけを渡して探索させ、render-report.sh で Markdown にする。
-# 探索するエージェントの入力を UC と AC の一覧に限る境界(§3.1.2)を保つため、
+# 探索するエージェントの入力を UC と AC の一覧に限る境界(§1.1.2)を保つため、
 # このスクリプトを動かすセッションでは探索しない。
 #
 # 環境変数(すべて任意。値は検証する)の一覧と既定値は、スキルの SKILL.md の表を正とする。
@@ -26,7 +26,7 @@ MYSQL_PORT="${MYSQL_PORT:-3306}"
 APP_PORT="${APP_PORT:-8080}"
 OUT_DIR="${OUT_DIR:-$project/build/exploration/$(date +%Y%m%d-%H%M%S)}"
 
-# Playwright MCP の版は固定する(docs/02b.md の §3.1.7)
+# Playwright MCP の版は固定する(docs/02-2.md の §1.1.7)
 playwright_mcp="@playwright/mcp@0.0.84"
 mysql_name="harness-sample-mysql"
 
@@ -252,5 +252,5 @@ elapsed=$(( $(date +%s) - start ))
 cat "$OUT_DIR/report.md"
 echo
 echo "出力先: ${OUT_DIR}"
-echo "気づきは自動で起票しません。examples/kotlin-spring/docs/02b.md の §3.1.5 の表に従って、人が扱います。"
+echo "気づきは自動で起票しません。examples/kotlin-spring/docs/02-2.md の §1.1.5 の表に従って、人が扱います。"
 exit $(( status == 0 ? 0 : 1 ))

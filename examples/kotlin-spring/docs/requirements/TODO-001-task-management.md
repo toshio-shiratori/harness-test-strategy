@@ -1,13 +1,13 @@
 # 要件定義書: タスク管理（登録・完了・一覧と期限）
 
-> この要件定義書は、標準の[要件定義書のテンプレート](../../../../docs/testing/templates/requirements.md)に沿って書いた。TRS を起草するときの入力になる（[03b の策定フロー](../../../../docs/testing/03b-generation-flow.md#策定フロー)）。画面や API など、実現の方式は[基本設計書](../basic-design/TODO-001-task-management.md)に書いた。
+> この要件定義書は、標準の[要件定義書のテンプレート](../../../../docs/testing/templates/requirements.md)に沿って書いた。TRS を起草するときの入力になる（[03-2 の策定フロー](../../../../docs/testing/03-2-generation-flow.md#策定フロー)）。画面や API など、実現の方式は[基本設計書](../basic-design/TODO-001-task-management.md)に書いた。
 
 ## メタ情報
 
 | 項目 | 内容 |
 |---|---|
 | 機能名 | タスク管理（登録・完了・一覧と期限） |
-| 要件 ID の略号 | `TODO`（書式は [03a §3](../../../../docs/testing/03a-traceability-checks.md#3-検査が前提とする書式)） |
+| 要件 ID の略号 | `TODO`（書式は [03-1 §3](../../../../docs/testing/03-1-traceability-checks.md#3-検査が前提とする書式)） |
 | 対応する TRS | [TODO-001](../trs/TODO-001-task-management.md)（In Review。2026-11-01 に Approved にし、2026-11-10 に戻した） |
 | 参照文書 | なし。根拠はオーナーの決定で、業務ルールの根拠の列と未決事項に記録した |
 | 要件定義の承認者 | リポジトリのオーナー |

@@ -128,12 +128,12 @@ curl -i -X POST http://localhost:8080/tasks \
 |---|---|
 | `src/` | サンプルのソースとテスト(層1は `src/test`、統合テストは `src/integrationTest`、E2E は `src/e2eTest`) |
 | `docs/01.md` | 01 基本方針書の実現例(G1〜G5 をこのサンプルがどう実現しているか) |
-| `docs/02a.md` | 02a 型設計と PBT の Kotlin のコード例(`src/` と同期。変えるときは両方を更新する) |
-| `docs/02b.md` | 02b 層1の実行境界とミューテーションの実装(設定・コード例・実測。`src/`・`build.gradle.kts` と同期) |
-| `docs/02c.md` | 02c E2E 最小化原則の実例(タスク管理画面の E2E) |
+| `docs/02-1.md` | 02-1 型設計と PBT の Kotlin のコード例(`src/` と同期。変えるときは両方を更新する) |
+| `docs/02-2.md` | 02-2 層1の実行境界とミューテーションの実装(設定・コード例・実測。`src/`・`build.gradle.kts` と同期) |
+| `docs/02-3.md` | 02-3 E2E 最小化原則の実例(タスク管理画面の E2E) |
 | `docs/03.md` | 03 TRS ガイドラインのサンプルでの実現 |
 | `docs/04.md` | 04 リグレッション運用規程のサンプルでの実装 |
-| `exploration/` | 層3の AI 探索の指示・報告の型・実行スクリプト。手元で動かすスキルは `.claude/skills/ai-exploration/`(手順書は `docs/02b.md` の §3.1) |
+| `exploration/` | 層3の AI 探索の指示・報告の型・実行スクリプト。手元で動かすスキルは `.claude/skills/ai-exploration/`(手順書は `docs/02-2.md` の §1.1) |
 | `docs/requirements/` | サンプルの要件定義書(TODO-001)。TRS の入力で、`TraceabilityTest` が要件 ID と US/UC の出典の対応を検査する |
 | `docs/basic-design/` | サンプルの基本設計書(TODO-001)。TRS を生成するときの入力。TODO-001 の TRS は、AC と期待結果の根拠で、項目の ID(`DES-TODO-xx`)を指す。`TraceabilityTest` は、AC の表と 5.2 の根拠の設計 ID の実在・網羅の照合と、目次・用語の検査に読む([03.md の §1](docs/03.md#1-trs-の配置03-1)) |
 | `docs/trs/` | サンプルの TRS ファイル(TODO-001)。人が合意する節(因子・水準、禁止組合せ、Open Issues)と運用情報(トレーサビリティなど)。`TraceabilityTest` が読む |

@@ -6,7 +6,7 @@ AI 駆動開発のためのテスト戦略の標準です。AI が大量にコ�
 
 - **人間のレビューが追いつかない。** AI は高速に大量の変更を生むため、人間のレビュー速度に依存した品質保証は成立しません([01 §1](docs/testing/01-test-policy.md#1-基本理念))。
 - **期待値が AI に書き換えられる。** AI が既存コードから期待値を逆生成したり、テストを通すために期待値・仕様を書き換えたりすると、テストが仕様を守れなくなります([01 §1](docs/testing/01-test-policy.md#1-基本理念)、[01 §4](docs/testing/01-test-policy.md#4-人間とaiの責務分離))。
-- **AI が書いたテストが何も検証していない。** AI が生成したテストは、何も検証していない(偽陽性の)テストになりやすいため、テスト自体の有効性を確かめる必要があります([02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準))。
+- **AI が書いたテストが何も検証していない。** AI が生成したテストは、何も検証していない(偽陽性の)テストになりやすいため、テスト自体の有効性を確かめる必要があります([02-2 §2](docs/testing/02-2-execution-and-mutation.md#2-ミューテーションテスト標準))。
 
 ## 仕組み
 
@@ -58,15 +58,15 @@ flowchart TB
 
 1. [01 基本方針書](docs/testing/01-test-policy.md)の層構造と責務分離をチームで合意します。
 2. 最初の機能の要求と設計を、[要件定義書](docs/testing/templates/requirements.md)と[基本設計書](docs/testing/templates/basic-design.md)のテンプレートに書きます。
-3. その2文書を入力に、TRS を[テンプレート](docs/testing/trs/_template.md)の形で生成します([03b の策定フロー](docs/testing/03b-generation-flow.md#策定フロー))。
+3. その2文書を入力に、TRS を[テンプレート](docs/testing/trs/_template.md)の形で生成します([03-2 の策定フロー](docs/testing/03-2-generation-flow.md#策定フロー))。
 4. 関門の道具を、自分の言語で用意します。
-   - 言語・ツールの前提は、[02a §0](docs/testing/02a-types-and-pbt.md#0-技術前提導入先の言語ツールに求めるもの) が求めるものです。
-   - ミューテーション・実行境界・エージェント向けの設定は、[02b §4](docs/testing/02b-execution-and-mutation.md#4-ミューテーションテスト標準)と [02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所) に従います。
+   - 言語・ツールの前提は、[02-1 §1](docs/testing/02-1-types-and-pbt.md#1-技術前提導入先の言語ツールに求めるもの) が求めるものです。
+   - ミューテーション・実行境界・エージェント向けの設定は、[02-2 §2](docs/testing/02-2-execution-and-mutation.md#2-ミューテーションテスト標準)と [02-2 §3](docs/testing/02-2-execution-and-mutation.md#3-ai向けガードレール設定実装の拠り所) に従います。
    - 一例は[実装例](#実装例)です。
 
 **既存のプロジェクト**(すでにテスト・静的解析・CI がある)
 
-1. [05 導入手順書](docs/testing/05-adoption-guide.md)で既存の仕組みとの重複を診断し、以降は 05 の順に進めます。既存のエージェント指示は置き換えず、必要な参照を追記します([02b §6](docs/testing/02b-execution-and-mutation.md#6-ai向けガードレール設定実装の拠り所))。
+1. [05 導入手順書](docs/testing/05-adoption-guide.md)で既存の仕組みとの重複を診断し、以降は 05 の順に進めます。既存のエージェント指示は置き換えず、必要な参照を追記します([02-2 §3](docs/testing/02-2-execution-and-mutation.md#3-ai向けガードレール設定実装の拠り所))。
 
 **どちらも共通**: 不具合の運用は、[04](docs/testing/04-regression-governance.md)と、バグ報告・バグ修正 PR の雛形(`docs/testing/templates/`)を使います。
 
@@ -76,11 +76,11 @@ flowchart TB
 flowchart TB
   subgraph R1[" "]
     direction LR
-    A["01 基本方針"] --> B["02a 型とPBT"] --> C["02b<br/>実行境界と<br/>ミューテーション"] --> D["02c E2E"]
+    A["01 基本方針"] --> B["02-1 型とPBT"] --> C["02-2<br/>実行境界と<br/>ミューテーション"] --> D["02-3 E2E"]
   end
   subgraph R2[" "]
     direction LR
-    E["03 TRS"] --> E2["03a<br/>検査の詳細"] --> E3["03b<br/>生成フロー"]
+    E["03 TRS"] --> E2["03-1<br/>検査の詳細"] --> E3["03-2<br/>生成フロー"]
   end
   subgraph R3[" "]
     direction LR
@@ -96,12 +96,12 @@ flowchart TB
 | 文書 | 内容 |
 |---|---|
 | [01 基本方針書](docs/testing/01-test-policy.md) | 基本理念、W字モデル、テストの層構造、人間と AI の責務分離、品質ゲート |
-| [02a 型設計とPBT](docs/testing/02a-types-and-pbt.md) | 導入先の言語・ツールの前提、型で誤りを書けなくする設計、PBT |
-| [02b 層1の実行境界とミューテーション](docs/testing/02b-execution-and-mutation.md) | 層1・統合テスト・E2E の実行境界、ミューテーションテスト、AI エージェントに従わせる機械的な設定 |
-| [02c E2E 最小化原則](docs/testing/02c-e2e.md) | E2E を許可する領域、審査、予算 |
+| [02-1 型設計とPBT](docs/testing/02-1-types-and-pbt.md) | 導入先の言語・ツールの前提、型で誤りを書けなくする設計、PBT |
+| [02-2 層1の実行境界とミューテーション](docs/testing/02-2-execution-and-mutation.md) | 層1・統合テスト・E2E の実行境界、ミューテーションテスト、AI エージェントに従わせる機械的な設定 |
+| [02-3 E2E 最小化原則](docs/testing/02-3-e2e.md) | E2E を許可する領域、審査、予算 |
 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法。TRS の構造、期待値の出所、検査の要約、Open Issues |
-| [03a トレーサビリティ検査の詳細](docs/testing/03a-traceability-checks.md) | TRS・要件・設計・テストの対応を機械検査する失敗条件の全体と、検査が前提とする書式 |
-| [03b TRS 生成フロー](docs/testing/03b-generation-flow.md) | TRS を入力の文書から生成して維持するフロー、生成の規則、生成物の置き場と編集 |
+| [03-1 トレーサビリティ検査の詳細](docs/testing/03-1-traceability-checks.md) | TRS・要件・設計・テストの対応を機械検査する失敗条件の全体と、検査が前提とする書式 |
+| [03-2 TRS 生成フロー](docs/testing/03-2-generation-flow.md) | TRS を入力の文書から生成して維持するフロー、生成の規則、生成物の置き場と編集 |
 | [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [要件定義書テンプレート](docs/testing/templates/requirements.md) | TRS の生成に要る要求(目的・利用者・前提・業務フロー・要件・未決事項)を、要件 ID を付けて書く雛形 |
@@ -109,7 +109,7 @@ flowchart TB
 | [TRS テンプレート](docs/testing/trs/_template.md) | 生成する TRS の形(AC の 1 行の表、流れの AC の Gherkin、因子・水準、Open Issues)の雛形 |
 | [バグ報告](docs/testing/templates/bug-report.md) / [バグ修正 PR](docs/testing/templates/bug-fix-pr.md) の雛形 | 04 の不具合還元プロトコルを運用に落とすための雛形 |
 
-02a〜02c は「AIガードレール＆テストアーキテクチャ標準」の 1/3〜3/3 です。
+02-1〜02-3 は「AIガードレール＆テストアーキテクチャ標準」の 1/3〜3/3 です。分割の対応と節番号の振り方は、[02-1](docs/testing/02-1-types-and-pbt.md) の冒頭にあります。
 
 ## 実装例
 

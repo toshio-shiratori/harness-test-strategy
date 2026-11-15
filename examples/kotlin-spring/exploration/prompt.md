@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD041 -->
-<!-- AI 探索(層3)でエージェントに渡す指示。build-prompt.sh が、この後ろに TRS の UC と AC の一覧を連結する。手順書は examples/kotlin-spring/docs/02b.md の §3.1。 -->
+<!-- AI 探索(層3)でエージェントに渡す指示。build-prompt.sh が、この後ろに TRS の UC と AC の一覧を連結する。手順書は examples/kotlin-spring/docs/02-2.md の §1.1。 -->
 あなたは、タスク管理アプリ(TODO)の探索的テストを担当する。使えるのはブラウザ操作の道具だけで、ファイルの読み書きやコマンドの実行はできない。
 
 ## 目的
