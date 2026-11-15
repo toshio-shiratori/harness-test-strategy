@@ -102,7 +102,7 @@ flowchart TB
 | [03 TRS 策定ガイドライン](docs/testing/03-trs-guideline.md) | テスト要件仕様書(TRS)を、期待値の正(SSOT)にする方法。TRS の構造、期待値の出所、検査の要約、Open Issues |
 | [03-1 トレーサビリティ検査の詳細](docs/testing/03-1-traceability-checks.md) | TRS・要件・設計・テストの対応を機械検査する失敗条件の全体と、検査が前提とする書式 |
 | [03-2 TRS 生成フロー](docs/testing/03-2-generation-flow.md) | TRS を入力の文書から生成して維持するフロー、生成の規則、生成物の置き場と編集 |
-| [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の最速層への還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
+| [04 リグレッション＆AIヒーリング運用規程](docs/testing/04-regression-governance.md) | 不具合の、より速いテストへの還元(Shift-Left)、AI による自動修復の範囲、E2E の破棄基準 |
 | [05 既存プロジェクトへの導入手順書](docs/testing/05-adoption-guide.md) | 既存の仕組みとの重複を診断し、現状をベースラインに固定して段階的に導入する手順 |
 | [要件定義書テンプレート](docs/testing/templates/requirements.md) | TRS の生成に要る要求(目的・利用者・前提・業務フロー・要件・未決事項)を、要件 ID を付けて書く雛形 |
 | [基本設計書テンプレート](docs/testing/templates/basic-design.md) | TRS の生成に要る設計(画面・入力項目・状態と操作・外部インタフェースなど)を、設計 ID を付けて書く雛形 |
