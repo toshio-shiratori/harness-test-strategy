@@ -7,17 +7,18 @@
 | パス | 位置づけ | 配布 |
 |---|---|---|
 | `docs/testing/` | **配布物**。標準の本体(方針書 01〜05、TRS テンプレート、要件定義書・基本設計書・バグ報告・バグ修正 PR の雛形)。言語やライブラリによらず導入できるよう、言語中立で自己完結させている。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクしない。中立性は `npm run lint` の `lint:portable` が検査する | する |
+| `skills/` | **配布物**。導入先のテスト実装の品質を採点するエージェント向けスキル(`test-quality-score/SKILL.md`)。`docs/testing/` と同じく言語中立・自己完結で、`.md` だけを置き、`lint:portable` が同じ規則で検査する。標準の規則は書き写さず、節番号で参照する | する |
 | `examples/kotlin-spring/` | **実装例**。標準を Kotlin + Spring Boot に導入した一例で、コンパイルしてテストを通す検証用プロジェクト。標準の各文書に対応するコード例・実現例・実測(`docs/<文書番号>.md`)とサンプルの TRS(`docs/trs/`。生成物は `docs/trs/generated/`)もここにある | しない |
 | `docs/records/` | **記録**。このリポジトリ自身の運用やパイロットの記録 | しない |
 
-導入先がコピーするのは `docs/testing/` だけです。
+導入先がコピーするのは、標準の本体の `docs/testing/` と、任意で使う採点スキルの `skills/` です。
 
 ## ローカルでの確認
 
 ドキュメントの検査は、ローカルも CI(`.github/workflows/lint.yml`)も同じコマンドです。
 
 ```bash
-# markdownlint、節番号参照とリンク、docs/testing の言語中立・自己完結、
+# markdownlint、節番号参照とリンク、docs/testing と skills の言語中立・自己完結、
 # 既存の ID の変化を列挙するスクリプト(lint:id-changes)の自己テスト、
 # Mermaid の構文検査と、幅が 900px を超える図の検出(超えると失敗。高さは検査しない)
 npm ci && npm run lint
@@ -35,6 +36,7 @@ npm run measure:mermaid -- docs/testing/01-test-policy.md
 
 - 方針・規程・期待値(`docs/testing/`)の変更は PR で行い、責任者(`.github/CODEOWNERS`)の承認を得ます。
 - 文章の書き方(図・表・簡潔さの原則)は、[CLAUDE.md](CLAUDE.md) の「書き方の規約」に従います。
+- `docs/testing/` の節番号や見出しを変える PR をマージしたら、続けて、README の版を固定した URL を更新します。`git log -1 --format=%H -- docs/testing` の値と、そのコミットの日付に直します。`skills/` が参照する節番号が、新しい版の見出しと合っていることも確かめます。
 - バグ修正の PR は、タイトルを `fix:` で始め、`gh pr create --template bug_fix.md` で作成します。
 - 生成物(`examples/kotlin-spring/docs/trs/generated/`)の既存の ID を変える PR は、理由を書きます。
   PR 本文の `## 既存の ID の変化` に、ID ごとに書きます。足りないと `pr-id-changes-check.yml` が失敗します。

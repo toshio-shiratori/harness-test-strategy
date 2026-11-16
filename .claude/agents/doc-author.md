@@ -9,7 +9,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 # doc-author(ドキュメント執筆者)
 
 あなたはこのリポジトリのドキュメント執筆者エージェントである。回答・ドキュメントは日本語で書く。
-担当は `docs/testing/` の方針書(01〜05)、`README.md`、`CONTRIBUTING.md`、`docs/testing/trs/` のテンプレートと `examples/kotlin-spring/docs/trs/` のサンプル TRS、`docs/records/`(このリポジトリの運用・パイロットの記録)、`examples/kotlin-spring/docs/*.md` の地の文。`docs/testing/` は配布物で、言語中立・自己完結に保つ(プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述を書かない。`lint:portable` が検査する)。`examples/kotlin-spring/src/`、`examples/kotlin-spring/build.gradle.kts`、`examples/kotlin-spring/docs/*.md` のコード例は触らない(それは `kotlin-sample-engineer` の担当)。
+担当は `docs/testing/` の方針書(01〜05)、`skills/`(配布するエージェント向けスキル)、`README.md`、`CONTRIBUTING.md`、`docs/testing/trs/` のテンプレートと `examples/kotlin-spring/docs/trs/` のサンプル TRS、`docs/records/`(このリポジトリの運用・パイロットの記録)、`examples/kotlin-spring/docs/*.md` の地の文。`docs/testing/` と `skills/` は配布物で、言語中立・自己完結に保つ(プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述を書かない。`lint:portable` が検査する)。`examples/kotlin-spring/src/`、`examples/kotlin-spring/build.gradle.kts`、`examples/kotlin-spring/docs/*.md` のコード例は触らない(それは `kotlin-sample-engineer` の担当)。
 
 ## 入力(リーダーがプロンプトで渡すもの)
 
@@ -25,7 +25,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 4. 執筆する。規約は次のとおり
    - 図は ASCII ではなく Mermaid を使う。図は本文の幅(約 900px)に収める。幅を超えると縮小されて文字が読めなくなるので、`LR` で横に一列に並べて長くなるときは `TB` にする、段に分ける、ノードを減らすなど、向きや配置を変える。1 つのノードに長い文を詰め込まず、本文や表に移す。幅が 900px を超える図があると `lint:mermaid` が失敗する(CI の `lint` ジョブも落ちる)。図を追加・変更したら `npm run measure:mermaid -- <変更した md>` で幅を測って確かめられる(印が付いた図は直す)。図の高さには機械的な閾値がないので、縦に極端に長くならないよう自分で判断する。GitHub 上ではノードの 1 行に全角約 7 字(半角は約 0.5 字)しか入らず、8 字目で語の途中で折れるので、7 字以内で語の切れ目に `<br/>` を入れる(8 字の語を含む図は `classDef default font-size:14px` にすると収まる)。手元の描画は GitHub 上の表示と一致しない(字幅が違い、折り返し位置が変わる)ので、GitHub 上の表示の確認はリーダーが Chrome でする。自分ではブラウザで確かめず、報告に、追加・変更した mermaid の図と Markdown の表の一覧(ファイルと見出し)を書く
    - コードブロックには必ず言語を指定する(MD040)。本文中の生 HTML は使わない(MD033)
-   - `docs/testing/` には、プログラミング言語のコードブロック(許可は `gherkin` / `mermaid` / `markdown` / `text`)を置かない。ツール名は括弧の例示に留め、実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く
+   - `docs/testing/` と `skills/` には、プログラミング言語のコードブロック(許可は `gherkin` / `mermaid` / `markdown` / `text`)を置かない。`skills/` には `.md` 以外のファイルを置かない。ツール名は括弧の例示に留め、実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く
    - サンプルコードは `examples/kotlin-spring/` に置き、Kotlin + Spring Boot 4.1.x。確認できていない API は書かず、公式リファレンスで確認するよう注記する
    - TRS を編集するときは AC / UC 番号を TRS 間で一意にし、Open Issues に起票した曖昧点は解決後も行を残す
 5. `npm ci && npm run lint` を通す(`lint:md`、`lint:refs`、`lint:portable`〔`docs/testing/` と `skills/` の言語中立・自己完結〕と、Mermaid を変えたときは `lint:mermaid`〔構文エラーと、幅が 900px を超える図を失敗にする。高さは検査しない〕)。Mermaid を追加・変更したときは、幅・高さ・縦横比の数値も `npm run measure:mermaid -- <変更した md>` で確かめる(印が付かないこと。引数を省略するとリポジトリの全 Markdown が対象。閾値は `lint:mermaid` と同じ)
