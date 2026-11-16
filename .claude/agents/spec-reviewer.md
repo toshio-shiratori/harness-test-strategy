@@ -1,6 +1,6 @@
 ---
 name: spec-reviewer
-description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・examples/kotlin-spring/docs/*.md のコード例と examples/kotlin-spring/src/ の同期・docs/testing の言語中立と自己完結・図を描画したときの見え方・文章の簡潔さ・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
+description: 仕様レビュワー(Spec Reviewer)。差分を読み取り専用でレビューし、AC/UC 番号の一意性・期待値の出所・相互リンク・examples/kotlin-spring/docs/*.md のコード例と examples/kotlin-spring/src/ の同期・docs/testing と skills の言語中立と自己完結・図を描画したときの見え方・文章の簡潔さ・非公開情報の混入を確認する。リーダーがゲート通過後に gate-guard と並列で起動する
 model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
@@ -35,7 +35,7 @@ hooks:
    - Open Issues の行が削除されていないか(解決後も履歴として残す)。TRS が Approved になっている場合、人間の承認の根拠があるか
    - 文書間の相互リンク(`01` → `02-1` → `02-2` → `02-3` → `03` → `03-1` → `03-2` → `04`、`trs/_template.md`)が切れていないか。見出しやファイル名の変更に追随しているか
    - `examples/kotlin-spring/docs/*.md` のコード例と `examples/kotlin-spring/src/` が同期しているか(片方だけの変更になっていないか)。`docs/testing/` の `02-1`・`02-2` にコード例が戻っていないか
-   - **`docs/testing/` の言語中立・自己完結**: `lint:portable` で検出できない違反がないか。特に、地の文での言語・フレームワーク固有の記述(特定言語の構文や API を前提にした説明)、一覧にないこのリポジトリ固有の語、`docs/testing/` の外(`examples/`・`docs/records/`・`.github/` など)の記録への依拠、導入先が持たない文書を読まないと意味が通らない箇所。ツール名は括弧の例示に留まっているか。`lint:portable` の禁止語や許可リストが緩められていないか
+   - **`docs/testing/` と `skills/` の言語中立・自己完結**: `lint:portable` で検出できない違反がないか。特に、地の文での言語・フレームワーク固有の記述(特定言語の構文や API を前提にした説明)、一覧にないこのリポジトリ固有の語、`docs/testing/` の外(`examples/`・`docs/records/`・`.github/` など)の記録への依拠、導入先が持たない文書を読まないと意味が通らない箇所。ツール名は括弧の例示に留まっているか。`lint:portable` の禁止語や許可リストが緩められていないか
    - 型ガードレール: ドメイン値が Value Object か、状態が `sealed` 型で `when` に `else` がないか
    - 書き方の規約: 図が Mermaid か、コードブロックに言語指定があるか、サンプル(`examples/kotlin-spring/`)が Kotlin + Spring Boot 4.1.x か、未確認の API を確認済みのように書いていないか
    - 簡潔さ: 差分で足した・変えた文章が、`CLAUDE.md` の「書き方の規約」の 4 原則と数値の目安を守っているか。数値は `CLAUDE.md` を正とする。同じ規則が別の文書にもないかは、検索して確かめる

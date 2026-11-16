@@ -1,6 +1,6 @@
 # harness-test-strategy
 
-AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保つことを目的とします。機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。成果物は `docs/testing/` の Markdown で、アプリやライブラリではありません。AI(コーディングエージェント)を使った開発に、テスト戦略とガバナンスを導入したいチームが読む想定です。
+AI 駆動開発のためのテスト戦略の標準です。AI が大量にコードを生成しても、人間のレビュー速度に頼らず品質を保つことを目的とします。機械的に検証できるガードレール(テストハーネス)の方針・技術標準・運用規程をまとめています。成果物は Markdown で、アプリやライブラリではありません。標準の本体は `docs/testing/`、テスト実装の品質を採点するエージェント向けスキルは `skills/` にあります。AI(コーディングエージェント)を使った開発に、テスト戦略とガバナンスを導入したいチームが読む想定です。
 
 ## 解決する問題
 
@@ -43,7 +43,7 @@ flowchart TB
 
 ## 導入方法
 
-導入用のツールやパッケージはありません。文書を読み、自分のプロジェクトに合わせて取り入れます。
+導入用のパッケージのインストールは要りません。文書を読み、自分のプロジェクトに合わせて取り入れます。配布するのは、標準の本体の `docs/testing/` と、任意で使う採点スキルの `skills/` です。スキルは、ディレクトリをコピーして使うファイルです。
 
 ```mermaid
 flowchart TB
@@ -52,7 +52,7 @@ flowchart TB
   Q -- "ある(既存)" --> E1["05 で既存の<br/>仕組みとの<br/>重複を診断"] --> E2["現状を<br/>ベースラインに<br/>固定"] --> E3["段階的に導入"]
 ```
 
-まず `docs/testing/` を自分のリポジトリにコピーします。コピーするのはこれだけです。
+まず `docs/testing/` を自分のリポジトリにコピーします。標準として必要なのはこれだけです。採点スキルを使うなら、`skills/test-quality-score/` もコピーします([テスト品質の採点スキル](#テスト品質の採点スキル))。
 
 **新規のプロジェクト**
 
@@ -69,6 +69,43 @@ flowchart TB
 1. [05 導入手順書](docs/testing/05-adoption-guide.md)で既存の仕組みとの重複を診断し、以降は 05 の順に進めます。既存のエージェント指示は置き換えず、必要な参照を追記します([02-2 §3](docs/testing/02-2-execution-and-mutation.md#3-ai向けガードレール設定実装の拠り所))。
 
 **どちらも共通**: 不具合の運用は、[04](docs/testing/04-regression-governance.md)と、バグ報告・バグ修正 PR の雛形(`docs/testing/templates/`)を使います。
+
+## テスト品質の採点スキル
+
+導入先のテスト実装の品質が標準にどこまで沿っているかを、AI エージェントに 100 点満点で採点させるスキルです。[skills/test-quality-score/SKILL.md](skills/test-quality-score/SKILL.md) にあり、Agent Skills の形式です。
+
+- 配点は、仕組み(05 §5 の診断の項目に準拠)が 50 点、テストの中身(抜き取って読む)が 50 点です。
+- 既定では、静的検査と層1のテストだけを実際に実行します。ミューテーションなどは、対象のコミットの CI の結果が読めれば証拠にし、読めなければ未検証として 0 点にします。未検証のときは、確かめた場合の上限の点を併記します。
+- 出力は Markdown の報告です。採点は目安であり、CI のゲートには使いません。対象のコードは直さず、Issue も作りません。
+- 人が採点を頼んだときに使う想定です。
+- 同じ対象を 3 回採点したときの点の幅は、Claude Code では ±5 点以内に収まりました(元のままの対象で幅 3 点、劣化版で 0 点)。Copilot では、元のままの対象で 12 点になり、収まりませんでした。実測の条件と結果は[記録](docs/records/test-quality-score-trial.md)にあります。
+
+**置き場**: スキルのディレクトリ `test-quality-score/` を、使うエージェントの置き場にコピーします。
+
+| エージェント | 読む置き場 |
+|---|---|
+| Claude Code | `.claude/skills` |
+| GitHub Copilot | `.github/skills`、`.claude/skills`、`.agents/skills`(docs.github.com の「About agent skills」による) |
+| Codex | 未確認(確認は [#346](https://github.com/toshio-shiratori/harness-test-strategy/issues/346) で行っています) |
+
+プロジェクトの `.claude/skills/test-quality-score/` に置けば、Claude Code と Copilot の両方が読みます。
+
+**標準の置き場を渡す**: スキルは、指定した標準の置き場、対象の中の `docs/testing/` の順に標準を探します。どちらにも無ければ、利用者に尋ねます。導入先に `docs/testing/` を置いていないときは、次の版を固定した置き場を渡します。
+
+```text
+https://github.com/toshio-shiratori/harness-test-strategy/tree/d4b7a65b0f4b2a85b08f4d5b39ef56268cd8a26c/docs/testing
+```
+
+- 2026-11-15 時点で `docs/testing/` を最後に変えたコミットで、版を固定しています。
+- スキルが参照する節番号は、この版の標準に合わせています。
+- スキルは、この URL から文書の一覧を取得します。
+- 各文書の本文を直接読む URL は、`https://raw.githubusercontent.com/toshio-shiratori/harness-test-strategy/d4b7a65b0f4b2a85b08f4d5b39ef56268cd8a26c/docs/testing/` の末尾に、文書のファイル名(例: `05-adoption-guide.md`)を付けたものです。
+
+**頼み方の例**: 対象のディレクトリと標準の置き場を添えて頼みます。全部の検査を実行したいときと、報告をファイルに書いてほしいときは、そう指定します。
+
+```text
+test-quality-score で、このリポジトリのテスト品質を採点してください。標準は docs/testing にあります。
+```
 
 ## 文書の一覧
 
@@ -108,6 +145,7 @@ flowchart TB
 | [基本設計書テンプレート](docs/testing/templates/basic-design.md) | TRS の生成に要る設計(画面・入力項目・状態と操作・外部インタフェースなど)を、設計 ID を付けて書く雛形 |
 | [TRS テンプレート](docs/testing/trs/_template.md) | 生成する TRS の形(AC の 1 行の表、流れの AC の Gherkin、因子・水準、Open Issues)の雛形 |
 | [バグ報告](docs/testing/templates/bug-report.md) / [バグ修正 PR](docs/testing/templates/bug-fix-pr.md) の雛形 | 04 の不具合還元プロトコルを運用に落とすための雛形 |
+| [テスト品質の採点スキル](skills/test-quality-score/SKILL.md) | 導入先のテスト実装の品質を、標準に照らして 100 点満点で採点するエージェント向けスキル。配点と判定の手順だけを持ち、規則は標準の節番号で参照する |
 
 02-1〜02-3 は「AIガードレール＆テストアーキテクチャ標準」の 1/3〜3/3 です。分割の対応と節番号の振り方は、[02-1](docs/testing/02-1-types-and-pbt.md) の冒頭にあります。
 

@@ -8,11 +8,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI駆動開発向けテスト戦略の標準。成果物は Markdown で、アプリでもライブラリでもない。概要・読む順番は [README.md](./README.md)、検査とコントリビュートの流れは [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
-リポジトリは次の 3 つに分かれる。
+リポジトリは次の 4 つに分かれる。
 
 | パス | 位置づけ | 配布 |
 |---|---|---|
 | `docs/testing/` | 標準の本体（方針書 `01`〜`05`、`trs/_template.md`、`templates/`）。**言語中立で自己完結**する。プログラミング言語のコード例を置かず、`docs/testing/` の外へリンクせず、このリポジトリ固有の語（`src/`、サンプル TRS の ID など）を書かない。`lint:portable` が検査する | する |
+| `skills/` | 導入先のテスト実装の品質を 100 点満点で採点するエージェント向けスキル(`test-quality-score/SKILL.md`)。`docs/testing/` と同じく言語中立で自己完結し、`lint:portable` が検査する。標準の規則は書き写さず節番号で参照する | する |
 | `examples/kotlin-spring/` | 標準を Kotlin + Spring Boot に導入した一例。自己完結の Gradle プロジェクトで、Gradle のコマンドはすべてこのディレクトリで実行する。標準の各文書に対応する実現例・コード例は `docs/<文書番号>.md`（`01`・`02-1`・`02-2`・`02-3`・`03`・`04`）にあり、`src/` と同期させる。サンプルの TRS は `docs/trs/` にある。`todo` はサンプルの要件（TODO-001）に対応するサンプル領域で、製品コードではない | しない |
 | `docs/records/` | このリポジトリ自身の運用・パイロットの記録 | しない |
 
@@ -43,7 +44,7 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
   - 目安1: 一文が 80 字を超えたら分ける。表・見出しは数えない。
   - 目安2: 小見出しの下の地の文が約 1,000 字を超えたら、さらに小見出しに分けるか、図・表にできないかを見直す。分けた結果として節が長いのは許容する。
 - サンプルコードは `examples/kotlin-spring/` に置き、**Kotlin + Spring Boot 4.1.x**(TypeScript 等は使わない)。Spring Boot 4 ではテストスライスのパッケージ名等が 3.x と異なるため、確認できていない API はコードに書かず、公式リファレンスで確認するよう注記する。
-- `docs/testing/` には、プログラミング言語のコード例、`docs/testing/` の外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
+- `docs/testing/` と `skills/` には、プログラミング言語のコード例、それぞれの外へのリンク、このリポジトリ固有の記述（サンプルのパス・ID・検査クラス名・PR/Issue 番号）を書かない。実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く。
 - 型ガードレール(規範は `docs/testing/02-1-types-and-pbt.md` §2、Kotlin の実装は `examples/kotlin-spring/docs/02-1.md`): ドメインの値はプリミティブ(`String` / `Int` 等)で持たず、コンストラクタで検証する Value Object にする。状態は `sealed` 型で表し、`when` に `else` を書かない。`allWarningsAsErrors` により非網羅の `when` はビルドエラーになる。
 - PBT が失敗したら `02-1` §3.3.1 の手順（Kotlin の例は `examples/kotlin-spring/docs/02-1.md`）に従い、縮小後の反例を Example テストとして固定する。シード付き(`PropTestConfig(seed = …)`)のテストは再現確認だけに使い、コミットしない。
 - 期待値の正は `03` §3.1 に従う。承認済みの仕様書(要件定義書・基本設計書・TRS の人が合意する節)、承認済みのデザインの順で、定めがなければ Open Issue として人間が決める。TRS の AC と期待結果は仕様書から生成した展開で、手で直さず、入力を直して再生成する。生成の誤りは、そのまま再生成する(`03-2` §4)。既存コードの挙動から期待値を逆生成しない(`03` §3.2)。
@@ -72,9 +73,9 @@ AI駆動開発向けテスト戦略の標準。成果物は Markdown で、ア�
 
 | 役割 | 担当 | 権限 |
 |---|---|---|
-| `doc-author` | 方針書(01〜05)・README・CONTRIBUTING・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` の言語中立を保つ | 書き込み可 |
+| `doc-author` | 方針書(01〜05)・`skills/`・README・CONTRIBUTING・TRS・`docs/records/`・`examples/kotlin-spring/docs/*.md` の地の文の執筆。`docs/testing/` と `skills/` の言語中立を保つ | 書き込み可 |
 | `kotlin-sample-engineer` | `examples/kotlin-spring/` の `src/` と `examples/kotlin-spring/docs/*.md` のコード例の同期 | 書き込み可 |
-| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` の言語中立・自己完結、図を描画したときの見え方、文章の簡潔さ、非公開情報の混入 | 読み取り専用 |
+| `spec-reviewer` | AC/UC 番号の一意性、期待値の出所、相互リンク、`examples/kotlin-spring/docs/*.md` と `examples/kotlin-spring/src/` の同期、`docs/testing/` と `skills/` の言語中立・自己完結、図を描画したときの見え方、文章の簡潔さ、非公開情報の混入 | 読み取り専用 |
 | `gate-guard` | 保護対象に触れていないか、ゲートを弱める変更がないか。結果は「ゲート弱体化: なし / あり」と「承認: 要 / 不要(理由)」の2軸 | 読み取り専用 |
 
 1. 作成側(`doc-author` / `kotlin-sample-engineer`)は、リーダーが worktree で起動する。Issue 本文、ブランチ名、実施範囲(PR 作成まで / マージまで)をプロンプトで渡す。作成側はコミットしない。

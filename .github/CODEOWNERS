@@ -2,6 +2,7 @@
 # 一人運用のため、ルールセットの require_code_owner_review は無効。複数人になった時点で有効化する。
 /docs/testing/            @toshio-shiratori
 /docs/testing/trs/        @toshio-shiratori
+/skills/                  @toshio-shiratori
 /examples/kotlin-spring/docs/trs/ @toshio-shiratori
 /examples/kotlin-spring/docs/ @toshio-shiratori
 /docs/records/ @toshio-shiratori
