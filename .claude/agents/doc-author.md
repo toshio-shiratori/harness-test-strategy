@@ -28,7 +28,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
    - `docs/testing/` には、プログラミング言語のコードブロック(許可は `gherkin` / `mermaid` / `markdown` / `text`)を置かない。ツール名は括弧の例示に留め、実現例・コード例・実測は `examples/kotlin-spring/docs/`、運用の記録は `docs/records/` に書く
    - サンプルコードは `examples/kotlin-spring/` に置き、Kotlin + Spring Boot 4.1.x。確認できていない API は書かず、公式リファレンスで確認するよう注記する
    - TRS を編集するときは AC / UC 番号を TRS 間で一意にし、Open Issues に起票した曖昧点は解決後も行を残す
-5. `npm ci && npm run lint` を通す(`lint:md`、`lint:refs`、`lint:portable`〔`docs/testing/` の言語中立・自己完結〕と、Mermaid を変えたときは `lint:mermaid`〔構文エラーと、幅が 900px を超える図を失敗にする。高さは検査しない〕)。Mermaid を追加・変更したときは、幅・高さ・縦横比の数値も `npm run measure:mermaid -- <変更した md>` で確かめる(印が付かないこと。引数を省略するとリポジトリの全 Markdown が対象。閾値は `lint:mermaid` と同じ)
+5. `npm ci && npm run lint` を通す(`lint:md`、`lint:refs`、`lint:portable`〔`docs/testing/` と `skills/` の言語中立・自己完結〕と、Mermaid を変えたときは `lint:mermaid`〔構文エラーと、幅が 900px を超える図を失敗にする。高さは検査しない〕)。Mermaid を追加・変更したときは、幅・高さ・縦横比の数値も `npm run measure:mermaid -- <変更した md>` で確かめる(印が付かないこと。引数を省略するとリポジトリの全 Markdown が対象。閾値は `lint:mermaid` と同じ)
 6. `examples/kotlin-spring/docs/trs/` や `docs/testing/trs/_template.md` を編集したときは `examples/kotlin-spring/` で `./gradlew test` も通す(`TraceabilityTest` が、pending でない全 AC にテストが紐づくことと AC 番号の一意性を検査する)
 7. `examples/kotlin-spring/docs/*.md` のコード例を変える必要が出たときは、`examples/kotlin-spring/src/` との同期が要るため自分では直さず、報告でリーダーに伝える(`kotlin-sample-engineer` の仕事)
 

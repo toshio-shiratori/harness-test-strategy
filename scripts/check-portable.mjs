@@ -1,7 +1,14 @@
-// docs/testing/ が言語中立で自己完結していること（そのまま別のリポジトリへコピーできること）を検査する。
-// 対象: docs/testing/ 配下の全 .md（trs/_template.md と templates/ を含む）。
-//   (1) docs/testing/ の外へのリンクがない。相対パスで外を指すものに加え、外部 URL（https: / http: / mailto: など）も違反にする。
-//       同一ファイル内のアンカーは対象外。docs/testing/ の中を指すリンクは、リンク先のファイルが実在することも確かめる。
+// 配布物（docs/testing/ と skills/）が言語中立で自己完結していること（そのまま別のリポジトリへコピーできること）を検査する。
+// 対象: docs/testing/ 配下の全 .md（trs/_template.md と templates/ を含む）と、skills/ 配下の全 .md。
+//   規則は両方でまったく同じで、skills/ だけの例外（外部 URL の許可など）は置かない。違いは次の 3 点だけ。
+//   - skills/ はまだ無くてもよい。docs/testing/ が無い、または .md が 1 つも無いと失敗にする（target-missing）。
+//   - skills/ に .md 以外のファイルがあると失敗にする（non-markdown。.DS_Store と node_modules は数えない）。
+//   - skills/ の SKILL.md（ファイル名が SKILL.md のものだけ）の先頭の YAML frontmatter（1 行目が `---` で、閉じる `---` があるものだけ）は、
+//     字下げとリストの判定から外す。固有の語と外部 URL は、ほかの行と同じ処理で検査する。
+//     フェンスは、言語を宣言していて、その言語が許可外の行だけを違反にする（言語のない行は閉じるフェンスとして報告しない）。
+//     frontmatter の中の 4 個以上の字下げのフェンスと字下げコードブロックは対象外。
+//   (1) そのファイルが属する側（docs/testing/ か skills/）の外へのリンクがない。相対パスで外を指すものに加え、外部 URL（https: / http: / mailto: など）も違反にする。
+//       同一ファイル内のアンカーは対象外。属する側の中を指すリンクは、リンク先のファイルが実在することも確かめる。
 //       インラインリンク・自動リンク・参照形式の定義・本文中の URL を、ファイル全体から取り出して検査する
 //       （複数行のリンクテキスト、入れ子の角括弧、次の行にある参照定義、引用や箇条書きの中も含む）。
 //   (2) コードブロックの言語が許可リストにある。プログラミング言語のコード例は置かない。
@@ -11,11 +18,16 @@
 // ツール名（Kotest、PIT など）は、括弧の例示として書くのを許す。ここでは禁止しない。
 // `--self-test` は、各規則が違反で失敗し、許される書き方で通ることを、スクリプト内の反例で確かめる。
 // ローカル (`npm run lint`) と CI で同一のコマンドを使う。
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const TARGET_DIR = "docs/testing";
+// 検査する配布物のディレクトリ。無くてよいのは skills/ だけ
+const TARGET_DIRS = ["docs/testing", "skills"];
+const OPTIONAL_DIRS = new Set(["skills"]);
+// ファイルが属する配布物のディレクトリ（相対リンクの「中」の基準）
+const scopeOf = (file) => TARGET_DIRS.find((d) => file.startsWith(d + "/")) ?? TARGET_DIRS[0];
 
 // (2) 許可するコードブロックの言語
 const ALLOWED_LANGS = new Set(["gherkin", "mermaid", "markdown", "text"]);
@@ -95,6 +107,16 @@ export const checkMarkdown = (file, text, exists) => {
     violations.push({ line, rule, message });
   };
   const langList = [...ALLOWED_LANGS].join(" / ");
+  const scope = scopeOf(file);
+
+  const lines = text.split("\n");
+  // skills/ の SKILL.md の先頭の frontmatter の最後の行の添字。無ければ -1。
+  // SKILL.md 以外と、閉じる `---` がないものは frontmatter と見なさない（本文のコードブロックを隠さないため）
+  let frontmatterEnd = -1;
+  if (scope === "skills" && basename(file) === "SKILL.md" && lines[0]?.trim() === "---") {
+    const close = lines.findIndex((l, i) => i > 0 && l.trim() === "---");
+    if (close > 0) frontmatterEnd = close;
+  }
 
   // リンク検査用の本文。コードブロック（フェンス・字下げ）の行は空にし、インラインコードは取り除く。行番号を保つため行数は変えない
   const scrubbed = [];
@@ -103,7 +125,7 @@ export const checkMarkdown = (file, text, exists) => {
   let prevBlank = true;
   let inIndentedCode = false;
 
-  text.split("\n").forEach((raw, i) => {
+  lines.forEach((raw, i) => {
     const no = i + 1;
     const line = stripQuote(raw);
     const blank = line.trim() === "";
@@ -115,6 +137,17 @@ export const checkMarkdown = (file, text, exists) => {
     // 見出しの `#`、リンク先（アンカーを含む）は番号の参照ではない
     const forIssue = raw.replace(/^\s{0,3}#{1,6}(?=\s)/, "").replace(/\]\([^)]*\)/g, "]()");
     if (ISSUE_REF.test(forIssue)) add(no, "repo-term", "このリポジトリの PR / Issue 番号（#数字）");
+
+    // skills/ の frontmatter: 字下げとリストの判定から外す（YAML の字下げや `- ` をコードブロックと誤検出しないため）。
+    // 固有の語は上で、外部 URL は下で、ほかの行と同じ処理で検査する。フェンスは、許可外の言語を宣言する行だけを違反にする
+    if (i <= frontmatterEnd) {
+      const fm = line.match(FENCE);
+      if (fm && fm[2] !== "" && !ALLOWED_LANGS.has(fm[2])) {
+        add(no, "code-lang", `許可されていないコードブロックの言語 ${fm[2]}（許可: ${langList}）`);
+      }
+      scrubbed.push(line.replace(/`+[^`]*`+/g, "``"));
+      return;
+    }
 
     // フェンスの内側: 内容はリンク検査から外し、閉じる行を探す
     const f = line.match(FENCE);
@@ -183,13 +216,13 @@ export const checkMarkdown = (file, text, exists) => {
   for (const { line, target } of targets) {
     if (target === "" || target.startsWith("#")) continue;
     if (/^[a-z][a-z0-9+.-]*:/i.test(target)) {
-      add(line, "link-outside", `docs/testing/ の外へのリンク（外部 URL を含む）: ${target}`);
+      add(line, "link-outside", `${scope}/ の外へのリンク（外部 URL を含む）: ${target}`);
       continue;
     }
     const pathPart = target.split("#")[0].split("?")[0];
     const resolved = target.startsWith("/") ? target.slice(1) : join(dirname(file), pathPart).split("\\").join("/");
-    if (target.startsWith("/") || resolved === ".." || resolved.startsWith("../") || !(resolved + "/").startsWith(TARGET_DIR + "/")) {
-      add(line, "link-outside", `${TARGET_DIR}/ の外を指す相対リンク: ${target}`);
+    if (target.startsWith("/") || resolved === ".." || resolved.startsWith("../") || !(resolved + "/").startsWith(scope + "/")) {
+      add(line, "link-outside", `${scope}/ の外を指す相対リンク: ${target}`);
     } else if (exists && pathPart !== "" && !exists(resolved)) {
       add(line, "link-missing", `リンク先が存在しない: ${target}`);
     }
@@ -197,12 +230,42 @@ export const checkMarkdown = (file, text, exists) => {
   return violations.sort((a, b) => a.line - b.line);
 };
 
-const listMarkdown = (dir) =>
-  readdirSync(resolve(root, dir), { withFileTypes: true }).flatMap((e) => {
+// rootDir からの相対パスで、dir 配下の全ファイルを返す。node_modules と macOS の .DS_Store は数えない
+const listFiles = (rootDir, dir) =>
+  readdirSync(resolve(rootDir, dir), { withFileTypes: true }).flatMap((e) => {
     const p = `${dir}/${e.name}`;
-    if (e.isDirectory()) return e.name === "node_modules" ? [] : listMarkdown(p);
-    return e.name.endsWith(".md") ? [p] : [];
+    if (e.isDirectory()) return e.name === "node_modules" ? [] : listFiles(rootDir, p);
+    return e.name === ".DS_Store" ? [] : [p];
   });
+
+/** rootDir の下の全対象を検査し、{ files, errors } を返す。files は検査した .md のパス。 */
+export const lintTree = (rootDir) => {
+  const files = [];
+  const errors = [];
+  for (const dir of TARGET_DIRS) {
+    if (!existsSync(resolve(rootDir, dir))) {
+      // 無くてよいのは skills/ だけ
+      if (!OPTIONAL_DIRS.has(dir)) errors.push(`${dir}/: [target-missing] 検査の対象のディレクトリが存在しない`);
+      continue;
+    }
+    const all = listFiles(rootDir, dir).sort();
+    const markdown = all.filter((p) => p.endsWith(".md"));
+    if (!OPTIONAL_DIRS.has(dir) && markdown.length === 0) errors.push(`${dir}/: [target-missing] 検査の対象の .md が 1 つも無い`);
+    // skills/ には Markdown だけを置く（標準の配布物は Markdown だけ）
+    if (OPTIONAL_DIRS.has(dir)) {
+      for (const p of all.filter((p) => !p.endsWith(".md"))) errors.push(`${p}: [non-markdown] ${dir}/ には .md 以外のファイルを置かない`);
+    }
+    files.push(...markdown);
+  }
+  const exists = (p) => existsSync(resolve(rootDir, p));
+  for (const file of files) {
+    const text = readFileSync(resolve(rootDir, file), "utf8");
+    for (const v of checkMarkdown(file, text, exists)) {
+      errors.push(`${file}:${v.line}: [${v.rule}] ${v.message}`);
+    }
+  }
+  return { files, errors };
+};
 
 // --self-test: 反例（違反を含む Markdown）で各規則が失敗し、許される書き方では通ることを確かめる
 const F = "docs/testing/a.md";
@@ -325,9 +388,90 @@ const SELF_TESTS = [
   term("コードブロックの中の固有の語", "```text\n./gradlew test\n```\n"),
 ];
 
+// skills/ の反例。規則は docs/testing/ と同じで、版を固定した raw URL も外部 URL として失敗する（SHA は架空の値）
+const S = "skills/x/SKILL.md";
+const RAW_URL = "https://raw.githubusercontent.com/toshio-shiratori/harness-test-strategy/0123456789abcdef0123456789abcdef01234567/docs/testing/01-test-policy.md";
+const FRONTMATTER = "---\nname: x\ndescription: |\n  説明の 1 行目。\n\n    字下げした続き。\n  - 箇条書き風の行\nallowed-tools: [a, b]\n---\n\n# 見出し\n\n本文。\n";
+const skill = (name, text, expect, file = S) => ({ name, file, text, expect });
+const SKILLS_TESTS = [
+  // 通ること
+  skill("skills/ 許可: 本文と見出し", "# 見出し\n\n本文。\n", []),
+  skill("skills/ 許可: 許可リストの言語のコードブロック", "```gherkin\nGiven x\n```\n\n```text\nfoo\n```\n", []),
+  skill("skills/ 許可: skills/ の中を指す相対リンク", "[x](./references/a.md) [y](../y/SKILL.md)\n", [], S),
+  skill("skills/ 許可: frontmatter 付きの SKILL.md（字下げ・箇条書き風の行を含む）", FRONTMATTER, []),
+  skill("skills/ 許可: frontmatter の後の許可言語のコードブロックと相対リンク", `${FRONTMATTER}\n\`\`\`gherkin\nGiven x\n\`\`\`\n\n[x](./a.md)\n`, []),
+  skill("skills/ 許可: frontmatter の中の言語のないフェンス（閉じるフェンスは報告しない）", "---\nname: x\n```\n---\n", []),
+  skill("skills/ 許可: frontmatter の中の許可言語のフェンス", "---\nname: x\n```text\nfoo\n```\n---\n", []),
+  // 失敗すること: 外部 URL・リンク（版を固定した raw URL も失敗する）
+  skill("skills/ 違反: 版を固定した raw URL（インラインリンク）", `[x](${RAW_URL})\n`, ["link-outside", "repo-term"]),
+  skill("skills/ 違反: 版を固定した raw URL（本文中）", `読む: ${RAW_URL}\n`, ["link-outside", "repo-term"]),
+  skill("skills/ 違反: 版を固定した raw URL（自動リンク）", `<${RAW_URL}>\n`, ["link-outside", "repo-term"]),
+  skill("skills/ 違反: 版を固定した raw URL（参照定義）", `[ref]: ${RAW_URL}\n`, ["link-outside", "repo-term"]),
+  skill("skills/ 違反: ほかの外部 URL", "[x](https://example.com/a.md)\n", ["link-outside"]),
+  skill("skills/ 違反: docs/testing/ への相対リンク（skills/ の外）", "[x](../../docs/testing/01-test-policy.md)\n", ["link-outside"]),
+  { name: "skills/ 違反: 実在しないリンク先", file: S, text: "[x](./missing.md)\n", expect: ["link-missing"], exists: () => false },
+  // 失敗すること: 固有の語・言語のコードブロック
+  skill("skills/ 違反: 地の文のリポジトリ名", "標準は harness-test-strategy にある。\n", ["repo-term"]),
+  skill("skills/ 違反: .github/ のパス", "`.github/workflows/` に置く。\n", ["repo-term"]),
+  skill("skills/ 違反: scripts/ のパス", "`scripts/check.sh` を実行する。\n", ["repo-term"]),
+  skill("skills/ 違反: src/ のパス", "`src/main` を読む。\n", ["repo-term"]),
+  skill("skills/ 違反: Issue 番号", "詳細は #123 を参照。\n", ["repo-term"]),
+  skill("skills/ 違反: kotlin のコードブロック", "```kotlin\nval x = 1\n```\n", ["code-lang"]),
+  skill("skills/ 違反: 言語のないコードブロック", "```\nfoo\n```\n", ["code-lang"]),
+  skill("skills/ 違反: frontmatter の後の kotlin のコードブロック", `${FRONTMATTER}\n\`\`\`kotlin\nval x = 1\n\`\`\`\n`, ["code-lang"]),
+  skill("skills/ 違反: frontmatter の後の字下げコードブロック", "---\nname: x\n---\n\n段落\n\n    val x = 1\n", ["code-lang"]),
+  // 失敗すること: frontmatter の扱い
+  skill("skills/ 違反: frontmatter の中の固有の語", "---\nname: x\ndescription: examples/ の実装を読む\n---\n", ["repo-term"]),
+  skill("skills/ 違反: frontmatter の中の外部 URL", "---\nname: x\nhomepage: https://example.com\n---\n", ["link-outside"]),
+  skill("skills/ 違反: frontmatter の中の版を固定した raw URL", `---\nname: x\nhomepage: ${RAW_URL}\n---\n`, ["link-outside", "repo-term"]),
+  skill("skills/ 違反: frontmatter の中の kotlin のフェンスの宣言", "---\nname: x\n```kotlin\nval x = 1\n---\n", ["code-lang"]),
+  skill("skills/ 違反: frontmatter の中の字下げした kotlin のフェンスの宣言", "---\nname: x\ndescription: |\n  ```kotlin\n  val x = 1\n---\n", ["code-lang"]),
+  skill("skills/ 違反: 閉じない frontmatter は本文として扱う（後の kotlin のコードブロックを隠さない）", "---\nname: x\n\n```kotlin\nval x = 1\n```\n", ["code-lang"]),
+  skill("skills/ 違反: SKILL.md 以外では frontmatter 風の先頭を特別扱いしない", "---\nname: x\n```kotlin\nval x = 1\n```\n---\n", ["code-lang"], "skills/x/references/a.md"),
+  skill("skills/ 違反: SKILL.md 以外の frontmatter 風の先頭の字下げ", FRONTMATTER, ["code-lang"], "skills/x/references/a.md"),
+  // docs/testing/ では frontmatter を特別扱いしない
+  { name: "docs/testing/ 違反: frontmatter 風の先頭を特別扱いしない", file: F, text: FRONTMATTER, expect: ["code-lang"] },
+  { name: "docs/testing/ 違反: 版を固定した raw URL", file: F, text: `[x](${RAW_URL})\n`, expect: ["link-outside", "repo-term"] },
+];
+
+// 木全体の検査。files は { パス: 本文 }（`/` で終わるパスは空のディレクトリ）。期待は、検査した .md の数と、違反の有無
+const withTree = (files, fn) => {
+  const dir = mkdtempSync(join(tmpdir(), "check-portable-"));
+  try {
+    for (const [p, body] of Object.entries(files)) {
+      if (p.endsWith("/")) {
+        mkdirSync(join(dir, p), { recursive: true });
+        continue;
+      }
+      mkdirSync(dirname(join(dir, p)), { recursive: true });
+      writeFileSync(join(dir, p), body);
+    }
+    return fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+const DOC = { "docs/testing/a.md": "# a\n" };
+const TREE_TESTS = [
+  { name: "木: skills/ が無くても通る", files: DOC, count: 1, violation: false },
+  { name: "木: skills/ が空のディレクトリでも通る", files: { ...DOC, "skills/": "" }, count: 1, violation: false },
+  { name: "木: skills/ の正しい SKILL.md は検査して通る", files: { ...DOC, "skills/x/SKILL.md": FRONTMATTER }, count: 2, violation: false },
+  { name: "木: skills/ の違反は失敗にする", files: { ...DOC, "skills/x/SKILL.md": "```kotlin\nval x = 1\n```\n" }, count: 2, violation: true },
+  { name: "木: skills/ の深い階層の違反も失敗にする", files: { ...DOC, "skills/x/references/b.md": "標準は harness-test-strategy にある。\n" }, count: 2, violation: true },
+  { name: "木: docs/testing/ が無いと失敗にする（skills/ だけあっても）", files: { "skills/x/SKILL.md": FRONTMATTER }, count: 1, violation: true },
+  { name: "木: docs/testing/ も skills/ も無いと失敗にする", files: { "README.md": "# a\n" }, count: 0, violation: true },
+  { name: "木: docs/testing/ に .md が 1 つも無いと失敗にする", files: { "docs/testing/a.txt": "a\n" }, count: 0, violation: true },
+  { name: "木: skills/ の .sh は失敗にする", files: { ...DOC, "skills/x/run.sh": "ls\n" }, count: 1, violation: true },
+  { name: "木: skills/ の .json は失敗にする", files: { ...DOC, "skills/x/SKILL.md": FRONTMATTER, "skills/x/a.json": "{}\n" }, count: 2, violation: true },
+  { name: "木: skills/ の .DS_Store は数えない", files: { ...DOC, "skills/.DS_Store": "" }, count: 1, violation: false },
+  { name: "木: skills/ の node_modules は数えない", files: { ...DOC, "skills/node_modules/a.js": "x\n" }, count: 1, violation: false },
+  { name: "木: docs/testing/ の .md 以外のファイルは対象外", files: { ...DOC, "docs/testing/a.txt": "a\n" }, count: 1, violation: false },
+];
+
 const selfTest = () => {
   let failed = 0;
-  for (const c of SELF_TESTS) {
+  const cases = [...SELF_TESTS, ...SKILLS_TESTS];
+  for (const c of cases) {
     const got = [...new Set(checkMarkdown(c.file, c.text, c.exists).map((v) => v.rule))].sort();
     const want = [...new Set(c.expect)].sort();
     if (got.join(",") !== want.join(",")) {
@@ -335,29 +479,29 @@ const selfTest = () => {
       console.error(`自己テスト失敗: ${c.name}（期待 [${want}]、実際 [${got}]）`);
     }
   }
-  const violationCases = SELF_TESTS.filter((c) => c.expect.length > 0).length;
+  for (const c of TREE_TESTS) {
+    const { files, errors } = withTree(c.files, lintTree);
+    if (files.length !== c.count || errors.length > 0 !== c.violation) {
+      failed += 1;
+      console.error(`自己テスト失敗: ${c.name}（期待 ${c.count} ファイル・違反${c.violation ? "あり" : "なし"}、実際 ${files.length} ファイル・違反 ${errors.length} 件）`);
+    }
+  }
+  const total = cases.length + TREE_TESTS.length;
+  const violationCases = cases.filter((c) => c.expect.length > 0).length + TREE_TESTS.filter((c) => c.violation).length;
   if (failed > 0) {
     console.error(`\nlint:portable の自己テストで ${failed} 件が期待と食い違いました`);
     process.exit(1);
   }
-  console.log(`lint:portable の自己テスト: 問題なし（${SELF_TESTS.length} ケース、うち違反の検出 ${violationCases} ケース）`);
+  console.log(`lint:portable の自己テスト: 問題なし（${total} ケース、うち違反の検出 ${violationCases} ケース）`);
 };
 
 if (process.argv.includes("--self-test")) {
   selfTest();
 } else {
-  const files = listMarkdown(TARGET_DIR).sort();
-  const exists = (p) => existsSync(resolve(root, p));
-  const errors = [];
-  for (const file of files) {
-    const text = readFileSync(resolve(root, file), "utf8");
-    for (const v of checkMarkdown(relative(root, resolve(root, file)).split("\\").join("/"), text, exists)) {
-      errors.push(`${file}:${v.line}: [${v.rule}] ${v.message}`);
-    }
-  }
+  const { files, errors } = lintTree(root);
   if (errors.length > 0) {
     console.error(errors.join("\n"));
-    console.error(`\n${TARGET_DIR}/ の言語中立・自己完結の検査で ${errors.length} 件の問題があります`);
+    console.error(`\n${TARGET_DIRS.join("/ と ")}/ の言語中立・自己完結の検査で ${errors.length} 件の問題があります`);
     process.exit(1);
   }
   console.log(`言語中立・自己完結の検査: 問題なし（${files.length} ファイル）`);
