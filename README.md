@@ -79,11 +79,12 @@ flowchart TB
 - 出力は Markdown の報告です。採点は目安であり、CI のゲートには使いません。対象のコードは直さず、Issue も作りません。
 - 人が採点を頼んだときに使う想定です。
 - 同じ対象を 3 回採点したときの点の幅を、元のままの対象と、劣化させた対象で測りました。
-  - 劣化させた対象では、±5 点以内に収まりました(Claude Code が 5 点、Copilot が 1 点)。
-  - 元のままの対象では、収まりませんでした(Claude Code が 21 点、Copilot が 8 点)。
-  - Claude Code の 21 点は、1 回で Gradle の実行が承認されず、21 点分が未検証になったためです。
-  - テストの中身(B)の幅は、どちらの対象でも、Claude Code が 1 点、Copilot が 4 点でした。
-  - 実測の条件と結果は[2 回目の記録](docs/records/test-quality-score-trial-2.md)、規則を直す前の結果は[1 回目の記録](docs/records/test-quality-score-trial.md)にあります。
+  - Claude Code は、どちらの対象でも ±5 点以内に収まりました(元のままが 1 点、劣化版が 2 点)。
+  - Copilot は、劣化版が 1 点で収まりました。元のままは 15 点で、収まりませんでした。
+  - Copilot は、劣化させた D3(アサーションの弱体化)を検出せず、Flash の 4 回は B の根拠の行が無く、完了条件を満たしませんでした。
+  - Copilot はモデルが自動で選ばれ、回で違いました。元のままの 3 回は、Luna の 2 回が 71・73 点、Flash の 1 回が 86 点でした。
+  - テストの中身(B)の幅は、Claude Code が 1〜2 点、Copilot が 2〜9 点でした。
+  - 実測の条件と結果は[3 回目の記録](docs/records/test-quality-score-trial-3.md)、規則を直す前の結果は[2 回目の記録](docs/records/test-quality-score-trial-2.md)と[1 回目の記録](docs/records/test-quality-score-trial.md)にあります。
 
 **置き場**: スキルのディレクトリ `test-quality-score/` を、使うエージェントの置き場にコピーします。
 
