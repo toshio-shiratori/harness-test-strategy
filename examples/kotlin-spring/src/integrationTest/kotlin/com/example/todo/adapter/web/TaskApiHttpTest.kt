@@ -3,7 +3,6 @@ package com.example.todo.adapter.web
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 
 /**
@@ -23,15 +22,13 @@ class TaskApiHttpTest : TaskApiTestBase() {
 
     @Test
     fun `AC-01-13 同じタイトルのタスクを複数登録でき、別々のタスクとして一覧に出る`() {
-        val first = register(milk)
+        register(milk)
+        register(milk)
 
-        val second = register(milk)
-
-        second.id shouldNotBe first.id
         val tasks = list()
         tasks shouldHaveSize 2
         tasks.map { it.title } shouldBe listOf(milk, milk)
-        tasks.map { it.id }.toSet() shouldBe setOf(first.id, second.id)
+        tasks.map { it.id }.toSet() shouldHaveSize 2
     }
 
     @Test

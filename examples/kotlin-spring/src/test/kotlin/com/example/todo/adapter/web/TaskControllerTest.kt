@@ -1,7 +1,6 @@
 package com.example.todo.adapter.web
 
 import com.example.todo.application.TaskService
-import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskStatus
 import com.example.todo.support.InMemoryRepositories
 import com.example.todo.support.SteppingClock
@@ -148,12 +147,12 @@ class TaskControllerTest : StringSpec({
     }
 
     "識別子は先頭にゼロを置かない ASCII の 10 進数字の並びで、Long に収まる値だけが TaskId になる" {
-        parseTaskId("1") shouldBe TaskId(1)
-        parseTaskId("0") shouldBe TaskId(0)
-        parseTaskId("10") shouldBe TaskId(10)
+        parseTaskId("1")?.value shouldBe 1L
+        parseTaskId("0")?.value shouldBe 0L
+        parseTaskId("10")?.value shouldBe 10L
         parseTaskId("007") shouldBe null
         parseTaskId("01") shouldBe null
-        parseTaskId("9223372036854775807") shouldBe TaskId(Long.MAX_VALUE)
+        parseTaskId("9223372036854775807")?.value shouldBe Long.MAX_VALUE
         parseTaskId("9223372036854775808") shouldBe null
         parseTaskId("") shouldBe null
     }
@@ -174,12 +173,12 @@ class TaskControllerTest : StringSpec({
 
     "完了済みの表示の選択は、保存されていなければ SHOW で、保存すると読み戻せ、応答はその選択を返す" {
         val f = Fixture()
-        f.controller.completedVisibility() shouldBe VisibilityBody(VisibilityValue.SHOW)
+        f.controller.completedVisibility().visibility shouldBe VisibilityValue.SHOW
 
-        f.controller.changeCompletedVisibility(VisibilityBody(VisibilityValue.HIDE)) shouldBe VisibilityBody(VisibilityValue.HIDE)
-        f.controller.completedVisibility() shouldBe VisibilityBody(VisibilityValue.HIDE)
+        f.controller.changeCompletedVisibility(VisibilityBody(VisibilityValue.HIDE)).visibility shouldBe VisibilityValue.HIDE
+        f.controller.completedVisibility().visibility shouldBe VisibilityValue.HIDE
 
-        f.controller.changeCompletedVisibility(VisibilityBody(VisibilityValue.SHOW)) shouldBe VisibilityBody(VisibilityValue.SHOW)
-        f.controller.completedVisibility() shouldBe VisibilityBody(VisibilityValue.SHOW)
+        f.controller.changeCompletedVisibility(VisibilityBody(VisibilityValue.SHOW)).visibility shouldBe VisibilityValue.SHOW
+        f.controller.completedVisibility().visibility shouldBe VisibilityValue.SHOW
     }
 })

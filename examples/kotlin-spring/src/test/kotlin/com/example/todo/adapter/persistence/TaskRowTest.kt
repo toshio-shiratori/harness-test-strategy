@@ -1,16 +1,17 @@
 package com.example.todo.adapter.persistence
 
 import com.example.todo.domain.Task
-import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskStatus
 import com.example.todo.domain.arbDueDate
 import com.example.todo.domain.arbStatus
 import com.example.todo.domain.arbTaskId
 import com.example.todo.domain.arbTitle
 import com.example.todo.domain.due
+import com.example.todo.domain.taskId
 import com.example.todo.domain.title
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.property.arbitrary.orNull
 import io.kotest.property.checkAll
@@ -27,15 +28,15 @@ class TaskRowTest : StringSpec({
 
     "タスクを行にして戻すと、同じタスクになる（ラウンドトリップ）" {
         checkAll(arbTaskId, arbTitle, arbDueDate.orNull(0.3), arbStatus) { id, title, dueDate, status ->
-            val task = Task(id, title, dueDate, status, created)
+            val task = Task.restore(id, title, dueDate, status, created)
 
             task.toRow().toTask() shouldBe task
         }
     }
 
     "行の列は、型の名前とは独立した永続化の形式（OPEN / DONE、UTC の日時、日付）になる" {
-        val open = Task(TaskId(7), title("牛乳を買う"), due("2026-11-30"), TaskStatus.Open, created).toRow()
-        val done = Task(TaskId(8), title("卵"), null, TaskStatus.Done, created).toRow()
+        val open = Task.restore(taskId(7), title("牛乳を買う"), due("2026-11-30"), TaskStatus.Open, created).toRow()
+        val done = Task.restore(taskId(8), title("卵"), null, TaskStatus.Done, created).toRow()
 
         open shouldBe TaskRow(7, "牛乳を買う", LocalDate.of(2026, 11, 30), "OPEN", LocalDateTime.of(2026, 11, 1, 1, 0, 0, 123_456_000))
         done shouldBe TaskRow(8, "卵", null, "DONE", LocalDateTime.of(2026, 11, 1, 1, 0, 0, 123_456_000))
@@ -44,7 +45,7 @@ class TaskRowTest : StringSpec({
     "登録時刻は、マイクロ秒未満を切り捨てて行にする（DATETIME(6) に合わせる）" {
         val nanos = Instant.parse("2026-11-01T01:00:00.123456999Z")
 
-        Task(TaskId(1), title("a"), null, TaskStatus.Open, nanos).toRow().createdAt shouldBe
+        Task.restore(taskId(1), title("a"), null, TaskStatus.Open, nanos).toRow().createdAt shouldBe
             LocalDateTime.of(2026, 11, 1, 1, 0, 0, 123_456_000)
     }
 
@@ -66,7 +67,19 @@ class TaskRowTest : StringSpec({
         }
     }
 
+    "識別子が負の行は、例外で拒否される" {
+        listOf(-1L, Long.MIN_VALUE).forEach { id ->
+            shouldThrowAny { TaskRow(id, "a", null, "OPEN").toTask() }
+        }
+    }
+
     "既定の行は、MyBatis が引数なしで生成できる" {
-        TaskRow() shouldBe TaskRow(0, "", null, "", LocalDateTime.of(1970, 1, 1, 0, 0, 0))
+        val row = TaskRow()
+
+        row.id shouldBe 0
+        row.title shouldBe ""
+        row.dueDate.shouldBeNull()
+        row.status shouldBe ""
+        row.createdAt shouldBe LocalDateTime.of(1970, 1, 1, 0, 0, 0)
     }
 })

@@ -46,15 +46,15 @@ internal fun Task.toRow(): TaskRow =
     )
 
 /**
- * 行 → タスク。未知の status と、タイトル・期限の規則に合わない行は例外で拒否する（外部の文字列を閉じた型へ。02-1 §2.3 規則 5）。
+ * 行 → タスク。未知の status と、識別子・タイトル・期限の規則に合わない行は例外で拒否する（外部の文字列を閉じた型へ。02-1 §2.3 規則 5）。
  * 例外の型は契約にしない。
  */
 internal fun TaskRow.toTask(): Task {
     val column = TaskStatusColumn.valueOf(status) // 未知の status は IllegalArgumentException
     val validTitle = TaskTitle.of(title)
     require(validTitle is Validated.Valid) { "タイトルが規則に合わない行: id=$id" }
-    return Task(
-        id = TaskId(id),
+    return Task.restore(
+        id = id.toTaskId(),
         title = validTitle.value,
         dueDate = dueDate?.toDueDate(id),
         status = when (column) {
@@ -64,6 +64,13 @@ internal fun TaskRow.toTask(): Task {
         createdAt = createdAt.toInstant(),
     )
 }
+
+/** 採番された番号と、行の `id` を、境界でドメイン型にする。規則に合わない値は例外で拒否する。 */
+internal fun Long.toTaskId(): TaskId =
+    when (val taskId = TaskId.of(this)) {
+        is Validated.Valid -> taskId.value
+        is Validated.Invalid -> throw IllegalArgumentException("識別子が規則に合わない: $this")
+    }
 
 private fun LocalDate.toDueDate(id: Long): DueDate =
     when (val due = DueDate.of(this)) {

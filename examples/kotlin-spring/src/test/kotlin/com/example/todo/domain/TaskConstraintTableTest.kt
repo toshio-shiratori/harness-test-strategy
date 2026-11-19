@@ -27,7 +27,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-01 1〜50 字のタイトルは受理され、見た目の 1 文字を 1 字と数えた長さになる（C-50）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-01 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-50", "F1-L1 1 字", "a", saved = "a", length = 1),
                 TitleCase("C-50", "F1-L2 2〜49 字", milk, saved = milk, length = 5),
@@ -40,7 +40,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-02 51 字以上のタイトルは TOO_LONG で拒否される（C-51）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-02 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-51", "F1-L4 51 字", "あ".repeat(51), error = TitleError.TOO_LONG),
                 TitleCase("C-51", "F1-L4 200 字", "あ".repeat(200), error = TitleError.TOO_LONG),
@@ -55,7 +55,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-03 AC-01-04 空のタイトルと空白だけのタイトルは BLANK で拒否される（C-52）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-03 AC-01-04 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-52", "F1-L5 空", "", error = TitleError.BLANK),
                 TitleCase("C-52", "F1-L6 半角空白", " ", error = TitleError.BLANK),
@@ -78,12 +78,12 @@ class TaskConstraintTableTest : FunSpec({
             "\u000D\u000A$milk\u000D\u000A",
             "\u0085$milk ",
         ).map { TitleCase("C-53", "F1-L9 前後 ${it.length} 文字", it, saved = milk) }
-        withData(nameFn = { "${it.id} ${it.label}" }, ts = only + around) { it.verify() }
+        withData(nameFn = { "AC-01-05 AC-01-06 ${it.id} ${it.label}" }, ts = only + around) { it.verify() }
     }
 
     context("AC-01-07 前後の空白を除いて保存される。途中の空白は残る（C-54）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-07 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-54", "F1-L8 半角空白", " $milk ", saved = milk),
                 TitleCase("C-54", "F1-L8 全角空白", "　$milk　", saved = milk),
@@ -95,7 +95,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-02 AC-01-08 前後の空白を除いた後で数える（C-55）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-02 AC-01-08 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-55", "F1-L12 除く前は 52 字、除いた後は 50 字", " " + "あ".repeat(50) + " ", saved = "あ".repeat(50), length = 50),
             ),
@@ -105,7 +105,7 @@ class TaskConstraintTableTest : FunSpec({
     context("AC-01-25 表示される文字があれば、途中の表示されない文字は、除かず、そのまま保存される（C-57）") {
         val zwjEmoji = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67"
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-25 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-57", "F1-L13 途中に U+200B", "牛乳$zwsp" + "を買う", saved = "牛乳$zwsp" + "を買う"),
                 TitleCase("C-57", "F1-L13 途中に U+200D（絵文字の組み立て）", zwjEmoji, saved = zwjEmoji),
@@ -118,7 +118,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-39 前後の空白と、表示されない文字は、除いて保存される（C-66）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-39 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-66", "F1-L15 先頭に U+200B", zwsp + milk, saved = milk),
                 TitleCase("C-66", "F1-L15 末尾に U+FEFF", milk + "\uFEFF", saved = milk),
@@ -136,7 +136,7 @@ class TaskConstraintTableTest : FunSpec({
         val variation = "\u845B" + String(Character.toChars(0xE0100))
         val ah = "あ".repeat(50)
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-40 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-67", "F1-L16 末尾の U+FE0F（❤️）", heart, saved = heart),
                 TitleCase("C-67", "F1-L16 ❤️ の後ろの U+200B だけを除く", heart + zwsp, saved = heart),
@@ -158,7 +158,7 @@ class TaskConstraintTableTest : FunSpec({
     context("AC-01-41 前後の表示されない文字を除いた後の字数を数える（C-68）") {
         val ah = "あ".repeat(50)
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-41 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-68", "F1-L17 50 字の末尾に U+200B", ah + zwsp, saved = ah, length = 50),
                 TitleCase("C-68", "F1-L17 50 字の先頭に U+200B", zwsp + ah, saved = ah, length = 50),
@@ -171,7 +171,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-38 空白と表示されない文字だけのタイトルは BLANK で拒否される（C-65）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-38 ${it.id} ${it.label}" },
             ts = listOf(
                 TitleCase("C-65", "F1-L14 U+200B だけ", zwsp, error = TitleError.BLANK),
                 TitleCase("C-65", "F1-L14 U+FEFF だけ", "\uFEFF", error = TitleError.BLANK),
@@ -193,7 +193,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-14 YYYY-MM-DD として読めない期限と、実在しない日の期限は拒否される（C-56）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-14 ${it.id} ${it.label}" },
             ts = listOf(
                 DueCase("C-56", "F2-L6 時刻つき", "2026-11-30T10:00:00", accepted = false),
                 DueCase("C-56", "F2-L5 区切りが /", "2026/11/30", accepted = false),
@@ -209,7 +209,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-26 YYYY-MM-DD の形で実在する暦日は、期限として受理される（C-58）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-26 ${it.id} ${it.label}" },
             ts = listOf(
                 DueCase("C-58", "F2-L7 通常の日", "2026-11-30", accepted = true),
                 DueCase("C-58", "F2-L7 閏日", "2024-02-29", accepted = true),
@@ -221,14 +221,14 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-01-33 空文字列の期限は拒否される（C-62）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-33 ${it.id} ${it.label}" },
             ts = listOf(DueCase("C-62", "F2-L8 空文字列", "", accepted = false)),
         ) { it.verify() }
     }
 
     context("AC-01-36 0000 年の暦日は、下限より前なので期限として拒否される（C-63）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-01-36 ${it.id} ${it.label}" },
             ts = listOf(
                 DueCase("C-63", "F2-L9 0000 年の元日", "0000-01-01", accepted = false),
                 DueCase("C-63", "F2-L9 0000 年の閏日（先発グレゴリオ暦で 0 年は閏年）", "0000-02-29", accepted = false),
@@ -240,7 +240,7 @@ class TaskConstraintTableTest : FunSpec({
     // 別のタスクが変わらないことは、Task が不変の値なので層1では自明である。保存した一覧で確かめる部分は Integration に委ねる
     context("AC-02-01 AC-02-08 AC-03-01 AC-03-06 完了にする・未完了に戻す操作は、結果の状態を決め、タイトルと期限を変えない（C-20〜C-23）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-02-01 AC-02-08 AC-03-01 AC-03-06 ${it.id} ${it.label}" },
             ts = listOf(
                 StatusCase("C-20", "F3-L1 × F5-L1 未完了を完了にする", TaskStatus.Open, complete = true, expected = TaskStatus.Done),
                 StatusCase("C-21", "F3-L2 × F5-L1 完了を完了にしても変わらない", TaskStatus.Done, complete = true, expected = TaskStatus.Done),
@@ -253,7 +253,7 @@ class TaskConstraintTableTest : FunSpec({
     // 区分は完了・期限・現在時刻で決まる。期限を過ぎた未完了を完了にすると区分は完了になり、戻すと期限切れになる（C-13、C-12）
     context("AC-02-10 期限を過ぎた未完了のタスクを完了にすると、区分は完了になり、タイトルと期限は変わらない（C-71）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-02-10 ${it.id} ${it.label}" },
             ts = listOf(
                 OverdueCase("C-71", "F4-L3 期限の翌日の 0 時 0 分（JST）", "2026-10-31", now = "2026-11-01T00:00+09:00"),
                 OverdueCase("C-71", "F4-L4 期限の翌日より後", "2026-10-31", now = "2026-11-05T12:00+09:00"),
@@ -263,7 +263,7 @@ class TaskConstraintTableTest : FunSpec({
 
     context("AC-03-10 期限を過ぎた完了のタスクを未完了に戻すと、区分は期限切れになり、タイトルと期限は変わらない（C-72）") {
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-03-10 ${it.id} ${it.label}" },
             ts = listOf(
                 OverdueCase("C-72", "F4-L3 期限の翌日の 0 時 0 分（JST）", "2026-10-31", now = "2026-11-01T00:00+09:00"),
                 OverdueCase("C-72", "F4-L4 期限の翌日より後", "2026-10-31", now = "2026-11-05T12:00+09:00"),
@@ -279,7 +279,7 @@ class TaskConstraintTableTest : FunSpec({
             task(3, "期限切れ", "2026-10-01"),
         )
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-06-01 AC-06-02 AC-06-03 ${it.id} ${it.label}" },
             ts = listOf(
                 VisibilityCase("C-30", "F6-L1 表示する: すべて", CompletedVisibility.SHOW, listOf("期限切れ", "未完了", "完了")),
                 VisibilityCase("C-31", "F6-L2 隠す: 未完了と期限切れだけ", CompletedVisibility.HIDE, listOf("期限切れ", "未完了")),
@@ -299,7 +299,7 @@ class TaskConstraintTableTest : FunSpec({
             task(5, "D", "2026-10-29", TaskStatus.Done),
         )
         withData(
-            nameFn = { "${it.id} ${it.label}" },
+            nameFn = { "AC-05-01 AC-05-02 AC-05-03 AC-05-04 AC-05-05 AC-05-07 ${it.id} ${it.label}" },
             ts = listOf(
                 OrderCase(
                     "C-40",
@@ -373,7 +373,7 @@ private fun task(
     dueDate: String?,
     status: TaskStatus = TaskStatus.Open,
     createdAt: Instant = Instant.EPOCH.plusSeconds(number),
-) = Task(TaskId(number), title(name), dueDate?.let(::due), status, createdAt)
+) = Task.restore(taskId(number), title(name), dueDate?.let(::due), status, createdAt)
 
 /** 入力と、保存されるタイトル・長さ、または拒否される理由。[saved] が null なら拒否を期待する。 */
 private data class TitleCase(
@@ -420,8 +420,7 @@ private data class StatusCase(
     fun verify() {
         val before = task(1, "牛乳を買う", "2026-11-30", from)
         val after = if (complete) before.complete() else before.reopen()
-        after.status shouldBe expected
-        after.copy(status = from) shouldBe before
+        assertOnlyStatusChanged(before, after, expected)
     }
 }
 
@@ -435,9 +434,8 @@ private data class OverdueCase(val id: String, val label: String, val due: Strin
 
         val after = before.complete()
 
-        after.status shouldBe TaskStatus.Done
+        assertOnlyStatusChanged(before, after, TaskStatus.Done) // 状態以外の属性は変わらない
         after.category(clock) shouldBe TaskCategory.Done
-        after.copy(status = before.status) shouldBe before // 状態以外の属性は変わらない
     }
 
     fun verifyReopen() {
@@ -446,9 +444,8 @@ private data class OverdueCase(val id: String, val label: String, val due: Strin
 
         val after = before.reopen()
 
-        after.status shouldBe TaskStatus.Open
+        assertOnlyStatusChanged(before, after, TaskStatus.Open) // 状態以外の属性は変わらない
         after.category(clock) shouldBe TaskCategory.Overdue
-        after.copy(status = before.status) shouldBe before // 状態以外の属性は変わらない
     }
 }
 

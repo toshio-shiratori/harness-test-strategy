@@ -2,14 +2,16 @@ package com.example.todo.application
 
 import com.example.todo.domain.CompletedVisibility
 import com.example.todo.domain.TaskCategory
-import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskStatus
+import com.example.todo.domain.assertOnlyStatusChanged
 import com.example.todo.domain.due
+import com.example.todo.domain.taskId
 import com.example.todo.domain.title
 import com.example.todo.support.InMemoryRepositories
 import com.example.todo.support.SteppingClock
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Duration
 
@@ -30,11 +32,11 @@ class TaskServiceTest : StringSpec({
 
         val registered = f.service.register(title("牛乳を買う"), due("2026-11-30"))
 
-        registered.task.id shouldBe TaskId(1)
+        registered.task.id.value shouldBe 1L
         registered.task.createdAt shouldBe f.clock.instant()
         registered.task.status shouldBe TaskStatus.Open
         registered.category shouldBe TaskCategory.Open
-        f.repositories.find(TaskId(1)) shouldBe registered.task
+        f.repositories.find(taskId(1)) shouldBe registered.task
     }
 
     "登録のたびに、番号は増える" {
@@ -42,7 +44,7 @@ class TaskServiceTest : StringSpec({
 
         val ids = (1..3).map { f.service.register(title("t$it"), null).task.id }
 
-        ids shouldBe listOf(TaskId(1), TaskId(2), TaskId(3))
+        ids.map { it.value } shouldBe listOf(1L, 2L, 3L)
     }
 
     "登録した応答の区分は、現在時刻で決まる（期限切れ）" {
@@ -76,8 +78,8 @@ class TaskServiceTest : StringSpec({
         val f = Fixture()
         f.service.register(title("a"), null)
 
-        f.service.complete(TaskId(99)).shouldBeNull()
-        f.service.reopen(TaskId(99)).shouldBeNull()
+        f.service.complete(taskId(99)).shouldBeNull()
+        f.service.reopen(taskId(99)).shouldBeNull()
         f.repositories.findAll().size shouldBe 1
     }
 
@@ -88,7 +90,7 @@ class TaskServiceTest : StringSpec({
 
         f.service.complete(target.id)
 
-        f.repositories.find(target.id) shouldBe target.copy(status = TaskStatus.Done)
+        assertOnlyStatusChanged(target, f.repositories.find(target.id).shouldNotBeNull(), TaskStatus.Done)
         f.repositories.find(other.id) shouldBe other
     }
 
