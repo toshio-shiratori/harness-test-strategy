@@ -63,5 +63,10 @@ class TaskController(private val service: TaskService) {
 private val TASK_ID_FORMAT = Regex("0|[1-9][0-9]*")
 
 /** パスの識別子を境界でドメイン型にする。形が不正なら null で、呼び出し側は存在しないタスクと同じに扱う。 */
-internal fun parseTaskId(raw: String): TaskId? =
-    if (TASK_ID_FORMAT.matches(raw)) raw.toLongOrNull()?.let(::TaskId) else null
+internal fun parseTaskId(raw: String): TaskId? {
+    val value = if (TASK_ID_FORMAT.matches(raw)) raw.toLongOrNull() else null
+    return when (val id = value?.let(TaskId::of)) {
+        is Validated.Valid -> id.value
+        is Validated.Invalid, null -> null
+    }
+}

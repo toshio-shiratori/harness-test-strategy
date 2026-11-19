@@ -4,7 +4,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
-import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.element
 import io.kotest.property.arbitrary.long
 import io.kotest.property.checkAll
@@ -23,7 +22,7 @@ class TaskCategoryTest : FunSpec({
     val tokyo = ZoneOffset.ofHours(9)
 
     fun task(status: TaskStatus, due: String?) =
-        Task(TaskId(1), title("牛乳を買う"), due?.let(::due), status, Instant.EPOCH)
+        Task.restore(taskId(1), title("牛乳を買う"), due?.let(::due), status, Instant.EPOCH)
 
     fun clockAt(now: String, zone: ZoneId = ZoneOffset.UTC): Clock = Clock.fixed(OffsetDateTime.parse(now).toInstant(), zone)
 
@@ -32,7 +31,7 @@ class TaskCategoryTest : FunSpec({
 
     context("AC-04-01 タスクの区分は、完了・期限・現在時刻で決まる（C-10〜C-13）") {
         withData(
-            nameFn = { "${it.id} ${it.state} 期限 ${it.due} 現在 ${it.now} → ${it.expected}" },
+            nameFn = { "AC-04-01 ${it.id} ${it.state} 期限 ${it.due} 現在 ${it.now} → ${it.expected}" },
             ts = listOf(
                 Case("C-10", TaskStatus.Open, null, "2026-11-01T10:00+09:00", TaskCategory.Open),
                 Case("C-11", TaskStatus.Open, "2026-11-02", "2026-11-01T10:00+09:00", TaskCategory.Open),
@@ -56,7 +55,7 @@ class TaskCategoryTest : FunSpec({
         checkAll(arbModernDueDate) { dueDate ->
             val start = dueDate.value.atStartOfDay(tokyo).toInstant()
             val nextDay = dueDate.value.plusDays(1).atStartOfDay(tokyo).toInstant()
-            val open = Task(TaskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
+            val open = Task.restore(taskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
             open.category(Clock.fixed(start, ZoneOffset.UTC)) shouldBe TaskCategory.Open
             open.category(Clock.fixed(nextDay.minusMillis(1), ZoneOffset.UTC)) shouldBe TaskCategory.Open
             open.category(Clock.fixed(nextDay, ZoneOffset.UTC)) shouldBe TaskCategory.Overdue
@@ -70,8 +69,8 @@ class TaskCategoryTest : FunSpec({
         )
         checkAll(arbTaskId, arbModernDueDate, arbStatus, arbNow) { id, dueDate, status, nowMillis ->
             val now = Instant.ofEpochMilli(nowMillis)
-            val withDue = Task(id, title("a"), dueDate, status, Instant.EPOCH)
-            val withoutDue = withDue.copy(dueDate = null)
+            val withDue = Task.restore(id, title("a"), dueDate, status, Instant.EPOCH)
+            val withoutDue = Task.restore(id, title("a"), null, status, Instant.EPOCH)
             val pastDue = !now.isBefore(dueDate.value.plusDays(1).atStartOfDay(tokyo).toInstant())
             val expected = when (status) {
                 TaskStatus.Done -> TaskCategory.Done
@@ -88,7 +87,7 @@ class TaskCategoryTest : FunSpec({
     test("AC-04-01 現在時刻が進むと、期限切れのタスクが期限内に戻ることはない") {
         checkAll(arbModernDueDate, Arb.long(-10L * 86_400_000..10L * 86_400_000), Arb.long(0L..10L * 86_400_000)) { dueDate, offset, step ->
             val base = dueDate.value.atStartOfDay(tokyo).toInstant().plusMillis(offset)
-            val open = Task(TaskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
+            val open = Task.restore(taskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
             if (open.category(Clock.fixed(base, ZoneOffset.UTC)) == TaskCategory.Overdue) {
                 open.category(Clock.fixed(base.plusMillis(step), ZoneOffset.UTC)) shouldBe TaskCategory.Overdue
             }
@@ -98,7 +97,7 @@ class TaskCategoryTest : FunSpec({
     context("AC-04-04 期限切れの判定は、サーバーの既定のタイムゾーンによらず Asia/Tokyo の日付で行う（C-14、C-15）") {
         data class ZoneCase(val id: String, val zone: String, val now: String, val expected: TaskCategory)
         withData(
-            nameFn = { "${it.id} ${it.zone} 現在 ${it.now} → ${it.expected}" },
+            nameFn = { "AC-04-04 ${it.id} ${it.zone} 現在 ${it.now} → ${it.expected}" },
             ts = listOf("UTC", "America/Los_Angeles", "Asia/Tokyo").flatMap { zone ->
                 listOf(
                     ZoneCase("C-14", zone, "2026-11-01T14:59:59.999Z", TaskCategory.Open),
@@ -118,13 +117,15 @@ class TaskCategoryTest : FunSpec({
         }
     }
 
-    // 分類: 不変量（時計のゾーンが何であっても、同じ時刻なら区分は同じ。LocalDate.now(clock) の誤用を見分ける）
-    test("AC-04-04 時計のゾーンが何であっても、同じ時刻なら区分は同じである") {
+    // 分類: 不変量（時計のゾーンが何であっても、区分は変わらない。LocalDate.now(clock) の誤用を見分ける）
+    // 期待値は、時刻の取り方から決める。期限の翌日の 0 時 0 分（JST）の前は未完了、以後は期限切れ（C-14、C-15）
+    test("AC-04-04 時計のゾーンが何であっても、期限の翌日の 0 時 0 分（JST）の前は未完了、以後は期限切れである") {
         val zones = Arb.element(ZoneId.getAvailableZoneIds().toList().sorted())
-        checkAll(arbModernDueDate, Arb.long(-10L * 86_400_000..10L * 86_400_000), Arb.bind(zones, zones) { a, b -> a to b }) { dueDate, offset, (a, b) ->
-            val instant = dueDate.value.atStartOfDay(tokyo).toInstant().plusMillis(offset)
-            val open = Task(TaskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
-            open.category(Clock.fixed(instant, ZoneId.of(a))) shouldBe open.category(Clock.fixed(instant, ZoneId.of(b)))
+        checkAll(arbModernDueDate, Arb.long(1L..10L * 86_400_000), zones) { dueDate, distance, zone ->
+            val nextDay = dueDate.value.plusDays(1).atStartOfDay(tokyo).toInstant()
+            val open = Task.restore(taskId(1), title("a"), dueDate, TaskStatus.Open, Instant.EPOCH)
+            open.category(Clock.fixed(nextDay.minusMillis(distance), ZoneId.of(zone))) shouldBe TaskCategory.Open
+            open.category(Clock.fixed(nextDay.plusMillis(distance - 1), ZoneId.of(zone))) shouldBe TaskCategory.Overdue
         }
     }
 })

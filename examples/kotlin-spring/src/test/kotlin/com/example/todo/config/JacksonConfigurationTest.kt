@@ -25,7 +25,11 @@ class JacksonConfigurationTest : StringSpec({
     }
 
     "文字列と null は、そのまま読める" {
-        read("""{"title":"牛乳を買う","dueDate":"2026-11-30"}""") shouldBe RegisterTaskRequest("牛乳を買う", "2026-11-30")
-        read("""{"title":null}""") shouldBe RegisterTaskRequest(null, null)
+        val withDue = read("""{"title":"牛乳を買う","dueDate":"2026-11-30"}""")
+        withDue.title shouldBe "牛乳を買う"
+        withDue.dueDate shouldBe "2026-11-30"
+        val nullTitle = read("""{"title":null}""")
+        nullTitle.title shouldBe null
+        nullTitle.dueDate shouldBe null
     }
 })

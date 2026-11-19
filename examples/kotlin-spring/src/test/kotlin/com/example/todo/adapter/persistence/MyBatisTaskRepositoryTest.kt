@@ -2,13 +2,14 @@ package com.example.todo.adapter.persistence
 
 import com.example.todo.domain.CompletedVisibility
 import com.example.todo.domain.Task
-import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskStatus
+import com.example.todo.domain.taskId
 import com.example.todo.domain.title
 import com.example.todo.support.InMemoryTaskMapper
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Instant
 
@@ -20,14 +21,14 @@ import java.time.Instant
 class MyBatisTaskRepositoryTest : StringSpec({
     val created = Instant.parse("2026-11-01T01:00:00Z")
 
-    fun task(id: Long, status: TaskStatus = TaskStatus.Open) = Task(TaskId(id), title("牛乳を買う"), null, status, created)
+    fun task(id: Long, status: TaskStatus = TaskStatus.Open) = Task.restore(taskId(id), title("牛乳を買う"), null, status, created)
 
     "番号は、採番表が払い出した番号をそのまま、呼ぶたびに返す" {
         val mapper = InMemoryTaskMapper()
         val repository = MyBatisTaskRepository(mapper)
 
-        repository.nextId() shouldBe TaskId(1)
-        repository.nextId() shouldBe TaskId(2)
+        repository.nextId().value shouldBe 1L
+        repository.nextId().value shouldBe 2L
         mapper.lastSequence shouldBe 2
     }
 
@@ -37,9 +38,25 @@ class MyBatisTaskRepositoryTest : StringSpec({
         repository.save(task(1))
         repository.save(task(2, TaskStatus.Done))
 
-        repository.find(TaskId(1)) shouldBe task(1)
-        repository.find(TaskId(2)) shouldBe task(2, TaskStatus.Done)
-        repository.findAll() shouldBe listOf(task(1), task(2, TaskStatus.Done))
+        val first = repository.find(taskId(1)).shouldNotBeNull()
+        val second = repository.find(taskId(2)).shouldNotBeNull()
+        first.id.value shouldBe 1L
+        first.status shouldBe TaskStatus.Open
+        second.id.value shouldBe 2L
+        second.status shouldBe TaskStatus.Done
+        listOf(first, second).forEach {
+            it.title.value shouldBe "牛乳を買う"
+            it.dueDate.shouldBeNull()
+            it.createdAt shouldBe created
+        }
+        val all = repository.findAll()
+        all.map { it.id.value } shouldBe listOf(1L, 2L)
+        all.map { it.status } shouldBe listOf(TaskStatus.Open, TaskStatus.Done)
+        all.forEach {
+            it.title.value shouldBe "牛乳を買う"
+            it.dueDate.shouldBeNull()
+            it.createdAt shouldBe created
+        }
     }
 
     "保存した行は、渡したタスクの ID をキーにマッパーへ届く" {
@@ -54,7 +71,7 @@ class MyBatisTaskRepositoryTest : StringSpec({
         val repository = MyBatisTaskRepository(InMemoryTaskMapper())
         repository.save(task(1))
 
-        repository.find(TaskId(99)).shouldBeNull()
+        repository.find(taskId(99)).shouldBeNull()
     }
 
     "未知の status の行は、読み込みが例外で失敗する" {
@@ -62,7 +79,7 @@ class MyBatisTaskRepositoryTest : StringSpec({
         mapper.rows[1] = TaskRow(id = 1, title = "牛乳を買う", status = "UNKNOWN")
         val repository = MyBatisTaskRepository(mapper)
 
-        shouldThrowAny { repository.find(TaskId(1)) }
+        shouldThrowAny { repository.find(taskId(1)) }
         shouldThrowAny { repository.findAll() }
     }
 

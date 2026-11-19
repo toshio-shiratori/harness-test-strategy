@@ -8,6 +8,7 @@ import com.example.todo.domain.CompletedVisibilityRepository
 import com.example.todo.domain.Task
 import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskRepository
+import com.example.todo.domain.taskId
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -22,7 +23,7 @@ class InMemoryRepositories : TaskRepository, CompletedVisibilityRepository {
     private val tasks = linkedMapOf<TaskId, Task>()
     private var visibility: CompletedVisibility? = null
 
-    override fun nextId(): TaskId = TaskId(++lastId)
+    override fun nextId(): TaskId = taskId(++lastId)
 
     override fun save(task: Task) {
         tasks[task.id] = task

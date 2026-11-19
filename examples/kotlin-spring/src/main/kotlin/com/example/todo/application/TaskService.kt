@@ -8,10 +8,7 @@ import com.example.todo.domain.Task
 import com.example.todo.domain.TaskId
 import com.example.todo.domain.TaskRepository
 import com.example.todo.domain.TaskTitle
-import com.example.todo.domain.category
-import com.example.todo.domain.complete
 import com.example.todo.domain.listed
-import com.example.todo.domain.reopen
 import com.example.todo.domain.resolveVisibility
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -59,5 +56,5 @@ class TaskService(
         return listedOf(changed)
     }
 
-    private fun listedOf(task: Task) = ListedTask(task, task.category(clock))
+    private fun listedOf(task: Task) = ListedTask.of(task, clock)
 }

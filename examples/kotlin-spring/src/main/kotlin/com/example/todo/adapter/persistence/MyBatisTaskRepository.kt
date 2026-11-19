@@ -16,7 +16,7 @@ class MyBatisTaskRepository(private val mapper: TaskMapper) : TaskRepository, Co
     override fun nextId(): TaskId {
         val holder = IdHolder()
         mapper.insertSequence(holder)
-        return TaskId(holder.id)
+        return holder.id.toTaskId()
     }
 
     override fun save(task: Task) {

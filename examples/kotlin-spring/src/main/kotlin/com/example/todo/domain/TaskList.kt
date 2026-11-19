@@ -8,8 +8,13 @@ enum class CompletedVisibility { SHOW, HIDE }
 /** 保存された選択が無い（初めて開いた）ときは「表示する」。 */
 fun resolveVisibility(stored: CompletedVisibility?): CompletedVisibility = stored ?: CompletedVisibility.SHOW
 
-/** 一覧に載せるタスクと、その区分。 */
-data class ListedTask(val task: Task, val category: TaskCategory)
+/** 一覧に載せるタスクと、その区分。区分は [of] がタスクと Clock の現在時刻から決める（タスクと食い違う組は作れない）。 */
+@ConsistentCopyVisibility
+data class ListedTask private constructor(val task: Task, val category: TaskCategory) {
+    companion object {
+        internal fun of(task: Task, clock: Clock): ListedTask = ListedTask(task, task.category(clock))
+    }
+}
 
 // 未完了を先に、完了を後ろにまとめる。それぞれ期限の日付の昇順（期限のないタスクは最後）、登録の古い順、登録ごとに増える番号の小さい順。
 // 現在時刻に依存しないので、期限切れのタスクは期限内のタスクより前に並ぶ
@@ -32,4 +37,4 @@ fun List<Task>.arranged(visibility: CompletedVisibility): List<Task> {
 
 /** 一覧を作る。並び順は現在時刻によらず、区分だけが Clock の現在時刻で決まる。 */
 fun List<Task>.listed(visibility: CompletedVisibility, clock: Clock): List<ListedTask> =
-    arranged(visibility).map { ListedTask(it, it.category(clock)) }
+    arranged(visibility).map { ListedTask.of(it, clock) }

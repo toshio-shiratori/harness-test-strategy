@@ -7,6 +7,7 @@ import org.springframework.http.MediaType
 /**
  * 画面（`static/index.html`）を Spring が静的リソースとして配信することの確認（層2 Integration）。
  * 画面の振る舞い（入力・登録・表示）はブラウザ E2E の対象で、ここでは配信と、E2E が使う要素と呼ぶ API の存在だけを見る。
+ * TRS の AC に紐づかない技術的な検証で、層2の対応表は変えないため、テスト名に AC 番号を付けない。
  * ルートパス `/` のウェルカムページは MockMvc 上では `index.html` への forward になり本文を取れないので、`/index.html` で確認する。
  */
 class StaticTaskPageTest : TaskApiTestBase() {

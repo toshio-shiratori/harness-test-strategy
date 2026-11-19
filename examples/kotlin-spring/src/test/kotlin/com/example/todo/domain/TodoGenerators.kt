@@ -22,6 +22,8 @@ fun due(raw: String): DueDate = (DueDate.of(raw) as Validated.Valid).value
 
 fun due(date: LocalDate): DueDate = (DueDate.of(date) as Validated.Valid).value
 
+fun taskId(value: Long): TaskId = (TaskId.of(value) as Validated.Valid).value
+
 /** 連結しても隣と結合しない、見た目 1 文字の単位。結合文字つき・国旗（地域指示子 2 個）・絵文字を含む。 */
 val titleUnits: List<String> = listOf("a", "Z", "あ", "牛", "e\u0301", "🇯🇵", "🇺🇸", "😀")
 
@@ -127,7 +129,7 @@ fun arbUnits(count: IntRange): Arb<List<String>> = Arb.list(Arb.element(titleUni
 
 val arbTitle: Arb<TaskTitle> = arbUnits(1..TaskTitle.MAX_LENGTH).map { title(it.joinToString("")) }
 
-val arbTaskId: Arb<TaskId> = Arb.long(1L..1_000_000L).map(::TaskId)
+val arbTaskId: Arb<TaskId> = Arb.long(1L..1_000_000L).map(::taskId)
 
 private val firstDay = LocalDate.of(1, 1, 1).toEpochDay()
 private val lastDay = LocalDate.of(9999, 12, 31).toEpochDay()
@@ -151,7 +153,7 @@ val arbStatus: Arb<TaskStatus> = Arb.element(TaskStatus.Open, TaskStatus.Done)
 val arbNearCreatedAt: Arb<Instant> = Arb.int(0..3).map { Instant.EPOCH.plusSeconds(it.toLong()) }
 
 /** 1 件のタスク。状態は未完了か完了。期限と登録時刻は重なりやすい。 */
-val arbTask: Arb<Task> = Arb.bind(arbTaskId, arbTitle, arbNearDueDate.orNull(0.4), arbStatus, arbNearCreatedAt, ::Task)
+val arbTask: Arb<Task> = Arb.bind(arbTaskId, arbTitle, arbNearDueDate.orNull(0.4), arbStatus, arbNearCreatedAt, Task::restore)
 
 /** 識別子が重ならないタスクの一覧。期限と登録時刻は重なりやすい。 */
 val arbTasks: Arb<List<Task>> = Arb.list(arbTask, 0..12).map { tasks -> tasks.distinctBy { it.id } }
