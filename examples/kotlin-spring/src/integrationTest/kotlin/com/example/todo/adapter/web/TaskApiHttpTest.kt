@@ -1,6 +1,5 @@
 package com.example.todo.adapter.web
 
-import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -9,13 +8,15 @@ import org.junit.jupiter.api.Test
  * 登録（UC-01）の HTTP と DB の結合テスト（層2 Integration）。
  * Controller → Service → MyBatis → MySQL（Testcontainers）まで通し、保存は HTTP で一覧を取り直して確かめる。
  * 期待値は TRS TODO-001 の AC と制約表、OI の決定から取る。AC と制約表は、要件定義書・基本設計書・OI の決定から生成したもので、実装の挙動から逆生成していない（03 §3.1）。
- * タイトルの検証そのものの網羅は層1（`TaskTitleTest`）が受け持つ。ここでは、拒否が 400 と理由コードで返り、何も保存されないことを見る。
+ * タイトル・期限の値の妥当性の網羅は、層1（`TaskControllerTest`・`TaskTitleTest`・`DueDateTest`）が受け持つ。
+ * ここは、拒否に至る水準ごとの代表と、保存して読み戻した結果を確かめる。入力の置き方と水準の対応は、実現例 02-2 の 1.2.1 にある。
+ * 「何も登録されない」は、HTTP の一覧ではなく DB の行数で確かめる（一覧の結果を増やさないため）。
  */
 class TaskApiHttpTest : TaskApiTestBase() {
     private val milk = "牛乳を買う"
 
     // 結合文字つきの「é」を 50 個。書記素で 50 字、コードポイントで 100
-    private val combining50 = "é".repeat(50)
+    private val combining50 = "e\u0301".repeat(50)
 
     // 国旗（地域指示子 2 個）を 50 個
     private val flags50 = "🇯🇵".repeat(50)
@@ -27,7 +28,7 @@ class TaskApiHttpTest : TaskApiTestBase() {
 
         val tasks = list()
         tasks shouldHaveSize 2
-        tasks.map { it.title } shouldBe listOf(milk, milk)
+        tasks.all { it.title == milk } shouldBe true
         tasks.map { it.id }.toSet() shouldHaveSize 2
     }
 
@@ -59,25 +60,27 @@ class TaskApiHttpTest : TaskApiTestBase() {
     }
 
     @Test
-    fun `AC-01-16 不正なタイトルでは登録されない`() {
-        listOf("", " ", "\u200B", "あ".repeat(51)).forEach { title ->
-            postRegister(registerBody(title, null)).expectStatus().isBadRequest
+    fun `AC-01-05 空白だけ（半角・全角・タブ・改行以外の White_Space 属性を持つ文字）のタイトルは、400 と TITLE_BLANK で拒否され、登録されない`() {
+        // F1-L7。期待値は制約表 5.2 の C-53（400 と TITLE_BLANK、何も保存しない）から取った。U+00A0（NBSP）は White_Space 属性を持ち、半角・全角の空白・タブ・改行ではない
+        postRegister(registerBody("\u00A0", null)).expectProblem(400, "TITLE_BLANK")
 
-            list().shouldBeEmpty()
-        }
+        storedTaskCount() shouldBe 0
     }
 
     @Test
-    fun `AC-01-17 不正なタイトルは、400 と理由コードで拒否される`() {
+    fun `AC-01-17 不正なタイトルは、400 と理由コードで拒否され、登録されない`() {
+        // 水準ごとに 1 つ。期待値は制約表 5.2 の C-51（F1-L4 は TITLE_TOO_LONG）・C-52（F1-L5・F1-L6 は TITLE_BLANK）・C-65（F1-L14 は TITLE_BLANK）から取った
+        // F1-L14 の U+200B（ゼロ幅スペース）は表示されない文字（Default_Ignorable_Code_Point）で、White_Space 属性を持たない
         val cases = listOf(
-            "" to "TITLE_BLANK",
-            " " to "TITLE_BLANK",
-            "\u200B" to "TITLE_BLANK",
-            "あ".repeat(51) to "TITLE_TOO_LONG",
-            " " + "あ".repeat(51) + " " to "TITLE_TOO_LONG",
+            "あ".repeat(51) to "TITLE_TOO_LONG", // F1-L4
+            "" to "TITLE_BLANK", // F1-L5
+            " " to "TITLE_BLANK", // F1-L6
+            "\u200B" to "TITLE_BLANK", // F1-L14
         )
         cases.forEach { (title, code) ->
             postRegister(registerBody(title, null)).expectProblem(400, code)
+
+            storedTaskCount() shouldBe 0
         }
     }
 
@@ -93,27 +96,54 @@ class TaskApiHttpTest : TaskApiTestBase() {
 
     @Test
     fun `AC-01-24 本文が壊れている、またはタイトルが無い要求では登録されない`() {
-        listOf("""{"title":""", "{}").forEach { body ->
-            postRegister(body).expectStatus().isBadRequest
+        listOf("""{"title":""" to "MALFORMED_REQUEST", "{}" to "TITLE_BLANK").forEach { (body, code) ->
+            postRegister(body).expectProblem(400, code)
 
-            list().shouldBeEmpty()
+            storedTaskCount() shouldBe 0
         }
     }
 
     @Test
     fun `AC-01-27 期限が日付として不正な要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
-        listOf("2026-11-30T10:00:00", "2026/11/30", "2026-02-30").forEach { due ->
+        // 水準ごとに 1 つ。F2-L5（別形式）と F2-L6（実在しない日）
+        listOf("2026/11/30", "2026-02-30").forEach { due ->
             postRegister(registerBody(milk, due)).expectProblem(400, "DUE_DATE_INVALID")
 
-            list().shouldBeEmpty()
+            storedTaskCount() shouldBe 0
         }
     }
 
     @Test
     fun `AC-01-34 期限が空文字列の要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
-        postRegister(registerBody(milk, "")).expectProblem(400, "DUE_DATE_INVALID")
+        postRegister(registerBody(milk, "")).expectProblem(400, "DUE_DATE_INVALID") // F2-L8
 
-        list().shouldBeEmpty()
+        storedTaskCount() shouldBe 0
+    }
+
+    @Test
+    fun `AC-01-37 0000 年の期限の要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
+        postRegister(registerBody(milk, "0000-02-29")).expectProblem(400, "DUE_DATE_INVALID") // F2-L9
+
+        storedTaskCount() shouldBe 0
+    }
+
+    @Test
+    fun `AC-01-29 型や形が定義と違う本文は、400 と MALFORMED_REQUEST で拒否され、登録されない`() {
+        // 代表は 1 つ（タイトルが数値）。ほかの型や形の入力は、層1の `JacksonConfigurationTest` が確かめる
+        postRegister("""{"title":123}""").expectProblem(400, "MALFORMED_REQUEST")
+
+        storedTaskCount() shouldBe 0
+    }
+
+    @Test
+    fun `AC-01-30 定義にない項目は無視されて登録される`() {
+        postRegister("""{"title":"牛乳を買う","dueDate":"2026-11-30","unknown":1,"extra":{"a":[1,2]}}""")
+            .expectStatus().is2xxSuccessful
+
+        val tasks = list()
+        tasks shouldHaveSize 1
+        tasks.single().title shouldBe milk
+        tasks.single().dueDate shouldBe "2026-11-30"
     }
 
     @Test
@@ -128,50 +158,5 @@ class TaskApiHttpTest : TaskApiTestBase() {
             tasks.single().title shouldBe milk
             tasks.single().dueDate shouldBe null
         }
-    }
-
-    @Test
-    fun `AC-01-37 0000 年の期限の要求は、400 と DUE_DATE_INVALID で拒否され、登録されない`() {
-        listOf("0000-01-01", "0000-02-29", "0000-12-31").forEach { due ->
-            postRegister(registerBody(milk, due)).expectProblem(400, "DUE_DATE_INVALID")
-
-            list().shouldBeEmpty()
-        }
-    }
-
-    @Test
-    fun `AC-01-28 タイトルと期限が同時に不正な要求は、codes に両方の理由コードを含めて拒否される`() {
-        postRegister(registerBody("", "2026-02-30")).expectProblem(400, "TITLE_BLANK", "DUE_DATE_INVALID")
-
-        list().shouldBeEmpty()
-    }
-
-    @Test
-    fun `AC-01-29 型や形が定義と違う本文は、400 と MALFORMED_REQUEST で拒否され、登録されない`() {
-        val bodies = listOf(
-            """{"title":123}""",
-            """{"title":true}""",
-            """{"title":["a"]}""",
-            """{"title":{"a":1}}""",
-            """{"title":"牛乳を買う","dueDate":20261130}""",
-            """{"title":"牛乳を買う","dueDate":true}""",
-            """{"title":"牛乳を買う","dueDate":{"a":1}}""",
-        )
-        bodies.forEach { body ->
-            postRegister(body).expectProblem(400, "MALFORMED_REQUEST")
-
-            list().shouldBeEmpty()
-        }
-    }
-
-    @Test
-    fun `AC-01-30 定義にない項目は無視されて登録される`() {
-        postRegister("""{"title":"牛乳を買う","dueDate":"2026-11-30","unknown":1,"extra":{"a":[1,2]}}""")
-            .expectStatus().is2xxSuccessful
-
-        val tasks = list()
-        tasks shouldHaveSize 1
-        tasks.single().title shouldBe milk
-        tasks.single().dueDate shouldBe "2026-11-30"
     }
 }
