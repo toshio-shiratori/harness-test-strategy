@@ -13,7 +13,7 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
 
 /**
- * 02-1 §3.3 の規則3・4（失敗時のシード出力、夜間の実行回数増量）が、設定と Kotest の挙動で成り立っていることの検証。
+ * 02-1 §3.3 の規則3（失敗時のシード出力）が、設定と Kotest の挙動で成り立っていることの検証。実行回数（規則4）は PrIterationCountTest・NightlyIterationCountTest が確かめる。
  * 特定の AC に紐づかない技術的な不変条件のテスト（03-1 §1）。Kotest の更新で挙動や設定名が変わったときに落ちる。
  */
 // PropTestConfig は ExperimentalKotest。実験的 API なので、使う範囲を本クラスに限る
@@ -44,7 +44,7 @@ class PropertyTestingConfigTest : StringSpec({
     }
 
     "失敗した Property のメッセージから、縮小後の反例（Arg 0）を取り出せる" {
-        // エッジケース（範囲の端の 1000 など）は縮小されない（Kotest 6.2.5）。既定の確率（2%）で混ざると、
+        // エッジケース（範囲の端の 1000 など）は縮小されない（Kotest 6.2.7）。既定の確率（2%）で混ざると、
         // 縮小されない 1000 が反例になり、まれに失敗する。縮小の検証にはエッジケースを無効にする
         val config = PropTestConfig(edgeConfig = EdgeConfig(edgecasesGenerationProbability = 0.0))
 
@@ -64,13 +64,5 @@ class PropertyTestingConfigTest : StringSpec({
         val message = error.message.orEmpty()
         shrunkArg0.find(message)!!.groupValues[1] shouldBe "1000"
         message shouldNotContain "shrunk from"
-    }
-
-    "実行回数は kotest.proptest.default.iteration.count で切り替わる（未指定なら Kotest の既定の 1000）" {
-        var count = 0
-
-        checkAll(Arb.int()) { count++ }
-
-        count shouldBe (System.getProperty("kotest.proptest.default.iteration.count")?.toInt() ?: 1000)
     }
 })

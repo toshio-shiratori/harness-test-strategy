@@ -35,9 +35,9 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j")
 
     // 層1（src/test）は Spring・Docker を使わない純粋なテスト。Spring を起動するテストは integrationTest（下の testing ブロック）に置く
-    testImplementation("io.kotest:kotest-runner-junit5:6.2.6")
-    testImplementation("io.kotest:kotest-assertions-core:6.2.6")
-    testImplementation("io.kotest:kotest-property:6.2.6")
+    testImplementation("io.kotest:kotest-runner-junit5:6.2.7")
+    testImplementation("io.kotest:kotest-assertions-core:6.2.7")
+    testImplementation("io.kotest:kotest-property:6.2.7")
     testImplementation("com.lemonappdev:konsist:0.18.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -53,7 +53,7 @@ testing {
                 implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
                 implementation("org.springframework.boot:spring-boot-starter-test")
                 implementation("org.springframework.boot:spring-boot-starter-webmvc-test") // @WebMvcTest / RestTestClient
-                implementation("io.kotest:kotest-assertions-core:6.2.6")
+                implementation("io.kotest:kotest-assertions-core:6.2.7")
                 // DB を含む Integration: Testcontainers で MySQL を起動する。バージョンは Spring Boot の BOM（Testcontainers 2.x）が管理する
                 implementation("org.springframework.boot:spring-boot-starter-jdbc")
                 implementation("org.flywaydb:flyway-core") // テストごとにスキーマを作り直す（clean / migrate）
@@ -70,12 +70,12 @@ testing {
                 implementation(project())
                 implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
                 implementation("org.springframework.boot:spring-boot-starter-test")
-                implementation("io.kotest:kotest-assertions-core:6.2.6")
+                implementation("io.kotest:kotest-assertions-core:6.2.7")
                 implementation("org.springframework.boot:spring-boot-testcontainers")
                 implementation("org.testcontainers:testcontainers-junit-jupiter")
                 implementation("org.testcontainers:testcontainers-mysql")
                 // Playwright for Java。Spring Boot の BOM の管理外なのでバージョンを明示する（Maven Central の最新リリース）
-                implementation("com.microsoft.playwright:playwright:1.64.0")
+                implementation("com.microsoft.playwright:playwright:1.65.0")
             }
         }
     }
@@ -104,6 +104,14 @@ tasks.named<Test>("e2eTest") {
     // Playwright.create() は既定で Chromium・Firefox・WebKit の全てを取得しようとする。使うのは Chromium だけなので止める
     environment("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")
 }
+
+// 実行回数を確かめる 2 つのテストクラスは、期待値を実行の構成ごとのリテラルで持つ（サンプルの docs/02-1.md「実行回数の確認の構成」）。
+// -Pproptest.iterations を指定した実行では PR 用を、指定しない実行では夜間用を除外する。除外はクラスの完全修飾名で、
+// この 2 つに限る。タグなど、テスト側で除外を宣言できる仕組みは使わない（別のテストを除外する経路になるため）。
+val prIterationCountTest = "com.example.property.PrIterationCountTest"
+val nightlyIterationCountTest = "com.example.property.NightlyIterationCountTest"
+val iterationCountTestNotRun =
+    if (providers.gradleProperty("proptest.iterations").isPresent) prIterationCountTest else nightlyIterationCountTest
 
 // ドメイン層だけの実行（-Ppitest.domainOnly=true）。層1の全対象（既定）や差分実行に加えて、それらが走る契機ごとに併走させる。
 // 閾値は対象の合算にかかり、対象を広げたり、ドメイン層と他の層を同時に変えたりすると、ドメイン層に対する実効の要求が下がるため、
@@ -158,6 +166,15 @@ pitest {
     )
     // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02-2 §2.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
+    // pitest はテストを別の JVM で実行するため、test タスクの除外と systemProperty は引き継がれない。
+    // 除外を渡さないと、構成に合わない回数の確認が走り、「変異なしで通らない」として失敗する。
+    excludedTestClasses.set(listOf(iterationCountTestNotRun))
+    // 回数の増量（-Pproptest.iterations）も test タスクと同じく渡し、除外するクラスと回数がずれないようにする。
+    jvmArgs.set(
+        listOfNotNull(
+            providers.gradleProperty("proptest.iterations").orNull?.let { "-Dkotest.proptest.default.iteration.count=$it" },
+        ),
+    )
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }
@@ -196,5 +213,9 @@ tasks.withType<Test> {
     // Gradle の -D はテスト JVM に渡らないため、ここで転送する。
     providers.gradleProperty("proptest.iterations").orNull?.let {
         systemProperty("kotest.proptest.default.iteration.count", it)
+    }
+    // 構成に合わない方の回数確認のテストクラスを除外する（他のテストは両方の構成で走る）。
+    filter {
+        excludeTestsMatching(iterationCountTestNotRun)
     }
 }
