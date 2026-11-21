@@ -105,6 +105,14 @@ tasks.named<Test>("e2eTest") {
     environment("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")
 }
 
+// 実行回数を確かめる 2 つのテストクラスは、期待値を実行の構成ごとのリテラルで持つ（サンプルの docs/02-1.md「実行回数の確認の構成」）。
+// -Pproptest.iterations を指定した実行では PR 用を、指定しない実行では夜間用を除外する。除外はクラスの完全修飾名で、
+// この 2 つに限る。タグなど、テスト側で除外を宣言できる仕組みは使わない（別のテストを除外する経路になるため）。
+val prIterationCountTest = "com.example.property.PrIterationCountTest"
+val nightlyIterationCountTest = "com.example.property.NightlyIterationCountTest"
+val iterationCountTestNotRun =
+    if (providers.gradleProperty("proptest.iterations").isPresent) prIterationCountTest else nightlyIterationCountTest
+
 // ドメイン層だけの実行（-Ppitest.domainOnly=true）。層1の全対象（既定）や差分実行に加えて、それらが走る契機ごとに併走させる。
 // 閾値は対象の合算にかかり、対象を広げたり、ドメイン層と他の層を同時に変えたりすると、ドメイン層に対する実効の要求が下がるため、
 // ドメイン層は別に評価する（規範 docs/testing/02-2 §2.1、サンプル examples/kotlin-spring/docs/02-2.md §2.4）。
@@ -158,6 +166,15 @@ pitest {
     )
     // 夜間の全体実行は 70%（-Ppitest.threshold=70）。01 の G3 / 02-2 §2.1
     mutationThreshold.set(providers.gradleProperty("pitest.threshold").map { it.toInt() }.orElse(80))
+    // pitest はテストを別の JVM で実行するため、test タスクの除外と systemProperty は引き継がれない。
+    // 除外を渡さないと、構成に合わない回数の確認が走り、「変異なしで通らない」として失敗する。
+    excludedTestClasses.set(listOf(iterationCountTestNotRun))
+    // 回数の増量（-Pproptest.iterations）も test タスクと同じく渡し、除外するクラスと回数がずれないようにする。
+    jvmArgs.set(
+        listOfNotNull(
+            providers.gradleProperty("proptest.iterations").orNull?.let { "-Dkotest.proptest.default.iteration.count=$it" },
+        ),
+    )
     outputFormats.set(listOf("HTML", "XML"))
     timestampedReports.set(false)
 }
@@ -196,5 +213,9 @@ tasks.withType<Test> {
     // Gradle の -D はテスト JVM に渡らないため、ここで転送する。
     providers.gradleProperty("proptest.iterations").orNull?.let {
         systemProperty("kotest.proptest.default.iteration.count", it)
+    }
+    // 構成に合わない方の回数確認のテストクラスを除外する（他のテストは両方の構成で走る）。
+    filter {
+        excludeTestsMatching(iterationCountTestNotRun)
     }
 }
