@@ -44,7 +44,7 @@ class PropertyTestingConfigTest : StringSpec({
     }
 
     "失敗した Property のメッセージから、縮小後の反例（Arg 0）を取り出せる" {
-        // エッジケース（範囲の端の 1000 など）は縮小されない（Kotest 6.2.5）。既定の確率（2%）で混ざると、
+        // エッジケース（範囲の端の 1000 など）は縮小されない（Kotest 6.2.7）。既定の確率（2%）で混ざると、
         // 縮小されない 1000 が反例になり、まれに失敗する。縮小の検証にはエッジケースを無効にする
         val config = PropTestConfig(edgeConfig = EdgeConfig(edgecasesGenerationProbability = 0.0))
 
