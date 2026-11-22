@@ -215,7 +215,7 @@ class TaskControllerTest : StringSpec({
         }
     }
 
-    // 識別子の上限と 0 の扱い（基本設計書の Q-06）は未決なので、AC の名前のテストには、その値を置かない。境界の値は、AC 番号の無い `parseTaskId` のテストが確かめる
+    // Q-06 の値（0・上限・上限を超える値）は置かない。理由は下の `parseTaskId` のテストに書いた
     val invalidIds = listOf("abc", "1.5", "+1", "-1", " 1", "1 ", "１", "0x1", "1a", "01", "007", "00")
 
     "AC-02-09 形が不正な識別子でタスクを完了にする要求は、404 と TASK_NOT_FOUND で拒否され、タスクは変わらない" {
@@ -268,14 +268,12 @@ class TaskControllerTest : StringSpec({
         f.controller.list().single() shouldBe TaskResponse(1, "牛乳を買う", pastDue, "OPEN", "OVERDUE")
     }
 
-    "識別子は先頭にゼロを置かない ASCII の 10 進数字の並びで、Long に収まる値だけが TaskId になる" {
+    // Q-06 に関わらない値だけを確かめる。0 と上限の値、上限を超える値は、決まるまで期待値にしない
+    "識別子は先頭にゼロを置かない 10 進数字の並びだけが TaskId になる" {
         parseTaskId("1")?.value shouldBe 1L
-        parseTaskId("0")?.value shouldBe 0L
         parseTaskId("10")?.value shouldBe 10L
         parseTaskId("007") shouldBe null
         parseTaskId("01") shouldBe null
-        parseTaskId("9223372036854775807")?.value shouldBe Long.MAX_VALUE
-        parseTaskId("9223372036854775808") shouldBe null
         parseTaskId("") shouldBe null
     }
 

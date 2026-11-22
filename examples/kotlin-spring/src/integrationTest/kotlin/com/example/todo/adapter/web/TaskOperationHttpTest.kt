@@ -20,7 +20,7 @@ class TaskOperationHttpTest : TaskApiTestBase() {
 
     private fun openTask(): TaskJson = register(milk, due)
 
-    /** 形が不正な識別子（F8-L3）の代表 1 つ。形の網羅（小数・符号・先頭のゼロ・範囲を超える値など）は層1の `TaskControllerTest` が確かめる。 */
+    /** 形が不正な識別子（F8-L3）の代表 1 つ。形の網羅（小数・符号・先頭のゼロなど）は層1の `TaskControllerTest` が確かめる。 */
     private val invalidIds = listOf("abc")
 
     private fun doneTask(): TaskJson {
