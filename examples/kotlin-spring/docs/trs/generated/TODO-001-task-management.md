@@ -190,7 +190,7 @@
 | AC-01-02 | UC-01-A1 | 単体 | 層1 | Must | 前後の空白と表示されない文字を除いた後で 51 字以上のタイトルは、拒否される（期待結果は C-51） | C-51, C-55, REQ-TODO-15, OI-004 |
 | AC-01-03 | UC-01-A1 | 単体 | 層1 | Must | 空のタイトルは、拒否される（期待結果は C-52） | C-52, REQ-TODO-16 |
 | AC-01-04 | UC-01-A1 | 単体 | 層1 | Must | 半角空白、全角空白、タブ、改行だけのタイトルは、拒否される（期待結果は C-52） | C-52, REQ-TODO-16 |
-| AC-01-05 | UC-01-A1 | 単体 | 層1 | Must | AC-01-04 に挙げた以外の White_Space 属性を持つ文字だけのタイトルは、拒否される（期待結果は C-53） | C-53, REQ-TODO-31, OI-017 |
+| AC-01-05 | UC-01-A1 | 単体 | 層1、層2（Integration） | Must | AC-01-04 に挙げた以外の White_Space 属性を持つ文字だけのタイトルは、拒否される（期待結果は C-53） | C-53, REQ-TODO-31, DES-TODO-30, DES-TODO-31, OI-017 |
 | AC-01-06 | UC-01 | 単体 | 層1 | Must | 前後に、AC-01-04 に挙げた以外の White_Space 属性を持つ文字があるタイトルは、それを除いて保存される（期待結果は C-53） | C-53, REQ-TODO-17, OI-017 |
 | AC-01-07 | UC-01 | 単体 | 層1 | Must | 前後の半角空白、全角空白、タブ、改行は除いて保存され、途中のものは残る（期待結果は C-54） | C-54, REQ-TODO-17 |
 | AC-01-08 | UC-01 | 単体 | 層1 | Must | 前後の空白を除く前は 51 字以上で、除いた後は 50 字以内のタイトルは、受理される（期待結果は C-55） | C-55, REQ-TODO-15, OI-004 |
@@ -201,10 +201,10 @@
 | AC-01-13 | UC-01 | 受入 | 層2（Integration） | Must | 同じタイトルのタスクを続けて登録すると、2 件目の登録の応答は 2xx で、一覧を取り直すと、同じタイトルの別々のタスクが 2 件ある | REQ-TODO-18 |
 | AC-01-14 | UC-01-A2 | 単体 | 層1 | Must | `YYYY-MM-DD` として読めない期限と、実在しない日の期限は、拒否される（期待結果は C-56） | C-56, REQ-TODO-19, OI-005 |
 | AC-01-15 | UC-01 | 結合 | 層2（Integration） | Must | 登録の応答は 2xx で、登録したタスクは保存され、一覧から読み戻すと、前後の空白と表示されない文字を除いた以外は、入力と同じタイトルと期限の、未完了のタスクである。Unicode 正規化はしない（期待結果は C-50、C-54、C-58、C-66） | C-50, C-54, C-58, C-66, REQ-TODO-08, DES-TODO-09, DES-TODO-36, OI-008, OI-017 |
-| AC-01-16 | UC-01-A1 | 結合 | 層2（Integration） | Must | 不正なタイトルの登録の要求では、何も登録されない（期待結果は C-51、C-52、C-65） | C-51, C-52, C-65, REQ-TODO-12, DES-TODO-12 |
-| AC-01-17 | UC-01-A1 | 結合 | 層2（Integration） | Must | 不正なタイトルの登録の要求は、400 で拒否され、`codes` は理由コード 1 つ（`TITLE_BLANK` か `TITLE_TOO_LONG`）の集合に等しい（期待結果は C-51、C-52、C-65） | C-51, C-52, C-65, DES-TODO-25, DES-TODO-30, OI-001, OI-018 |
-| AC-01-18 | UC-01-A3 | 結合 | 層2（Integration） | Must | 本文が JSON として読めない登録の要求は、拒否される（期待結果は C-69） | C-69, DES-TODO-25, DES-TODO-30, DES-TODO-34, OI-001, OI-018 |
-| AC-01-19 | UC-01-A3 | 結合 | 層2（Integration） | Must | タイトルが無い登録の要求は、拒否される（期待結果は C-70） | C-70, DES-TODO-05, DES-TODO-25, DES-TODO-30, DES-TODO-31, OI-001, OI-018 |
+| AC-01-16 | UC-01-A1 | 結合 | 層1 | Must | 不正なタイトルの登録の要求では、何も登録されない（期待結果は C-51、C-52、C-65） | C-51, C-52, C-65, REQ-TODO-12, DES-TODO-12 |
+| AC-01-17 | UC-01-A1 | 結合 | 層1、層2（Integration） | Must | 不正なタイトルの登録の要求は、400 で拒否され、`codes` は理由コード 1 つ（`TITLE_BLANK` か `TITLE_TOO_LONG`）の集合に等しい（期待結果は C-51、C-52、C-65） | C-51, C-52, C-65, DES-TODO-25, DES-TODO-30, OI-001, OI-018 |
+| AC-01-18 | UC-01-A3 | 結合 | 層1、層2（Integration） | Must | 本文が JSON として読めない登録の要求は、拒否される（期待結果は C-69） | C-69, DES-TODO-25, DES-TODO-30, DES-TODO-34, OI-001, OI-018 |
+| AC-01-19 | UC-01-A3 | 結合 | 層1、層2（Integration） | Must | タイトルが無い登録の要求は、拒否される（期待結果は C-70） | C-70, DES-TODO-05, DES-TODO-25, DES-TODO-30, DES-TODO-31, OI-001, OI-018 |
 | AC-01-20 | UC-01 | 受入 | 層2（E2E: happy-path） | Must | 持ち主が画面からタスクを登録し、一覧に表示される（流れの AC。下の Gherkin） | REQ-TODO-01, REQ-TODO-05, REQ-TODO-07, DES-TODO-01, DES-TODO-04 |
 | AC-01-21 | UC-01 | 受入 | 層2（E2E: browser-operation） | Must | 持ち主が日付を選ぶ部品で期限を選んで登録し、期限が `YYYY-MM-DD` で表示される（流れの AC。下の Gherkin） | C-12, REQ-TODO-14, DES-TODO-04, DES-TODO-06, OI-010 |
 | AC-01-22 | UC-01-A1 | 結合 | 層2（E2E: display） | Must | 不正なタイトルで登録すると、理由コードに対応する文言が画面に表示される（文言は DES-TODO-31、DES-TODO-32。期待結果は C-51、C-52） | C-51, C-52, REQ-TODO-13, DES-TODO-02, DES-TODO-31, DES-TODO-32, OI-007 |
@@ -212,17 +212,17 @@
 | AC-01-24 | UC-01-A3 | 結合 | 層2（Integration） | Must | 本文が壊れている、またはタイトルが無い登録の要求は、400 で拒否され、何も登録されない（期待結果は C-69、C-70） | C-69, C-70, REQ-TODO-12, DES-TODO-12, DES-TODO-25 |
 | AC-01-25 | UC-01-A1 | 単体 | 層1 | Must | 表示される文字があるタイトルの途中の、表示されない文字は、除かずに保存される（期待結果は C-57） | C-57, REQ-TODO-17, OI-017 |
 | AC-01-26 | UC-01 | 単体 | 層1 | Must | `YYYY-MM-DD` の形で実在する暦日は、期限として受理される（期待結果は C-58） | C-58, REQ-TODO-02, OI-005, OI-011 |
-| AC-01-27 | UC-01-A2 | 結合 | 層2（Integration） | Must | 日付として不正な期限の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-56） | C-56, DES-TODO-25, DES-TODO-30, DES-TODO-33, OI-005, OI-018 |
-| AC-01-28 | UC-01-A1 | 結合 | 層2（Integration） | Must | タイトルと期限が同時に不正な登録の要求は、`codes` が `TITLE_BLANK` と `DUE_DATE_INVALID` の集合に等しい形で拒否され、何も登録されない（期待結果は C-52、C-56） | C-52, C-56, DES-TODO-30, OI-011, OI-018 |
-| AC-01-29 | UC-01-A4 | 結合 | 層2（Integration） | Must | 型や形が定義と違う登録の本文は、400 と `MALFORMED_REQUEST` で拒否され、何も登録されない（期待結果は C-59） | C-59, DES-TODO-25, DES-TODO-34, OI-013, OI-018 |
+| AC-01-27 | UC-01-A2 | 結合 | 層1、層2（Integration） | Must | 日付として不正な期限の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-56） | C-56, DES-TODO-25, DES-TODO-30, DES-TODO-33, OI-005, OI-018 |
+| AC-01-28 | UC-01-A1 | 結合 | 層1 | Must | タイトルと期限が同時に不正な登録の要求は、`codes` が `TITLE_BLANK` と `DUE_DATE_INVALID` の集合に等しい形で拒否され、何も登録されない（期待結果は C-52、C-56） | C-52, C-56, DES-TODO-30, OI-011, OI-018 |
+| AC-01-29 | UC-01-A4 | 結合 | 層1、層2（Integration） | Must | 型や形が定義と違う登録の本文は、400 と `MALFORMED_REQUEST` で拒否され、何も登録されない（期待結果は C-59） | C-59, DES-TODO-25, DES-TODO-34, OI-013, OI-018 |
 | AC-01-30 | UC-01-A4 | 結合 | 層2（Integration） | Must | 定義にない項目を含む登録の本文は、その項目を無視して登録される（期待結果は C-60） | C-60, DES-TODO-25, OI-013 |
 | AC-01-31 | UC-01 | 結合 | 層2（E2E: display） | Must | 拒否の理由が表示されているとき、登録に成功すると、理由の表示が消える | REQ-TODO-13, DES-TODO-02, OI-014 |
 | AC-01-32 | UC-01 | 結合 | 層2（E2E: display） | Must | 登録に成功すると、タイトルと期限の入力欄が、どちらも空に戻る | REQ-TODO-07, DES-TODO-01, OI-014 |
 | AC-01-33 | UC-01-A5 | 単体 | 層1 | Must | 空文字列の期限は、拒否される（期待結果は C-62） | C-62, DES-TODO-08, OI-012 |
-| AC-01-34 | UC-01-A5 | 結合 | 層2（Integration） | Must | 期限が空文字列の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-62） | C-62, DES-TODO-08, DES-TODO-33, OI-012, OI-018 |
+| AC-01-34 | UC-01-A5 | 結合 | 層1、層2（Integration） | Must | 期限が空文字列の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-62） | C-62, DES-TODO-08, DES-TODO-33, OI-012, OI-018 |
 | AC-01-35 | UC-01-A5 | 結合 | 層2（Integration） | Must | 期限の項目を省くか null にした登録の要求は、期限なしで登録される（期待結果は C-62） | C-62, DES-TODO-08, OI-012 |
 | AC-01-36 | UC-01-A6 | 単体 | 層1 | Must | 0000 年の暦日は、期限の下限より前なので、拒否される（期待結果は C-63） | C-63, REQ-TODO-34, OI-015 |
-| AC-01-37 | UC-01-A6 | 結合 | 層2（Integration） | Must | 0000 年の期限の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-63） | C-63, REQ-TODO-34, DES-TODO-33, OI-015, OI-018 |
+| AC-01-37 | UC-01-A6 | 結合 | 層1、層2（Integration） | Must | 0000 年の期限の登録の要求は、400 と `DUE_DATE_INVALID` で拒否され、何も登録されない（期待結果は C-63） | C-63, REQ-TODO-34, DES-TODO-33, OI-015, OI-018 |
 | AC-01-38 | UC-01-A1 | 単体 | 層1 | Must | 空白と、表示されない文字だけのタイトルは、空として拒否される（期待結果は C-65） | C-65, REQ-TODO-31, OI-017 |
 | AC-01-39 | UC-01 | 単体 | 層1 | Must | タイトルの前後の空白と、表示されない文字は、除いて保存される（期待結果は C-66） | C-66, REQ-TODO-17, OI-017 |
 | AC-01-40 | UC-01 | 単体 | 層1 | Must | 表示される文字の直後の異体字セレクタとタグ文字は残り、それ以外の位置のものは除かれる（期待結果は C-66、C-67） | C-66, C-67, REQ-TODO-17, OI-017 |
@@ -234,9 +234,9 @@
 | AC-02-05 | UC-02 | 受入 | 層2（E2E: happy-path） | Must | 持ち主が画面からタスクを完了にし、「完了」のラベルが表示される（流れの AC。下の Gherkin） | C-13, C-20, REQ-TODO-04, REQ-TODO-07, DES-TODO-04, DES-TODO-13 |
 | AC-02-07 | UC-02-A2 | 結合 | 層2（Integration） | Must | 完了済みのタスクをもう一度完了にする要求は、成功する（2xx。期待結果は C-21） | C-21, REQ-TODO-24, DES-TODO-14, DES-TODO-26, OI-001 |
 | AC-02-08 | UC-02-A2 | 単体 | 層1 | Must | 完了済みのタスクをもう一度完了にしても、そのタスクは変わらない（期待結果は C-21） | C-21, REQ-TODO-24, DES-TODO-14 |
-| AC-02-09 | UC-02-A3 | 結合 | 層2（Integration） | Must | 形が不正な識別子で完了にする要求は、404 と `TASK_NOT_FOUND` で拒否され、タスクは変わらない（期待結果は C-64） | C-64, REQ-TODO-33, DES-TODO-17, OI-012, OI-018 |
+| AC-02-09 | UC-02-A3 | 結合 | 層1、層2（Integration） | Must | 形が不正な識別子で完了にする要求は、404 と `TASK_NOT_FOUND` で拒否され、タスクは変わらない（期待結果は C-64） | C-64, REQ-TODO-33, DES-TODO-17, OI-012, OI-018 |
 | AC-02-10 | UC-02 | 単体 | 層1 | Must | 期限が今日より前の未完了のタスク（区分は期限切れ）を完了にすると、そのタスクは完了になり、区分は「完了」になる。タイトルと期限と、ほかのタスクは変わらない（期待結果は C-71） | C-71, REQ-TODO-04, REQ-TODO-23, DES-TODO-04, DES-TODO-13, DES-TODO-18 |
-| AC-02-11 | UC-02 | 結合 | 層2（Integration） | Must | 期限が今日より前の未完了のタスクを完了にする要求は 2xx で成功し、完了にした状態は保存され、一覧から読み戻すと区分は「完了」である（期待結果は C-71） | C-71, REQ-TODO-23, DES-TODO-13, DES-TODO-28, DES-TODO-36 |
+| AC-02-11 | UC-02 | 結合 | 層1 | Must | 期限が今日より前の未完了のタスクを完了にする要求は 2xx で成功し、完了にした状態は保存され、一覧から読み戻すと区分は「完了」である（期待結果は C-71） | C-71, REQ-TODO-23, DES-TODO-13, DES-TODO-28, DES-TODO-36 |
 | AC-03-01 | UC-03 | 単体 | 層1 | Must | 完了のタスクを未完了に戻すと、そのタスクは未完了になる。タイトルと期限と、ほかのタスクは変わらない（期待結果は C-22） | C-22, REQ-TODO-09, DES-TODO-15 |
 | AC-03-02 | UC-03-A2 | 結合 | 層2（Integration） | Must | 未完了のタスクを未完了に戻しても、一覧を取り直すと、何も変わっていない（期待結果は C-23） | C-23, REQ-TODO-25, DES-TODO-16 |
 | AC-03-03 | UC-03-A1 | 結合 | 層2（Integration） | Must | 存在しないタスクを未完了に戻す要求は、404 と `TASK_NOT_FOUND` で拒否される（期待結果は C-24） | C-24, REQ-TODO-33, DES-TODO-17, DES-TODO-27, OI-006, OI-018 |
@@ -244,29 +244,29 @@
 | AC-03-05 | UC-03-A2 | 結合 | 層2（Integration） | Must | 未完了のタスクを未完了に戻す要求は、成功する（2xx。期待結果は C-23） | C-23, REQ-TODO-25, DES-TODO-16, DES-TODO-27, OI-001 |
 | AC-03-06 | UC-03-A2 | 単体 | 層1 | Must | 未完了のタスクを未完了に戻しても、そのタスクは変わらない（期待結果は C-23） | C-23, REQ-TODO-25, DES-TODO-16 |
 | AC-03-07 | UC-03 | 受入 | 層2（E2E: happy-path） | Must | 持ち主が画面からタスクを未完了に戻し、「未完了」のラベルが表示される（流れの AC。下の Gherkin） | C-10, C-22, REQ-TODO-07, REQ-TODO-09, DES-TODO-04, DES-TODO-15 |
-| AC-03-08 | UC-03-A3 | 結合 | 層2（Integration） | Must | 形が不正な識別子で未完了に戻す要求は、404 と `TASK_NOT_FOUND` で拒否され、タスクは変わらない（期待結果は C-64） | C-64, REQ-TODO-33, DES-TODO-17, OI-012, OI-018 |
+| AC-03-08 | UC-03-A3 | 結合 | 層1、層2（Integration） | Must | 形が不正な識別子で未完了に戻す要求は、404 と `TASK_NOT_FOUND` で拒否され、タスクは変わらない（期待結果は C-64） | C-64, REQ-TODO-33, DES-TODO-17, OI-012, OI-018 |
 | AC-03-10 | UC-03 | 単体 | 層1 | Must | 期限が今日より前の完了のタスクを未完了に戻すと、そのタスクは未完了になり、区分は「期限切れ」になる。タイトルと期限と、ほかのタスクは変わらない（期待結果は C-72） | C-72, REQ-TODO-09, REQ-TODO-21, DES-TODO-04, DES-TODO-15, DES-TODO-20 |
-| AC-03-11 | UC-03 | 結合 | 層2（Integration） | Must | 期限が今日より前の完了のタスクを未完了に戻す要求は 2xx で成功し、未完了に戻した状態は保存され、一覧から読み戻すと区分は「期限切れ」である（期待結果は C-72） | C-72, REQ-TODO-09, REQ-TODO-21, DES-TODO-15, DES-TODO-28, DES-TODO-36 |
+| AC-03-11 | UC-03 | 結合 | 層1 | Must | 期限が今日より前の完了のタスクを未完了に戻す要求は 2xx で成功し、未完了に戻した状態は保存され、一覧から読み戻すと区分は「期限切れ」である（期待結果は C-72） | C-72, REQ-TODO-09, REQ-TODO-21, DES-TODO-15, DES-TODO-28, DES-TODO-36 |
 | AC-04-01 | UC-04 | 単体 | 層1 | Must | タスクの区分は、完了・期限・現在時刻で決まる（期待結果は C-10〜C-13） | C-10, C-11, C-12, C-13, REQ-TODO-21, REQ-TODO-23 |
 | AC-04-02 | UC-04 | 単体 | 層1 | Must | どのタスクも、区分は未完了・完了・期限切れのちょうど 1 つである | REQ-TODO-32 |
-| AC-04-03 | UC-04 | 結合 | 層2（Integration） | Must | 登録したタスクが、区分つきで一覧に現れる（期待結果は C-10、C-12、C-13） | C-10, C-12, C-13, REQ-TODO-05, REQ-TODO-06, DES-TODO-28 |
-| AC-04-04 | UC-04 | 単体 | 層1、層2（Integration） | Must | 期限切れの判定は、サーバーの既定のタイムゾーンによらず、Asia/Tokyo の日付で行う（期待結果は C-14、C-15） | C-14, C-15, REQ-TODO-22, DES-TODO-38 |
+| AC-04-03 | UC-04 | 結合 | 層1 | Must | 登録したタスクが、区分つきで一覧に現れる（期待結果は C-10、C-12、C-13） | C-10, C-12, C-13, REQ-TODO-05, REQ-TODO-06, DES-TODO-28 |
+| AC-04-04 | UC-04 | 単体 | 層1 | Must | 期限切れの判定は、サーバーの既定のタイムゾーンによらず、Asia/Tokyo の日付で行う（期待結果は C-14、C-15） | C-14, C-15, REQ-TODO-22, DES-TODO-38 |
 | AC-04-05 | UC-04 | 結合 | 層2（E2E: display） | Must | ブラウザのタイムゾーンによらず、一覧で未完了・完了・期限切れを見分けられる（期待結果は C-10、C-12、C-13） | C-10, C-12, C-13, REQ-TODO-06, REQ-TODO-22, DES-TODO-04, DES-TODO-38, OI-010 |
-| AC-04-06 | UC-04-A1 | 結合 | 層2（Integration） | Must | 登録したタスクが 1 件も無いとき、一覧は空である | REQ-TODO-05, DES-TODO-28 |
+| AC-04-06 | UC-04-A1 | 結合 | 層1 | Must | 登録したタスクが 1 件も無いとき、一覧は空である | REQ-TODO-05, DES-TODO-28 |
 | AC-05-01 | UC-05 | 単体 | 層1 | Must | 期限が今日以後のタスクは、期限が近い順に並ぶ（期待結果は C-40） | C-40, REQ-TODO-26 |
 | AC-05-02 | UC-05 | 単体 | 層1 | Must | 期限のないタスクは、最後に並ぶ（期待結果は C-41） | C-41, REQ-TODO-26 |
 | AC-05-03 | UC-05 | 単体 | 層1 | Must | 期限が同じタスク同士と、期限のないタスク同士は、登録の古い順に並ぶ（期待結果は C-42） | C-42, REQ-TODO-27 |
 | AC-05-04 | UC-05-A1 | 単体 | 層1 | Must | 期限を過ぎたタスクも、期限の日付の昇順に並び、現在時刻によらない（期待結果は C-43） | C-43, REQ-TODO-26, OI-003 |
 | AC-05-05 | UC-05 | 単体 | 層1 | Must | 完了済みを表示するとき、未完了の後ろに完了済みがまとまり、それぞれ同じ規則で並ぶ（期待結果は C-44） | C-44, REQ-TODO-28 |
-| AC-05-06 | UC-05 | 結合 | 層2（Integration） | Must | 保存したタスクの一覧も、期限が近い順・登録の古い順に並び、完了済みは未完了の後ろにまとまる（期待結果は C-40〜C-42、C-44） | C-40, C-41, C-42, C-44, DES-TODO-28 |
+| AC-05-06 | UC-05 | 結合 | 層1 | Must | 保存したタスクの一覧も、期限が近い順・登録の古い順に並び、完了済みは未完了の後ろにまとまる（期待結果は C-40〜C-42、C-44） | C-40, C-41, C-42, C-44, DES-TODO-28 |
 | AC-05-07 | UC-05 | 単体 | 層1 | Must | 登録時刻が完全に同じタスクは、登録ごとに増える番号の小さい方が先に並ぶ（期待結果は C-45） | C-45, DES-TODO-09, OI-009 |
-| AC-05-08 | UC-05 | 結合 | 層2（Integration） | Must | 時計が固定された状態で続けて登録したタスクは、登録した順に並ぶ（期待結果は C-45） | C-45, DES-TODO-09, OI-009 |
+| AC-05-08 | UC-05 | 結合 | 層1 | Must | 時計が固定された状態で続けて登録したタスクは、登録した順に並ぶ（期待結果は C-45） | C-45, DES-TODO-09, OI-009 |
 | AC-06-01 | UC-06 | 単体 | 層1 | Must | 完了済みを隠すと、未完了と期限切れのタスクだけが表示される（期待結果は C-31） | C-31, REQ-TODO-10 |
 | AC-06-02 | UC-06 | 単体 | 層1 | Must | 完了済みを表示すると、すべてのタスクが表示される（期待結果は C-30） | C-30, REQ-TODO-10 |
 | AC-06-03 | UC-06-A1 | 単体 | 層1、層2（Integration） | Must | 保存された選択が無い（初めて開いた）とき、完了済みを表示する（期待結果は C-32） | C-32, REQ-TODO-30, DES-TODO-10 |
 | AC-06-04 | UC-06 | 結合 | 層2（Integration） | Must | 選択は保存され、別の要求で読み戻しても保たれる | REQ-TODO-11, REQ-TODO-29, DES-TODO-10, DES-TODO-23, DES-TODO-24, DES-TODO-37 |
 | AC-06-05 | UC-06 | 受入 | 層2（E2E: communication） | Must | 持ち主が画面で完了済みを隠すと、画面を開き直しても隠れたままである（流れの AC。下の Gherkin） | C-31, REQ-TODO-11, REQ-TODO-29, DES-TODO-03, DES-TODO-23, DES-TODO-37 |
-| AC-06-06 | UC-06 | 結合 | 層2（Integration） | Must | 完了済みを隠す選択のとき、取得した一覧に完了済みは含まれない（期待結果は C-31） | C-31, DES-TODO-22, DES-TODO-28 |
+| AC-06-06 | UC-06 | 結合 | 層1 | Must | 完了済みを隠す選択のとき、取得した一覧に完了済みは含まれない（期待結果は C-31） | C-31, DES-TODO-22, DES-TODO-28 |
 | AC-06-07 | UC-06-A2 | 結合 | 層2（Integration） | Must | 完了済みの表示の選択に未知の値を送ると、400 と `MALFORMED_REQUEST` で拒否され、選択は変わらない（期待結果は C-61） | C-61, DES-TODO-29, DES-TODO-34, OI-013, OI-018 |
 | AC-06-08 | UC-06 | 結合 | 層2（E2E: display） | Must | 持ち主が画面で完了済みを隠すと、完了のタスクの行が一覧から消え、未完了と期限切れのタスクの行は表示されたままである（期待結果は C-31） | C-31, REQ-TODO-07, REQ-TODO-10, DES-TODO-03, DES-TODO-23 |
 | AC-06-09 | UC-06 | 結合 | 層2（E2E: display） | Must | 完了済みを隠している画面で、持ち主が完了済みを表示に戻すと、完了のタスクの行が一覧に現れる（期待結果は C-30） | C-30, REQ-TODO-07, REQ-TODO-10, DES-TODO-03, DES-TODO-24 |
@@ -348,7 +348,7 @@ Feature: タスク管理（登録・完了・一覧と期限）
 | C-50 | F1-L1、F1-L2、F1-L3 | 受理 | REQ-TODO-01, REQ-TODO-15, DES-TODO-05 |
 | C-51 | F1-L4 | 拒否。400 と `TITLE_TOO_LONG`。本文は ProblemDetail で、`status` は 400、`codes` は `["TITLE_TOO_LONG"]`。同時にほかの理由があれば、その理由コードを足した集合にする。何も保存しない | REQ-TODO-12, REQ-TODO-15, DES-TODO-12, DES-TODO-25, DES-TODO-30, DES-TODO-32, OI-001, OI-018 |
 | C-52 | F1-L5、F1-L6 | 拒否。400 と `TITLE_BLANK`。本文は ProblemDetail で、`status` は 400、`codes` は `["TITLE_BLANK"]`。同時にほかの理由があれば、その理由コードを足した集合にする。何も保存しない | REQ-TODO-12, REQ-TODO-16, DES-TODO-12, DES-TODO-25, DES-TODO-30, DES-TODO-31, OI-001, OI-018 |
-| C-53 | F1-L7、F1-L9 | F1-L7 は拒否、F1-L9 は前後を除いて保存 | REQ-TODO-17, REQ-TODO-31, OI-017 |
+| C-53 | F1-L7、F1-L9 | F1-L7 は拒否。400 と `TITLE_BLANK`。本文は ProblemDetail で、`status` は 400、`codes` は `["TITLE_BLANK"]`。同時にほかの理由があれば、その理由コードを足した集合にする。何も保存しない。F1-L9 は前後を除いて保存 | REQ-TODO-12, REQ-TODO-16, REQ-TODO-17, REQ-TODO-31, DES-TODO-12, DES-TODO-25, DES-TODO-30, DES-TODO-31, OI-001, OI-017, OI-018 |
 | C-54 | F1-L8、F1-L10 | 前後の空白を除いて保存。途中の空白は残る | REQ-TODO-17, DES-TODO-09 |
 | C-55 | F1-L12 | 受理。除いた後の値を保存 | REQ-TODO-15, REQ-TODO-17, DES-TODO-09, OI-004 |
 | C-56 | F2-L5、F2-L6 | 拒否。400 と `DUE_DATE_INVALID`。本文は ProblemDetail で、`status` は 400、`codes` は `["DUE_DATE_INVALID"]`。同時にほかの理由があれば、その理由コードを足した集合にする。何も保存しない | REQ-TODO-12, REQ-TODO-19, DES-TODO-07, DES-TODO-25, DES-TODO-30, DES-TODO-33, OI-005, OI-018 |

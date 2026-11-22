@@ -32,7 +32,7 @@ import java.util.TimeZone
  * 永続化アダプタ（MyBatis + Flyway + MySQL）の結合テスト（層2 Integration）。Testcontainers の実 MySQL を使う。
  * このテストは、TRS の AC に紐づかない技術的な不変条件（行の往復、時刻の精度、CHECK 制約、迂回した行の読み込み拒否）を確かめる。
  * AC に紐づく保存と読み戻しは、HTTP を通すテスト（`TaskApiHttpTest` など）が受け持つため、層2の対応表は変えず、テスト名に AC 番号を付けない。
- * ここは、同じ呼び出し先を 3 通り以上の結果で確かめないよう、実 DB でしか確かめられないこと（保存と読み戻し、時刻の精度、日付の扱い、上書き、CHECK 制約とその迂回）に絞る。
+ * ここは、同じ呼び出し先の並び・状態の結果を 2 通り以下にするよう、実 DB でしか確かめられないこと（保存と読み戻し、時刻の精度、日付の扱い、上書き、CHECK 制約とその迂回）に絞る。
  * 保存するタスクは、上書きのテストを除き、状態を完了に統一する。ほかの結果は、次のテストが実 DB で確かめる。
  * - 未完了の保存と読み戻し: `TaskOperationHttpTest`・`TaskApiHttpTest`（登録した後と、未完了に戻した後の一覧。AC-03-04）。状態の写像は層1の `TaskRowTest` も確かめる。
  * - 存在しない識別子: `TaskOperationHttpTest` の AC-02-03・AC-03-03（404）。層1の `MyBatisTaskRepositoryTest` は null を確かめる。

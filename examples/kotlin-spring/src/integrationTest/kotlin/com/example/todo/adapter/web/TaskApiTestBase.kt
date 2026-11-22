@@ -16,12 +16,11 @@ import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.client.RestTestClient
 import java.time.Clock
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-/** テストが進められる時計。`Clock.fixed` は進められないので、時刻を持つ時計を自作する。 */
+/** テストが時刻を差し替えられる時計。`Clock.fixed` は時刻を差し替えられないので、時刻を持つ時計を自作する。 */
 class MutableClock(private var now: Instant, private val zone: ZoneId = ZoneOffset.UTC) : Clock() {
     override fun getZone(): ZoneId = zone
 
@@ -32,14 +31,10 @@ class MutableClock(private var now: Instant, private val zone: ZoneId = ZoneOffs
     fun set(instant: Instant) {
         now = instant
     }
-
-    fun advance(duration: Duration) {
-        now = now.plus(duration)
-    }
 }
 
 /**
- * 本番の `Clock` の代わりに、テストが固定・進行できる時計を使う。
+ * 本番の `Clock` の代わりに、テストが固定できる時計を使う。
  * Spring Boot は既定で bean の上書きを禁止しているので、本番の `clock` とは別名の `@Primary` で入れる。
  */
 @TestConfiguration(proxyBeanMethods = false)
@@ -62,7 +57,8 @@ data class TaskJson(val id: Long, val title: String, val dueDate: String?, val s
 
 /**
  * HTTP と実 DB を通す Integration（層2）の共通部分。MockMvc に束ねた `RestTestClient` で、Controller → Service → MyBatis → MySQL（Testcontainers）まで通す。
- * 保存の確認は、HTTP で登録し、HTTP で一覧を取り直す形で行う（メモリだけの実装を通さない）。
+ * 保存の確認は、HTTP で登録し、HTTP で一覧を取り直す形で行う（メモリだけの実装を通さない）。拒否のあとの「何も登録されない」だけは、DB の行数で確かめる。
+ * 層2に置く入力と結果の絞り方は、実現例 02-2 の 1.2.1 にある。
  * 各テストの前に、タスクと完了済みの表示の選択を消し、時計を既定の時刻に戻す。
  */
 @SpringBootTest
@@ -122,6 +118,9 @@ abstract class TaskApiTestBase {
             .returnResult()
         return requireNotNull(result.responseBody)
     }
+
+    /** DB に保存されているタスクの行数。拒否のあとに何も登録されていないことを、一覧の応答ではなく DB で確かめるために使う。 */
+    protected fun storedTaskCount(): Int = requireNotNull(jdbc.queryForObject("SELECT COUNT(*) FROM task", Int::class.java))
 
     protected fun setVisibility(value: String): RestTestClient.ResponseSpec =
         client.put().uri("/settings/completed-visibility")

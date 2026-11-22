@@ -24,7 +24,7 @@
 | 仕様の正（SSOT） | [要件定義書 TODO-001](../requirements/TODO-001-task-management.md)（合意済み、2026-11-01）/ [基本設計書 TODO-001](../basic-design/TODO-001-task-management.md)（起草中）。要件にない値は Open Issues で決める |
 | 生成物 | [generated/TODO-001-task-management.md](./generated/TODO-001-task-management.md)（US、UC、AC、組合せ別の期待結果） |
 | 関連 TRS | なし |
-| 作成日 / 最終更新日 | 2026-11-01 / 2026-11-10 |
+| 作成日 / 最終更新日 | 2026-11-01 / 2026-11-22 |
 | 入力の合意者 | リポジトリのオーナー。要件定義書は 2026-11-01 に承認した。基本設計書は、オーナーの承認前である（2026-11-10 に AI が起草した） |
 
 ---
@@ -384,7 +384,7 @@ TRS の生成の試行（#285、#288）で、今の AC は 13 件の Then で本
 | AC-01-02 | `TaskConstraintTableTest::AC-01-02`, `TaskTitleTest::AC-01-02` | — | — | 実装済 |
 | AC-01-03 | `TaskConstraintTableTest::AC-01-03` | — | — | 実装済 |
 | AC-01-04 | `TaskConstraintTableTest::AC-01-04`, `TaskTitleTest::AC-01-04` | — | — | 実装済 |
-| AC-01-05 | `TaskConstraintTableTest::AC-01-05`, `TaskTitleTest::AC-01-05` | — | — | 実装済 |
+| AC-01-05 | `TaskConstraintTableTest::AC-01-05`, `TaskTitleTest::AC-01-05` | `TaskApiHttpTest::AC-01-05` | — | 実装済 |
 | AC-01-06 | `TaskConstraintTableTest::AC-01-06` | — | — | 実装済 |
 | AC-01-07 | `TaskConstraintTableTest::AC-01-07`, `TaskTitleTest::AC-01-07` | — | — | 実装済 |
 | AC-01-08 | `TaskConstraintTableTest::AC-01-08` | — | — | 実装済 |
@@ -395,10 +395,10 @@ TRS の生成の試行（#285、#288）で、今の AC は 13 件の Then で本
 | AC-01-13 | — | `TaskApiHttpTest::AC-01-13` | — | 実装済 |
 | AC-01-14 | `DueDateTest::AC-01-14`, `TaskConstraintTableTest::AC-01-14` | — | — | 実装済 |
 | AC-01-15 | — | `TaskApiHttpTest::AC-01-15` | — | 実装済 |
-| AC-01-16 | — | `TaskApiHttpTest::AC-01-16` | — | 実装済 |
-| AC-01-17 | — | `TaskApiHttpTest::AC-01-17` | — | 実装済 |
-| AC-01-18 | — | `TaskApiHttpTest::AC-01-18` | — | 実装済 |
-| AC-01-19 | — | `TaskApiHttpTest::AC-01-19` | — | 実装済 |
+| AC-01-16 | `TaskControllerTest::AC-01-16` | — | — | 実装済 |
+| AC-01-17 | `TaskControllerTest::AC-01-17` | `TaskApiHttpTest::AC-01-17` | — | 実装済 |
+| AC-01-18 | `ApiExceptionHandlerTest::AC-01-18` | `TaskApiHttpTest::AC-01-18` | — | 実装済 |
+| AC-01-19 | `TaskControllerTest::AC-01-19` | `TaskApiHttpTest::AC-01-19` | — | 実装済 |
 | AC-01-20 | — | `TaskListE2eTest::AC-01-20` | 探索対象 | 実装済 |
 | AC-01-21 | — | `TaskListE2eTest::AC-01-21` | 探索対象 | 実装済 |
 | AC-01-22 | — | `TaskListE2eTest::AC-01-22` | 探索対象 | 実装済 |
@@ -406,17 +406,17 @@ TRS の生成の試行（#285、#288）で、今の AC は 13 件の Then で本
 | AC-01-24 | — | `TaskApiHttpTest::AC-01-24` | — | 実装済 |
 | AC-01-25 | `TaskConstraintTableTest::AC-01-25`, `TaskTitleTest::AC-01-25` | — | — | 実装済 |
 | AC-01-26 | `DueDateTest::AC-01-26`, `TaskConstraintTableTest::AC-01-26` | — | — | 実装済 |
-| AC-01-27 | — | `TaskApiHttpTest::AC-01-27` | — | 実装済 |
-| AC-01-28 | — | `TaskApiHttpTest::AC-01-28` | — | 実装済 |
-| AC-01-29 | — | `TaskApiHttpTest::AC-01-29` | — | 実装済 |
+| AC-01-27 | `TaskControllerTest::AC-01-27` | `TaskApiHttpTest::AC-01-27` | — | 実装済 |
+| AC-01-28 | `TaskControllerTest::AC-01-28` | — | — | 実装済 |
+| AC-01-29 | `JacksonConfigurationTest::AC-01-29` | `TaskApiHttpTest::AC-01-29` | — | 実装済 |
 | AC-01-30 | — | `TaskApiHttpTest::AC-01-30` | — | 実装済 |
 | AC-01-31 | — | `TaskListE2eTest::AC-01-31` | 探索対象 | 実装済 |
 | AC-01-32 | — | `TaskListE2eTest::AC-01-32` | 探索対象 | 実装済 |
 | AC-01-33 | `DueDateTest::AC-01-33`, `TaskConstraintTableTest::AC-01-33` | — | — | 実装済 |
-| AC-01-34 | — | `TaskApiHttpTest::AC-01-34` | — | 実装済 |
+| AC-01-34 | `TaskControllerTest::AC-01-34` | `TaskApiHttpTest::AC-01-34` | — | 実装済 |
 | AC-01-35 | — | `TaskApiHttpTest::AC-01-35` | — | 実装済 |
 | AC-01-36 | `DueDateTest::AC-01-36`, `TaskConstraintTableTest::AC-01-36` | — | — | 実装済 |
-| AC-01-37 | — | `TaskApiHttpTest::AC-01-37` | — | 実装済 |
+| AC-01-37 | `TaskControllerTest::AC-01-37` | `TaskApiHttpTest::AC-01-37` | — | 実装済 |
 | AC-01-38 | `TaskConstraintTableTest::AC-01-38`, `TaskTitleTest::AC-01-38` | — | — | 実装済 |
 | AC-01-39 | `TaskConstraintTableTest::AC-01-39`, `TaskTitleTest::AC-01-39` | — | — | 実装済 |
 | AC-01-40 | `TaskConstraintTableTest::AC-01-40`, `TaskTitleTest::AC-01-40` | — | — | 実装済 |
@@ -428,9 +428,9 @@ TRS の生成の試行（#285、#288）で、今の AC は 13 件の Then で本
 | AC-02-05 | — | `TaskListE2eTest::AC-02-05` | 探索対象 | 実装済 |
 | AC-02-07 | — | `TaskOperationHttpTest::AC-02-07` | — | 実装済 |
 | AC-02-08 | `TaskConstraintTableTest::AC-02-08`, `TaskTest::AC-02-08` | — | — | 実装済 |
-| AC-02-09 | — | `TaskOperationHttpTest::AC-02-09` | — | 実装済 |
+| AC-02-09 | `TaskControllerTest::AC-02-09` | `TaskOperationHttpTest::AC-02-09` | — | 実装済 |
 | AC-02-10 | `TaskConstraintTableTest::AC-02-10` | — | — | 実装済 |
-| AC-02-11 | — | `TaskOperationHttpTest::AC-02-11` | — | 実装済 |
+| AC-02-11 | `TaskControllerTest::AC-02-11` | — | — | 実装済 |
 | AC-03-01 | `TaskConstraintTableTest::AC-03-01`, `TaskTest::AC-03-01` | — | — | 実装済 |
 | AC-03-02 | — | `TaskOperationHttpTest::AC-03-02` | — | 実装済 |
 | AC-03-03 | — | `TaskOperationHttpTest::AC-03-03` | — | 実装済 |
@@ -438,29 +438,29 @@ TRS の生成の試行（#285、#288）で、今の AC は 13 件の Then で本
 | AC-03-05 | — | `TaskOperationHttpTest::AC-03-05` | — | 実装済 |
 | AC-03-06 | `TaskConstraintTableTest::AC-03-06`, `TaskTest::AC-03-06` | — | — | 実装済 |
 | AC-03-07 | — | `TaskListE2eTest::AC-03-07` | 探索対象 | 実装済 |
-| AC-03-08 | — | `TaskOperationHttpTest::AC-03-08` | — | 実装済 |
+| AC-03-08 | `TaskControllerTest::AC-03-08` | `TaskOperationHttpTest::AC-03-08` | — | 実装済 |
 | AC-03-10 | `TaskConstraintTableTest::AC-03-10` | — | — | 実装済 |
-| AC-03-11 | — | `TaskOperationHttpTest::AC-03-11` | — | 実装済 |
+| AC-03-11 | `TaskControllerTest::AC-03-11` | — | — | 実装済 |
 | AC-04-01 | `TaskCategoryTest::AC-04-01` | — | — | 実装済 |
 | AC-04-02 | `TaskCategoryTest::AC-04-02` | — | — | 実装済 |
-| AC-04-03 | — | `TaskListHttpTest::AC-04-03` | — | 実装済 |
-| AC-04-04 | `TaskCategoryTest::AC-04-04` | `TaskListHttpTest::AC-04-04` | — | 実装済 |
+| AC-04-03 | `TaskControllerTest::AC-04-03` | — | — | 実装済 |
+| AC-04-04 | `TaskCategoryTest::AC-04-04` | — | — | 実装済 |
 | AC-04-05 | — | `TaskListE2eTest::AC-04-05` | 探索対象 | 実装済 |
-| AC-04-06 | — | `TaskListHttpTest::AC-04-06` | — | 実装済 |
+| AC-04-06 | `TaskControllerTest::AC-04-06` | — | — | 実装済 |
 | AC-05-01 | `TaskConstraintTableTest::AC-05-01`, `TaskListTest::AC-05-01` | — | — | 実装済 |
 | AC-05-02 | `TaskConstraintTableTest::AC-05-02`, `TaskListTest::AC-05-02` | — | — | 実装済 |
 | AC-05-03 | `TaskConstraintTableTest::AC-05-03`, `TaskListTest::AC-05-03`, `TaskTest::AC-05-03` | — | — | 実装済 |
 | AC-05-04 | `TaskConstraintTableTest::AC-05-04`, `TaskListTest::AC-05-04` | — | — | 実装済 |
 | AC-05-05 | `TaskConstraintTableTest::AC-05-05`, `TaskListTest::AC-05-05` | — | — | 実装済 |
-| AC-05-06 | — | `TaskListHttpTest::AC-05-06` | — | 実装済 |
+| AC-05-06 | `TaskControllerTest::AC-05-06` | — | — | 実装済 |
 | AC-05-07 | `TaskConstraintTableTest::AC-05-07`, `TaskListTest::AC-05-07` | — | — | 実装済 |
-| AC-05-08 | — | `TaskListHttpTest::AC-05-08` | — | 実装済 |
+| AC-05-08 | `TaskControllerTest::AC-05-08` | — | — | 実装済 |
 | AC-06-01 | `TaskConstraintTableTest::AC-06-01`, `TaskListTest::AC-06-01` | — | — | 実装済 |
 | AC-06-02 | `TaskConstraintTableTest::AC-06-02`, `TaskListTest::AC-06-02` | — | — | 実装済 |
 | AC-06-03 | `TaskConstraintTableTest::AC-06-03` | `TaskListHttpTest::AC-06-03` | — | 実装済 |
 | AC-06-04 | — | `TaskListHttpTest::AC-06-04` | — | 実装済 |
 | AC-06-05 | — | `TaskListE2eTest::AC-06-05` | 探索対象 | 実装済 |
-| AC-06-06 | — | `TaskListHttpTest::AC-06-06` | — | 実装済 |
+| AC-06-06 | `TaskControllerTest::AC-06-06` | — | — | 実装済 |
 | AC-06-07 | — | `TaskListHttpTest::AC-06-07` | — | 実装済 |
 | AC-06-08 | — | `TaskListE2eTest::AC-06-08` | 探索対象 | 実装済 |
 | AC-06-09 | — | `TaskListE2eTest::AC-06-09` | 探索対象 | 実装済 |
@@ -512,6 +512,7 @@ UC の番号が、AC ID の `xx` になる。この TRS は `01`〜`06` を使�
 | 2026-11-10 | 2.1 | AI | #295 で、生成の試行が挙げた 5 つの候補を、入力の文書に当てた生成の規則（03-2 §3）で確かめた。画面での完了済みの切り替えは、入力の文書から生成された（AC-06-08、AC-06-09）。期限切れのタスクの完了と、期限を過ぎた完了済みを戻す操作は、4 に案の行を足して再生成した（AC-02-10、AC-02-11、AC-03-10、AC-03-11、C-71、C-72）。同じタイトルのタスクの操作は、既存の AC-01-13 と、AC-02-01 の C-20 に当たるので、足していない。既存の AC と制約は変えていない。入力の文書も変えていない。この 7 の表に、足した AC の行を足した。OI-019（完了済みを隠している間に完了にした行）を起票した。AC は足していない。4 の組合せ生成方針に、「状態の遷移は、期限を過ぎた水準（F2 あり × F4-L3・F4-L4）とも組み合わせる」の行を、AI の案として足した。この行へのオーナーの合意は、TRS を Approved に戻すときに、基本設計書・F9 と合わせて得る。マージは合意としない | — |
 | 2026-11-10 | 2.2 | AI | 生成物のファイルの行を、03-1 §3 の 3 種に限った（#309、03-2 §4）。次の文章は、入力に同じ値があるので、生成物のファイルから消した。「応答の形と値の約束」の 5 点（4 点は DES-TODO-25〜27・30、OI-001・006・010・018 にあり、5 点目の現在時刻の固定は 02-3 にある）、「補足」の 2 点（OI-008・009・017、C-42・C-45）、「AC-02-06 は使わない」（7.1 にある）。次の文章は、入力にないので、移した。「検証層の選び方」の層の表と E2E の領域と理由の表は、実現例の文書（02-2、02-3）へ移した（E2E の理由は 02-3 §1.3 の PR の審査記載に当たる）。「補足」の、時計を進めて登録時刻を異ならせるテストの作り方も、02-2 へ移した。UC の採番の注記は、このファイルの 7.2 へ移した。生成物のファイルの冒頭と節の注記は、テンプレートの定型文に合わせた。AC・UC・制約・US の行と Gherkin は変えていない | — |
 | 2026-11-15 | 2.3 | AI | レビューチェックリストを、標準のテンプレートの項目に合わせた（03 §5。13 項目から 18 項目へ。全項目が未チェックのまま）。生成物のファイルの 5.2 の注記の 1 行を、テンプレートの定型文に合わせた。AC・UC・制約の番号と、Open Issues は変えていない | — |
+| 2026-11-22 | 2.4 | AI | 01 §3 と 03-2 §3 の GR3 に反する検証層を、生成の誤りとして再生成した（#353、03-2 §4）。入力の文書は変えていない。値の妥当性を確かめる AC は層1にし、層2（Integration）には、拒否に至る水準ごとの代表を 1 つずつ置いた。層2（Integration）から層1にした AC は、AC-01-16・AC-01-28・AC-02-11・AC-03-11・AC-04-03・AC-04-06・AC-05-06・AC-05-08・AC-06-06 と、層1、層2 から層1にした AC-04-04 である。層2（Integration）から、層1と層2（Integration）にした AC は、AC-01-17・AC-01-18・AC-01-19・AC-01-27・AC-01-29・AC-01-34・AC-01-37・AC-02-09・AC-03-08 である。層1から、層1と層2（Integration）にした AC は、AC-01-05 である。組合せ別の期待結果 C-53 は、拒否の応答と、何も保存しないことが無かった（GR2、GR4）ので、C-52・C-65 と同じ形に再生成した。AC-01-05 の根拠に DES-TODO-30・DES-TODO-31 が入った。AC の文・番号、UC、Open Issues は変えていない。この 7 の表は、テストから作り直した | — |
 
 ---
 
