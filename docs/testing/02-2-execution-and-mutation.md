@@ -54,7 +54,7 @@ flowchart TB
   - コンテキストを起動しない型だけの利用は許可する。
   - ブラウザ操作は E2E の置き場所にだけ置き、層1と Integration には入れない。
 - テスト保護の検査（無効化の検出）とトレーサビリティ検査（AC 紐づけ）は、層1・Integration・E2E のすべてを対象にする。Integration と E2E が検査から外れていないことは、それぞれのテストで確認する。
-- AC に紐づく Integration・E2E のテスト名は、層1と同じく先頭に `AC-xx-yy` を置く（03-1 §1）。
+- AC に紐づく Integration・E2E のテスト名は、層1と同じく、03-1 §1 の書式で AC の ID を付ける。
 
 ### 1.3 DB を含む Integration
 
