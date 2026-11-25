@@ -14,7 +14,17 @@ class TestProtectionTest : StringSpec({
     // 承認済みの無効化。ファイル名を、理由・期限つきで列挙する。現在は 0 件。
     val allowed = emptySet<String>()
 
-    val tests = Konsist.scopeFromTest().files.filterNot { it.name == "TestProtectionTest" }
+    // 検査から外す置き場（02-2 §1.4）は、このファイル自身の 1 ファイルだけである。
+    // ① 理由: このファイルは検査対象の記法（@Disabled、xdescribe 等）を、テスト名とコメントに含むため、
+    //    走査すると常に失敗する。ファイル名でなく src/test 内のパスで特定し、同名の別ファイルを巻き込まない。
+    // ② 取り違えの検査: 下の「除外は…だけ」と「除外の判定は…」のテストが、除外が広がると失敗させる。
+    // ③ 承認の記録: この除外は、CODEOWNERS の承認を経た PR で追加した。追加・変更も同じ承認を要する。
+    val selfPath = "/src/test/kotlin/com/example/architecture/TestProtectionTest.kt"
+    fun isExcluded(path: String) = path.endsWith(selfPath)
+
+    val allFiles = Konsist.scopeFromTest().files
+    val excluded = allFiles.filter { isExcluded(it.path) }
+    val tests = allFiles.filterNot { isExcluded(it.path) }
 
     val annotationRegex = Regex("""@(Disabled\w*|Ignore[d]?)\b""")
     // Kotest: xdescribe / xcontext / xit / xtest / xgiven / xwhen / xthen、テスト名先頭の "!"、enabled = false
@@ -30,6 +40,22 @@ class TestProtectionTest : StringSpec({
 
     "E2E（src/e2eTest）も検査対象に含まれる（source set の分離で検査から外れない）" {
         tests.any { "/src/e2eTest/" in it.path } shouldBe true
+    }
+
+    "除外は TestProtectionTest 自身の 1 ファイルだけで、ほかのテストを巻き込まない（02-2 §1.4 の取り違えの検査）" {
+        excluded.map { it.path.substringAfterLast("/src/") } shouldBe listOf("test/kotlin/com/example/architecture/TestProtectionTest.kt")
+        tests.size shouldBe allFiles.size - 1
+        // 同じ architecture の検査ファイルと、層1のほかのテストが走査対象に残っている
+        tests.any { "/src/test/kotlin/com/example/architecture/" in it.path } shouldBe true
+        tests.any { "/src/test/" in it.path && "/architecture/" !in it.path } shouldBe true
+    }
+
+    "除外の判定は、同名でも別の置き場のファイルに効かない" {
+        isExcluded("/p/src/test/kotlin/com/example/architecture/TestProtectionTest.kt") shouldBe true
+        isExcluded("/p/src/integrationTest/kotlin/com/example/architecture/TestProtectionTest.kt") shouldBe false
+        isExcluded("/p/src/e2eTest/kotlin/com/example/TestProtectionTest.kt") shouldBe false
+        isExcluded("/p/src/main/kotlin/com/example/TestProtectionTest.kt") shouldBe false
+        isExcluded("/p/src/test/kotlin/com/example/architecture/PitestExclusionTest.kt") shouldBe false
     }
 
     "無効化アノテーション（@Disabled / @Ignore 等）がない" {
